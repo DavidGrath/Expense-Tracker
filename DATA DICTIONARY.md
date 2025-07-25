@@ -47,10 +47,8 @@
 * AccountID: Long
 * Amount: Double
 * CurrencyCode: String
-* Description: String
 * ReferenceNumber: String?
 * DebitOrCredit: Boolean
-* PrimaryCategory: String
 * CreatedAt: String
 * CreatedAtTimezone: String
 * RecordedAt: String
@@ -58,40 +56,32 @@
 
 **PurchaseItem**
 * ID: Long
-* Transaction: Long
-* Price: Double
-* Brand: String
+* TransactionID: Long
+* Amount: Double
+* Brand: String?
 * Quantity: Int = 1
 * CurrencyCode: String
 * Description: String
 * Variation: String
 * ReferenceNumber: String?
-* PrimaryCategory: String
+* PrimaryCategoryID: Long
 * CreatedAt: String
 * CreatedAtTimezone: String
 
-**CustomCategory**
+**Category**
 * ID: Long
 * ProfileID: Long
-* Name: String
+* StringID: String?
+* IsCustom: Boolean
+* Name: String?
 * CreatedAt: String
 * CreatedAtTimezone: String
 
-**TransactionCategories**  
-* ID: Long
-* TransactionID: Long
-* IsCustom: Boolean
-* Category: String
-* CustomCategoryID: Long
-* CreatedAt: String
-* CreatedAtTimezone: String
 
 **PurchaseItemCategories**
 * ID: Long
 * PurchaseItemID: Long
-* IsCustom: Boolean
-* Category: String
-* CustomCategoryID: Long
+* CategoryID: Long
 * CreatedAt: String
 * CreatedAtTimezone: String
 
