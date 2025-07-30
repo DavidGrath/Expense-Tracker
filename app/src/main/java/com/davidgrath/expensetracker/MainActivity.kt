@@ -10,10 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
 import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
-import com.davidgrath.expensetracker.entities.ui.Category
-import com.davidgrath.expensetracker.entities.ui.PurchaseItem
-import com.davidgrath.expensetracker.entities.ui.Transaction
-import com.davidgrath.expensetracker.ui.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.MainViewModel
 import com.davidgrath.expensetracker.ui.TransactionsFragment

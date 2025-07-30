@@ -1,11 +1,10 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.fragment.app.FragmentActivity
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMainFragment
 import java.math.BigDecimal
 
 class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener {
@@ -23,7 +22,9 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
             if(extras != null) {
                 val amount = extras.getString(ARG_INITIAL_AMOUNT)
                 val bd = if(amount != null) BigDecimal(amount) else null
-                mainFragment = AddDetailedTransactionMainFragment.newInstance(bd, extras.getString(ARG_INITIAL_DESCRIPTION), extras.getInt(ARG_INITIAL_CATEGORY_ID))
+                mainFragment = AddDetailedTransactionMainFragment.newInstance(bd, extras.getString(
+                    ARG_INITIAL_DESCRIPTION
+                ), extras.getInt(ARG_INITIAL_CATEGORY_ID))
             } else {
                 mainFragment = AddDetailedTransactionMainFragment.newInstance()
             }
