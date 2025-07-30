@@ -17,7 +17,7 @@
 * Emergency
 * Savings
 * Fitness
-* Misc
+* Miscellaneous
 
 ## Entities
 

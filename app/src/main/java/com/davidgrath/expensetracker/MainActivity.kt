@@ -1,19 +1,26 @@
 package com.davidgrath.expensetracker
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.View.OnClickListener
+import android.view.View.OnLongClickListener
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
+import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
+import com.davidgrath.expensetracker.entities.db.TransactionDb
+import com.davidgrath.expensetracker.entities.ui.Category
+import com.davidgrath.expensetracker.entities.ui.PurchaseItem
 import com.davidgrath.expensetracker.entities.ui.Transaction
+import com.davidgrath.expensetracker.ui.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.MainViewModel
 import com.davidgrath.expensetracker.ui.TransactionsFragment
 import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 
-class MainActivity : FragmentActivity(), OnClickListener, AddTransactionDialogFragment.AddTransactionListener {
+class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
 
     lateinit var activityMainBinding: ActivityMainBinding
     lateinit var transactionsFragment: TransactionsFragment
@@ -37,6 +44,7 @@ class MainActivity : FragmentActivity(), OnClickListener, AddTransactionDialogFr
             transactionsFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_TRANSACTIONS) as TransactionsFragment
         }
         activityMainBinding.fabMain.setOnClickListener(this)
+        activityMainBinding.fabMain.setOnLongClickListener(this)
         setContentView(activityMainBinding.root)
     }
 
@@ -55,7 +63,33 @@ class MainActivity : FragmentActivity(), OnClickListener, AddTransactionDialogFr
         }
     }
 
-    override fun onAddTransaction(amount: BigDecimal, description: String, category: String) {
-        viewModel.addToList((Transaction(1, amount, "USD", description, true, category, ZonedDateTime.now(), ZonedDateTime.now())))
+    override fun onLongClick(v: View?): Boolean {
+        v?.let {
+            when(v) {
+                activityMainBinding.fabMain -> {
+                    val intent = Intent(this, AddDetailedTransactionActivity::class.java)
+                    startActivity(intent)
+                }
+            }
+        }
+        return true
+    }
+
+    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Int) {
+        val app = application as ExpenseTracker
+        println("Categories: ${app.tempDb.categories}")
+        val category = app.tempDb.categories.find { it.id.toInt() == categoryId }!!
+
+        var transaction = TransactionDb(1, amount, "USD", true, ZonedDateTime.now(), ZonedDateTime.now())
+        app.addTransaction(transaction)
+        val purchaseItem = PurchaseItemDb(transaction.id, amount, description, category.id)
+        app.addPurchaseItem(purchaseItem)
+    }
+
+    override fun onGoToDetails(amount: BigDecimal?, description: String, categoryId: Int) {
+        val bundle = AddDetailedTransactionActivity.createBundle(amount?.toString(), description, categoryId)
+        val intent = Intent(this, AddDetailedTransactionActivity::class.java)
+        intent.putExtras(bundle)
+        startActivity(intent)
     }
 }
