@@ -58,4 +58,10 @@ class AddDetailedTransactionActivityTest {
     fun givenImageThresholdReachedWhenAddMoreThenFail() {
 
     }
+
+    @Test
+    @Ignore("Not ready yet")
+    fun twoDecimalPlacesTest() {
+
+    }
 }

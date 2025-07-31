@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker
+package com.davidgrath.expensetracker.ui.main
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,13 +7,10 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.databinding.RecyclerviewPurchaseItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
-import com.davidgrath.expensetracker.entities.ui.PurchaseItem
-import com.davidgrath.expensetracker.entities.ui.Transaction
 import com.davidgrath.expensetracker.entities.ui.TransactionItem
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import java.text.DecimalFormat
-import java.text.SimpleDateFormat
 
 class PurchaseItemsAdapter(private var items: List<TransactionItem>): RecyclerView.Adapter<PurchaseItemsAdapter.SealedViewHolder>() {
 

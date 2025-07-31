@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.main
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.PurchaseItemsAdapter
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.ui.Category

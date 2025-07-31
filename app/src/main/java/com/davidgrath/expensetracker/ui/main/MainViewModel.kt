@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.main
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

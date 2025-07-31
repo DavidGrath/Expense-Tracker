@@ -1,17 +1,14 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.main
 
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.DialogInterface
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
 import com.davidgrath.expensetracker.entities.ui.Category
+import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import java.math.BigDecimal
 
 class AddTransactionDialogFragment: DialogFragment() {
@@ -42,7 +39,6 @@ class AddTransactionDialogFragment: DialogFragment() {
                     binding.editTextAddTransactionDescription.error = "Empty"
                 }
                 val categoryId = binding.spinnerAddTransactionCategory.selectedItemPosition
-                println("SelectedPos: $categoryId")
                 if(amount != null && description.isNotBlank()) {
                     listener?.onAddTransaction(amount, description, categoryId)
                     dismiss()

@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.entities.ui
 import java.math.BigDecimal
 
 data class AddTransactionPurchaseItem(
+    val id: Int,
     val amount: BigDecimal? = null,
     val description: String? = null,
     val category: Category = Category.TEMP_DEFAULT_CATEGORIES.find { it.stringId == "miscellaneous" }!!,

@@ -15,7 +15,6 @@ import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionM
 import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
-import com.davidgrath.expensetracker.ui.AddTransactionPurchaseItemRecyclerAdapter
 import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 import java.util.Locale
@@ -48,16 +47,35 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        adapter = AddTransactionPurchaseItemRecyclerAdapter(emptyList(), this)
+        adapter = AddTransactionPurchaseItemRecyclerAdapter(this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
-        viewModel.purchaseItemsLiveData.observe(viewLifecycleOwner) { list ->
-            Log.d("LongList", list.toString())
-            adapter.setItems(list)
+        viewModel.purchaseItemsLiveData.observe(viewLifecycleOwner) { listPair ->
+            val list = listPair.first
+            val position = listPair.second and AddDetailedTransactionViewModel.POSITION_MASK
+            val event = listPair.second and AddDetailedTransactionViewModel.EVENT_MASK
+            when(event) {
+                AddDetailedTransactionViewModel.EVENT_ALL -> {
+                    adapter.submitList(list)
+                    adapter.notifyDataSetChanged()
+                }
+                AddDetailedTransactionViewModel.EVENT_INSERT -> {
+                    adapter.submitList(list)
+                    adapter.notifyItemInserted(position)
+                }
+                AddDetailedTransactionViewModel.EVENT_DELETE -> {
+                    adapter.submitList(list)
+                    adapter.notifyItemRemoved(position)
+                }
+                AddDetailedTransactionViewModel.EVENT_CHANGE -> {
+                    adapter.submitList(list)
+                    //No change to prevent EditText focus loss
+                }
+            }
         }
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
         viewModel.transactionTotalLiveData.observe(viewLifecycleOwner) { total ->
-            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%f", total)
+            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total)
         }
         binding.imageButtonAddDetailedTransactionDone.setOnClickListener(this)
     }
@@ -71,10 +89,10 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
                 binding.imageButtonAddDetailedTransactionDone -> {
                     //TODO Validate items
                     val app = requireContext().applicationContext as ExpenseTracker
-                    val total = viewModel.purchaseItems.map { it.amount?: BigDecimal.ZERO }.reduceOrNull { acc, bigDecimal -> acc.plus(bigDecimal) }?: BigDecimal.ZERO
+                    val total = viewModel.purchaseItems.first.map { it.amount?: BigDecimal.ZERO }.reduceOrNull { acc, bigDecimal -> acc.plus(bigDecimal) }?: BigDecimal.ZERO
                     val transaction = TransactionDb(0, total, currencyCode, true, ZonedDateTime.now(), ZonedDateTime.now())
                     app.addTransaction(transaction)
-                    for(item in viewModel.purchaseItems) {
+                    for(item in viewModel.purchaseItems.first) {
                         val purchaseItem = PurchaseItemDb(transaction.id, item.amount!!, item.description!!, item.category.id, item.brand)
                         app.addPurchaseItem(purchaseItem)
                     }
@@ -89,7 +107,6 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
     override fun onItemChanged(position: Int, item: AddTransactionPurchaseItem) {
         viewModel.onItemChanged(position, item)
-        println(Thread.currentThread().stackTrace.map { it.methodName + " " + it.className })
     }
 
     override fun onItemDeleted(position: Int) {

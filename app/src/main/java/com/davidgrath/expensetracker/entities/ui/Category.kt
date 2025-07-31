@@ -12,9 +12,6 @@ data class Category(
 ) {
     companion object {
         val TEMP_DEFAULT_CATEGORIES = Utils.CORE_CATEGORIES.mapIndexed { index, s ->
-            Log.d("CateDefault", Utils.CATEGORY_NAMES_DEFAULT.toString())
-            Log.d("CatIDDefault", Utils.CATEGORY_IDS_DEFAULT.toString())
-            Log.d("CatIDCatID", s)
             Category(index.toLong(), s, Utils.CATEGORY_NAMES_DEFAULT[s]!!, Utils.CATEGORY_IDS_DEFAULT[s]!!)
         }
     }
