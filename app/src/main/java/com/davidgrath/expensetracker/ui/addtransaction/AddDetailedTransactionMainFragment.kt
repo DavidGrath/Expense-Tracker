@@ -93,7 +93,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
                     val transaction = TransactionDb(0, total, currencyCode, true, ZonedDateTime.now(), ZonedDateTime.now())
                     app.addTransaction(transaction)
                     for(item in viewModel.purchaseItems.first) {
-                        val purchaseItem = PurchaseItemDb(transaction.id, item.amount!!, item.description!!, item.category.id, item.brand)
+                        val purchaseItem = PurchaseItemDb(0, transaction.id, item.amount!!, item.description!!, item.category.id, item.brand)
                         app.addPurchaseItem(purchaseItem)
                     }
                     listener?.tempOnFinished()

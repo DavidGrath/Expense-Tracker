@@ -6,6 +6,8 @@ import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 
 class ExpenseTracker: Application() {
+
+    var incrementId = 0L
     data class TempDb(
         val transactions: MutableList<TransactionDb>,
         val purchaseItems: MutableList<PurchaseItemDb>,
@@ -17,15 +19,16 @@ class ExpenseTracker: Application() {
     val tempListeners = mutableListOf<TempDbListener>()
 
     var tempDb = TempDb(mutableListOf(), mutableListOf())
-    fun addTransaction(transactionDb: TransactionDb) {
-        tempDb.transactions += transactionDb
+    fun addTransaction(transactionDb: TransactionDb): Long {
+        tempDb.transactions += transactionDb.copy(id = ++incrementId)
         for(listener in tempListeners) {
             listener.onDbChanged(tempDb)
         }
+        return incrementId
     }
 
     fun addPurchaseItem(purchaseItemDb: PurchaseItemDb) {
-        tempDb.purchaseItems += purchaseItemDb
+        tempDb.purchaseItems += purchaseItemDb.copy(id = ++incrementId)
         for(listener in tempListeners) {
             listener.onDbChanged(tempDb)
         }

@@ -76,9 +76,9 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
         val app = application as ExpenseTracker
         val category = app.tempDb.categories.find { it.id.toInt() == categoryId }!!
 
-        var transaction = TransactionDb(1, amount, "USD", true, ZonedDateTime.now(), ZonedDateTime.now())
-        app.addTransaction(transaction)
-        val purchaseItem = PurchaseItemDb(transaction.id, amount, description, category.id)
+        var transaction = TransactionDb(0, amount, "USD", true, ZonedDateTime.now(), ZonedDateTime.now())
+        val id = app.addTransaction(transaction)
+        val purchaseItem = PurchaseItemDb(0, id, amount, description, category.id)
         app.addPurchaseItem(purchaseItem)
     }
 
