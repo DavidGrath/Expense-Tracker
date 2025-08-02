@@ -63,4 +63,30 @@ class AddDetailedTransactionActivityTest {
     fun twoDecimalPlacesTest() {
 
     }
+
+    @Test
+    @Ignore("Not ready yet")
+    fun givenDetailedTransactionInDraftWhenStartActivityThenTransactionEditRestored() {
+        //Open Add Detailed Transaction Screen
+        //Add An Item with all details
+        //Close App
+        //Open App
+        //Assert Screen is present with same details
+        //This might end up becoming a toggleable preference like: "restoreDraftTransactionWhenReopenApplication"
+    }
+
+    @Test
+    @Ignore("Not ready yet")
+    fun givenUserSelectsSameImageMultipleTimesForSameItemThenImageOnlyAddedOnce() {
+        //Open Image from system
+        //Open same image
+    }
+
+
+    @Test
+    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsTThenImageOnlyCopiedOnceToInternalStorage() {
+        //Open Image from system
+        //Add new item
+        //Open same
+    }
 }

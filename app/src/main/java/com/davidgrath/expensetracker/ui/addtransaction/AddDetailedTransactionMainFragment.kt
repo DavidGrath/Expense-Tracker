@@ -1,11 +1,13 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,7 +24,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
 
     interface AddDetailedTransactionMainListener {
-        fun tempOnFinished()
+        fun onFinished()
     }
 
     private var listener: AddDetailedTransactionMainListener? = null
@@ -40,7 +42,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentAddDetailedTransactionMainBinding.inflate(inflater, container, false)
-        viewModel = ViewModelProvider.create(viewModelStore, ViewModelProvider.NewInstanceFactory()).get(AddDetailedTransactionViewModel::class.java)
+        viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
         return binding.root
     }
 
@@ -70,6 +72,10 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
                     adapter.submitList(list)
                     //No change to prevent EditText focus loss
                 }
+                AddDetailedTransactionViewModel.EVENT_CHANGE_INVALIDATE -> {
+                    adapter.submitList(list)
+                    adapter.notifyItemChanged(position)
+                }
             }
         }
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
@@ -87,15 +93,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
                 }
                 binding.imageButtonAddDetailedTransactionDone -> {
                     //TODO Validate items
-                    val app = requireContext().applicationContext as ExpenseTracker
-                    val total = viewModel.purchaseItems.first.map { it.amount?: BigDecimal.ZERO }.reduceOrNull { acc, bigDecimal -> acc.plus(bigDecimal) }?: BigDecimal.ZERO
-                    val transaction = TransactionDb(0, total, currencyCode, true, ZonedDateTime.now(), ZonedDateTime.now())
-                    app.addTransaction(transaction)
-                    for(item in viewModel.purchaseItems.first) {
-                        val purchaseItem = PurchaseItemDb(0, transaction.id, item.amount!!, item.description!!, item.category.id, item.brand)
-                        app.addPurchaseItem(purchaseItem)
-                    }
-                    listener?.tempOnFinished()
+                    listener?.onFinished()
                 }
                 else -> {
 
@@ -110,6 +108,14 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
     override fun onItemDeleted(position: Int) {
         viewModel.onItemDeleted(position)
+    }
+
+    override fun onRequestAddImage(position: Int, itemId: Int) {
+        viewModel.getImageItemId = itemId
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.type = "*/*"
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
+        requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
     }
 
     companion object {

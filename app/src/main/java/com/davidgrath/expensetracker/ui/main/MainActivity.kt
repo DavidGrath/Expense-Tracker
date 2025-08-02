@@ -7,13 +7,9 @@ import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
-import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
-import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
-import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
-import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 
 class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
@@ -73,13 +69,7 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
     }
 
     override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Int) {
-        val app = application as ExpenseTracker
-        val category = app.tempDb.categories.find { it.id.toInt() == categoryId }!!
 
-        var transaction = TransactionDb(0, amount, "USD", true, ZonedDateTime.now(), ZonedDateTime.now())
-        val id = app.addTransaction(transaction)
-        val purchaseItem = PurchaseItemDb(0, id, amount, description, category.id)
-        app.addPurchaseItem(purchaseItem)
     }
 
     override fun onGoToDetails(amount: BigDecimal?, description: String, categoryId: Int) {

@@ -87,11 +87,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <androidx.recyclerview.widget.RecyclerView
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1" />
+<!--        <androidx.recyclerview.widget.RecyclerView-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="56dp"-->
+<!--            android:layout_weight="1" />-->
         <ImageView
+            android:id="@+id/temp_image_view_add_detailed_transaction_item_first_image"
+            android:layout_width="56dp"
+            android:layout_height="56dp"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+        <ImageView
+            android:id="@+id/image_view_add_detailed_transaction_item_add_image"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:src="@drawable/baseline_add_photo_alternate_24"/>

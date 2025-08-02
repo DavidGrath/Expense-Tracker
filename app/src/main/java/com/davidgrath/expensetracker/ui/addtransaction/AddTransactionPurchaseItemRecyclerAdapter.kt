@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
+import android.net.Uri
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -10,6 +11,7 @@ import android.widget.AdapterView.OnItemSelectedListener
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
@@ -39,6 +41,7 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
     interface AddTransactionPurchaseItemRecyclerListener {
         fun onItemChanged(position: Int, item: AddTransactionPurchaseItem)
         fun onItemDeleted(position: Int)
+        fun onRequestAddImage(position: Int, itemId: Int)
     }
 
 
@@ -145,6 +148,18 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
                     }
                 }
                 textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newDescriptionWatcher
+
+                if(_item.images.size > 0) {
+                    val imageUri = _item.images[0]
+                    Glide.with(holder.binding.root)
+                        .load(Uri.parse(imageUri))
+                        .centerCrop()
+                        .into(binding.tempImageViewAddDetailedTransactionItemFirstImage)
+                }
+                binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
+                    listener?.onRequestAddImage(absPosition, _item.id)
+                }
+
             }
         }
     }
