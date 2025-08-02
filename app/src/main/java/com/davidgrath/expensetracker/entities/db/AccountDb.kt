@@ -12,5 +12,6 @@ data class AccountDb(
     val referenceNumber: String, //I could probably make a better name for this
     val name: String,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

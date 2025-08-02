@@ -2,6 +2,6 @@ package com.davidgrath.expensetracker.entities.ui
 
 data class TransactionItem(
     val transactionOrItem: Boolean,
-    val transaction: Transaction? = null,
-    val purchaseItem: PurchaseItem? = null
+    val transaction: TransactionUi? = null,
+    val purchaseItem: PurchaseItemUi? = null
 )

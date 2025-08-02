@@ -15,5 +15,6 @@ data class FinancialInstitutionCardDb(
     val expMonth: Int,
     val expYear: Int,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

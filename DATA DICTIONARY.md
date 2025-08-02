@@ -24,8 +24,9 @@
 **Profile**
 * ID: Long
 * Name: String
-* StringID: String
-* CreatedAt: String - An ISO8601 Timestamp
+* StringID: String - Meant for the SharedPreferences file name
+* CreatedAt: String - An ISO8601 DateTime at UTC
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String - A TZDB Timezone
 
 **Financial Institution** - An entity that holds accounts
@@ -33,6 +34,7 @@
 * ProfileID: Long
 * Name: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Account**
@@ -42,6 +44,7 @@
 * ReferenceNumber: String
 * Name: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Transaction** - The basis for everything else in the app
@@ -52,8 +55,10 @@
 * ReferenceNumber: String?
 * DebitOrCredit: Boolean
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 * DatedAt: String
+* DatedAtOffset: String - An ISO8601 Offset
 * DatedAtTimezone: String
 
 **PurchaseItem**
@@ -68,6 +73,7 @@
 * ReferenceNumber: String?
 * PrimaryCategoryID: Long
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Category**
@@ -77,6 +83,7 @@
 * IsCustom: Boolean
 * Name: String?
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 
@@ -85,6 +92,7 @@
 * PurchaseItemID: Long
 * CategoryID: Long
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Evidence**
@@ -96,6 +104,7 @@
 * MimeType: String?
 * URI: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Image**
@@ -104,6 +113,7 @@
 * SHA256: String
 * URI: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **PurchaseItemImages**
@@ -111,6 +121,7 @@
 * PurchaseItemID: Long
 * ImageID: Long
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Product**
@@ -118,6 +129,7 @@
 * Name: String
 * Brand: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **ProductImages**
@@ -125,6 +137,7 @@
 * ProductID: Long
 * ImageID: Long
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **FinancialInstitutionCard** - Primarily for deriving the Account when using OCR
@@ -134,6 +147,7 @@
 * ExpMonth: Int
 * ExpYear: Int
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **Seller** - An entity that sells items
@@ -141,6 +155,7 @@
 * ProfileID: Long
 * Name: String
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
 **SellerLocation**
@@ -152,4 +167,5 @@
 * Latitude: Double?
 * Address: String?
 * CreatedAt: String
+* CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String

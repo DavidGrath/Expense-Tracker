@@ -7,7 +7,7 @@ import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
-import com.davidgrath.expensetracker.entities.ui.Category
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import java.math.BigDecimal
 
@@ -22,7 +22,7 @@ class AddTransactionDialogFragment: DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         binding = DialogFragmentAddTransactionBinding.inflate(requireActivity().layoutInflater, null, false)
-        val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, Category.TEMP_DEFAULT_CATEGORIES.toTypedArray())
+        val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, CategoryUi.TEMP_DEFAULT_CATEGORIES.toTypedArray())
         binding.spinnerAddTransactionCategory.adapter = spinnerAdapter
         return AlertDialog.Builder(requireContext())
             .setView(binding.root)

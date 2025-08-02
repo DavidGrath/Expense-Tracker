@@ -10,5 +10,6 @@ data class FinancialInstitutionDb(
     val profileId: Long,
     val name: String,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

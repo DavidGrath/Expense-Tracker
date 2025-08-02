@@ -2,21 +2,18 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import androidx.core.widget.addTextChangedListener
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
-import com.davidgrath.expensetracker.entities.ui.Category
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -54,7 +51,7 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
 
     override fun onBindViewHolder(holder: AddTransactionPurchaseItemViewHolder, position: Int) {
         holder.binding.let { binding ->
-            val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, Category.TEMP_DEFAULT_CATEGORIES.toTypedArray())
+            val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, CategoryUi.TEMP_DEFAULT_CATEGORIES.toTypedArray())
             val absPosition = position
 //            val absPosition = holder.absoluteAdapterPosition
             items[absPosition].let { item ->
@@ -106,7 +103,7 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
                 }
                 textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()] = newDescriptionWatcher
 
-                var categoryPosition = Category.TEMP_DEFAULT_CATEGORIES.indexOf(_item.category)
+                var categoryPosition = CategoryUi.TEMP_DEFAULT_CATEGORIES.indexOf(_item.category)
                 if(categoryPosition == -1) categoryPosition = 0
                 binding.spinnerAddDetailedTransactionItemCategory.adapter = spinnerAdapter
                 binding.spinnerAddDetailedTransactionItemCategory.setSelection(categoryPosition)
@@ -114,7 +111,7 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, _position: Int, id: Long) {
                         currentItem = absPosition
                         if(_item.category.id != _position.toLong()) {
-                            _item = _item.copy(category = Category.TEMP_DEFAULT_CATEGORIES[absPosition])
+                            _item = _item.copy(category = CategoryUi.TEMP_DEFAULT_CATEGORIES[absPosition])
                             listener?.onItemChanged(absPosition, _item)
                         }
                     }

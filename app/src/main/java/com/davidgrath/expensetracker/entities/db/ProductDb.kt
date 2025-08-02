@@ -13,5 +13,6 @@ data class ProductDb(
     val name: String,
     val brand: String,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

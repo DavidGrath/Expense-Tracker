@@ -10,5 +10,6 @@ data class PurchaseItemImagesDb(
     val purchaseItemID: Long,
     val imageID: Long,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

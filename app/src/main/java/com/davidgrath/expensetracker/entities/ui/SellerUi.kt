@@ -1,6 +1,6 @@
 package com.davidgrath.expensetracker.entities.ui
 
-data class Store(
+data class SellerUi(
     val id: Long,
     val name: String
 ) {

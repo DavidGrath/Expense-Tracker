@@ -8,9 +8,9 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.entities.ui.Category
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
 
-class SpinnerCategoryAdapter(context: Context, val resourceId: Int, val objects: Array<Category>): ArrayAdapter<Category>(context, resourceId, R.id.text_view_spinner_item_category, objects) {
+class SpinnerCategoryAdapter(context: Context, val resourceId: Int, val objects: Array<CategoryUi>): ArrayAdapter<CategoryUi>(context, resourceId, R.id.text_view_spinner_item_category, objects) {
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val inflater = LayoutInflater.from(parent.context)
         val category = objects[position]

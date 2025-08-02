@@ -14,5 +14,6 @@ data class SellerLocationDb(
     val latitude: Double?,
     val address: String?,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

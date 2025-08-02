@@ -9,13 +9,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
-import com.davidgrath.expensetracker.entities.db.TransactionDb
-import com.davidgrath.expensetracker.entities.ui.Category
-import com.davidgrath.expensetracker.entities.ui.PurchaseItem
-import com.davidgrath.expensetracker.entities.ui.Transaction
-import com.davidgrath.expensetracker.transactionsToTransactionItems
 
-class TransactionsFragment: Fragment(), ExpenseTracker.TempDbListener {
+class TransactionsFragment: Fragment() {
 
     lateinit var binding: FragmentTransactionsBinding
     lateinit var viewModel: MainViewModel
@@ -31,22 +26,10 @@ class TransactionsFragment: Fragment(), ExpenseTracker.TempDbListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.recyclerviewTransactions.adapter = adapter
         binding.recyclerviewTransactions.layoutManager = LinearLayoutManager(requireContext())
-//        viewModel.listLiveData.observe(viewLifecycleOwner) { list ->
-//            adapter.setItems(list)
-//        }
-        val app = requireContext().applicationContext as ExpenseTracker
-        app.tempListeners += this
-    }
-
-    override fun onDbChanged(tempDb: ExpenseTracker.TempDb) {
-        val transformedItems = tempDb.transactions.map<TransactionDb, Transaction> { transaction ->
-            val t = Transaction(transaction.id, transaction.amount, transaction.currencyCode, transaction.isCashless, transaction.timestamp, transaction.datedTimestamp, emptyList())
-            val items = tempDb.purchaseItems
-                .filter { it.transactionId == transaction.id }
-                .map { pi -> PurchaseItem(t, pi.amount, pi.description, Category.TEMP_DEFAULT_CATEGORIES.find { it.id == pi.categoryId }!!, pi.brand) }
-            t.copy(items = items)
+        viewModel.listLiveData.observe(viewLifecycleOwner) { list ->
+            adapter.setItems(list)
         }
-        adapter.setItems(transactionsToTransactionItems(transformedItems))
+        val app = requireContext().applicationContext as ExpenseTracker
     }
 
     companion object {

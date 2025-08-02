@@ -17,5 +17,6 @@ data class PurchaseItemDb(
     val referenceNumber: String?,
     val primaryCategoryId: Long,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

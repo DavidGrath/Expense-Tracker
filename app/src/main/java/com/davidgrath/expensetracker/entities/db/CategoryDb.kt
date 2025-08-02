@@ -12,5 +12,6 @@ data class CategoryDb(
     val isCustom: Boolean,
     val name: String?,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

@@ -6,7 +6,7 @@ data class AddTransactionPurchaseItem(
     val id: Int,
     val amount: BigDecimal? = null,
     val description: String? = null,
-    val category: Category = Category.TEMP_DEFAULT_CATEGORIES.find { it.stringId == "miscellaneous" }!!,
+    val category: CategoryUi = CategoryUi.TEMP_DEFAULT_CATEGORIES.find { it.stringId == "miscellaneous" }!!,
     val showDetails: Boolean = false,
     val brand: String? = null
 ) {

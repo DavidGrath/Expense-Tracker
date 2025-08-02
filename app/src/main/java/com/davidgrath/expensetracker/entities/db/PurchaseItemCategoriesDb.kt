@@ -10,5 +10,6 @@ data class PurchaseItemCategoriesDb(
     val purchaseItemId: Long,
     val categoryId: Long,
     val createdAt: String,
+    val createdAtOffset: String,
     val createdAtTimezone: String
 )

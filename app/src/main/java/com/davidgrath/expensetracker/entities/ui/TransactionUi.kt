@@ -1,16 +1,17 @@
 package com.davidgrath.expensetracker.entities.ui
 
+import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 
-data class Transaction(
+data class TransactionUi(
     val id: Long,
     val amount: BigDecimal,
     val currencyCode: String,
     val isCashless: Boolean,
-    val timestamp: ZonedDateTime,
-    val datedTimestamp: ZonedDateTime,
-    val items: List<PurchaseItem>,
-    val store: Store? = null
+    val timestamp: LocalDateTime,
+    val datedTimestamp: LocalDateTime,
+    val seller: SellerUi? = null,
+    val items: List<PurchaseItemUi>
 ) {
 }
