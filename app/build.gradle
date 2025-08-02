@@ -77,6 +77,11 @@ dependencies {
     implementation("com.google.android.material:material:1.4.0")
 
     //Room
+    def room_version = "2.7.2"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+    implementation "androidx.room:room-rxjava3:$room_version"
+    testImplementation "androidx.room:room-testing:$room_version"
     //RxJava
     implementation("io.reactivex.rxjava3:rxjava:3.1.11")
     //Dagger

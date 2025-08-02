@@ -4,13 +4,11 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class CategoryDb(
+data class PurchaseItemImagesDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val profileID: Long,
-    val stringID: String?,
-    val isCustom: Boolean,
-    val name: String?,
+    val purchaseItemID: Long,
+    val imageID: Long,
     val createdAt: String,
     val createdAtTimezone: String
 )

@@ -2,20 +2,22 @@ package com.davidgrath.expensetracker.entities.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.math.BigDecimal
 
 @Entity
-data class PurchaseItemDb(
+data class EvidenceDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
     val transactionId: Long,
-    val amount: BigDecimal,
-    val brand: String?,
-    val quantity: Int = 1,
-    val description: String,
-    val variation: String,
-    val referenceNumber: String?,
-    val primaryCategoryId: Long,
+    val type: Type,
+    val sizeBytes: Int?,
+    val sha256: String?,
+    val mimeType: String?,
+    val uri: String,
     val createdAt: String,
     val createdAtTimezone: String
-)
+) {
+    enum class Type {
+        LINK,
+        DOCUMENT
+    }
+}

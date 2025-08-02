@@ -4,13 +4,15 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class CategoryDb(
+data class SellerLocationDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long?,
-    val profileID: Long,
-    val stringID: String?,
-    val isCustom: Boolean,
-    val name: String?,
+    val id: Long,
+    val sellerID: Long,
+    val location: String,
+    val isVirtual: Boolean,
+    val longitude: Double?,
+    val latitude: Double?,
+    val address: String?,
     val createdAt: String,
     val createdAtTimezone: String
 )

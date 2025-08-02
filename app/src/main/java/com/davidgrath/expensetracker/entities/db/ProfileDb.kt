@@ -4,13 +4,13 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class CategoryDb(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long?,
-    val profileID: Long,
-    val stringID: String?,
-    val isCustom: Boolean,
-    val name: String?,
+data class ProfileDb(
+    @PrimaryKey val id: Long?,
+    val name: String,
+    /**
+     * Meant for the SharedPreferences file name
+     */
+    val stringId: String,
     val createdAt: String,
     val createdAtTimezone: String
 )

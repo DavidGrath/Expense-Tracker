@@ -4,13 +4,11 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class CategoryDb(
+data class FinancialInstitutionDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val profileID: Long,
-    val stringID: String?,
-    val isCustom: Boolean,
-    val name: String?,
+    val profileId: Long,
+    val name: String,
     val createdAt: String,
     val createdAtTimezone: String
 )

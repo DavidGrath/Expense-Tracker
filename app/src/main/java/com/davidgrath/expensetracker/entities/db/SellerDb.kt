@@ -3,14 +3,15 @@ package com.davidgrath.expensetracker.entities.db
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * An entity that sells items
+ */
 @Entity
-data class CategoryDb(
+data class SellerDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long?,
-    val profileID: Long,
-    val stringID: String?,
-    val isCustom: Boolean,
-    val name: String?,
+    val id: Long,
+    val profileId: Long,
+    val name: String,
     val createdAt: String,
     val createdAtTimezone: String
 )

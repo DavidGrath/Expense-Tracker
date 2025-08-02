@@ -24,6 +24,7 @@
 **Profile**
 * ID: Long
 * Name: String
+* StringID: String
 * CreatedAt: String - An ISO8601 Timestamp
 * CreatedAtTimezone: String - A TZDB Timezone
 
@@ -38,6 +39,7 @@
 * ID: Long
 * ProfileID: Long
 * FinancialInstitutionID: Long?
+* ReferenceNumber: String
 * Name: String
 * CreatedAt: String
 * CreatedAtTimezone: String
@@ -51,8 +53,8 @@
 * DebitOrCredit: Boolean
 * CreatedAt: String
 * CreatedAtTimezone: String
-* RecordedAt: String
-* RecordedAtTimezone: String
+* DatedAt: String
+* DatedAtTimezone: String
 
 **PurchaseItem**
 * ID: Long
@@ -89,6 +91,9 @@
 * ID: Long
 * TransactionID: Long
 * Type: String ["link", "document"]
+* SizeBytes: Int?
+* SHA256: String?
+* MimeType: String?
 * URI: String
 * CreatedAt: String
 * CreatedAtTimezone: String
@@ -122,7 +127,7 @@
 * CreatedAt: String
 * CreatedAtTimezone: String
 
-**FICard** - Primarily for deriving the Account
+**FinancialInstitutionCard** - Primarily for deriving the Account when using OCR
 * ID: Long
 * AccountID: Long
 * Last4: String
@@ -138,7 +143,7 @@
 * CreatedAt: String
 * CreatedAtTimezone: String
 
-**Location**
+**SellerLocation**
 * ID: Long
 * SellerID: Long
 * Location: String
