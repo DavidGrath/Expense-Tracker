@@ -8,8 +8,8 @@ import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.davidgrath.expensetracker.MainActivity
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.ui.main.MainActivity
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test

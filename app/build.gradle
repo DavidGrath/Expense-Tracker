@@ -47,6 +47,11 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 dependencies {
 
@@ -77,7 +82,7 @@ dependencies {
     implementation("com.google.android.material:material:1.4.0")
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation("com.github.bumptech.glide:glide:4.16.0")
-
+    implementation("com.google.code.gson:gson:2.12.1")
     //Room
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
@@ -95,10 +100,13 @@ dependencies {
 
     //Basic Tests
     testImplementation libs.junit
-    implementation("androidx.test.espresso:espresso-core:3.6.1")
-    implementation("androidx.test.espresso:espresso-contrib:3.6.1")
-    implementation("androidx.test.espresso:espresso-intents:3.6.1")
+    testImplementation("androidx.test.espresso:espresso-contrib:3.6.1")
+    testImplementation("androidx.test.espresso:espresso-intents:3.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-contrib:3.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-intents:3.6.1")
     androidTestImplementation "androidx.fragment:fragment-testing:$fragment_version"
+    testImplementation libs.androidx.junit
+    testImplementation libs.androidx.espresso.core
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
     //Robolectric

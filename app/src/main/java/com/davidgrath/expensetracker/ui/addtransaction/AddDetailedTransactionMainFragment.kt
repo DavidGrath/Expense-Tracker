@@ -16,6 +16,7 @@ import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionM
 import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 import java.util.Locale
@@ -51,30 +52,33 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
         adapter = AddTransactionPurchaseItemRecyclerAdapter(this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
-        viewModel.purchaseItemsLiveData.observe(viewLifecycleOwner) { listPair ->
-            val list = listPair.first
-            val position = listPair.second and AddDetailedTransactionViewModel.POSITION_MASK
-            val event = listPair.second and AddDetailedTransactionViewModel.EVENT_MASK
+        viewModel.purchaseItemsLiveData.observe(viewLifecycleOwner) { triple ->
+            val list = triple.first.items
+            val event = triple.second
+            val position = triple.third
             when(event) {
-                AddDetailedTransactionViewModel.EVENT_ALL -> {
-                    adapter.submitList(list)
-                    adapter.notifyDataSetChanged()
-                }
-                AddDetailedTransactionViewModel.EVENT_INSERT -> {
-                    adapter.submitList(list)
-                    adapter.notifyItemInserted(position)
-                }
-                AddDetailedTransactionViewModel.EVENT_DELETE -> {
+                AddDetailedTransactionRepository.TransactionDetailEvent.Delete -> {
                     adapter.submitList(list)
                     adapter.notifyItemRemoved(position)
                 }
-                AddDetailedTransactionViewModel.EVENT_CHANGE -> {
+                AddDetailedTransactionRepository.TransactionDetailEvent.Insert -> {
+                    adapter.submitList(list)
+                    adapter.notifyItemInserted(position)
+                }
+                AddDetailedTransactionRepository.TransactionDetailEvent.All -> {
+                    adapter.submitList(list)
+                    adapter.notifyDataSetChanged()
+                }
+                AddDetailedTransactionRepository.TransactionDetailEvent.Change -> {
                     adapter.submitList(list)
                     //No change to prevent EditText focus loss
                 }
-                AddDetailedTransactionViewModel.EVENT_CHANGE_INVALIDATE -> {
+                AddDetailedTransactionRepository.TransactionDetailEvent.ChangeInvalidate -> {
                     adapter.submitList(list)
                     adapter.notifyItemChanged(position)
+                }
+                AddDetailedTransactionRepository.TransactionDetailEvent.None -> {
+
                 }
             }
         }
@@ -93,6 +97,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
                 }
                 binding.imageButtonAddDetailedTransactionDone -> {
                     //TODO Validate items
+                    viewModel.finishDraft()
                     listener?.onFinished()
                 }
                 else -> {

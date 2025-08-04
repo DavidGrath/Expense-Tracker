@@ -84,9 +84,26 @@ class AddDetailedTransactionActivityTest {
 
 
     @Test
-    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsTThenImageOnlyCopiedOnceToInternalStorage() {
+    @Ignore("Not ready yet")
+    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToInternalStorage() {
         //Open Image from system
         //Add new item
         //Open same
     }
+
+
+    @Test
+    @Ignore("Not ready yet")
+    fun givenUserSelectsImageThatHasBeenSavedToMainStorageWhenSelectImageThenImageNotCopiedToInternalStorage() {
+        //Copy Image to DB
+        //Add same item
+        //Assert no new files, or assert no existing files match same hash, use deleteOnExit maybe?
+    }
+
+    @Test
+    @Ignore("Not ready yet")
+    fun givenExternalImageWasModifiedAndOriginalImageAddedToDraftWhenAddImageThenNewImageExistsInInternalStorage() {
+
+    }
+
 }
