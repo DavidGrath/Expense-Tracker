@@ -61,7 +61,7 @@
 * DatedAtOffset: String - An ISO8601 Offset
 * DatedAtTimezone: String
 
-**PurchaseItem**
+**TransactionItem**
 * ID: Long
 * TransactionID: Long
 * Amount: Double
@@ -87,9 +87,9 @@
 * CreatedAtTimezone: String
 
 
-**PurchaseItemCategories**
+**TransactionItemCategories**
 * ID: Long
-* PurchaseItemID: Long
+* TransactionItemID: Long
 * CategoryID: Long
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
@@ -116,9 +116,9 @@
 * CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
 
-**PurchaseItemImages**
+**TransactionItemImages**
 * ID: Long
-* PurchaseItemID: Long
+* TransactionItemID: Long
 * ImageID: Long
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset

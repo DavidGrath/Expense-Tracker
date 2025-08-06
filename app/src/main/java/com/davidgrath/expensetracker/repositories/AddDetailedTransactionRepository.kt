@@ -2,15 +2,21 @@ package com.davidgrath.expensetracker.repositories
 
 import android.net.Uri
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.map
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
+import com.davidgrath.expensetracker.db.dao.TempTransactionDao
+import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
+import com.davidgrath.expensetracker.entities.db.TransactionDb
+import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
-import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZonedDateTime
+import org.threeten.bp.format.DateTimeFormatter
 
-class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, val tempImagesDao: TempImagesDao) {
+class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, private val tempImagesDao: TempImagesDao, private val tempTransactionDao: TempTransactionDao, private val tempTransactionItemDao: TempTransactionItemDao) {
 
     //TODO Relying on this variable is probably a terrible way to work with a FileObserver
     private var currentEvent = TransactionDetailEvent.All
@@ -22,9 +28,9 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         val draft = liveData.value?: AddDetailedTransactionDraft(emptyList())
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
-            currentEvent = TransactionDetailEvent.Change
+            currentEvent = TransactionDetailEvent.Insert
             currentPosition = currentList.size + 1
-            val newItems = currentList + AddTransactionPurchaseItem(++incrementId)
+            val newItems = currentList + AddTransactionItem(++incrementId)
             fileHandler.saveDraft(draft.copy(items = newItems))
             return true
         }
@@ -57,7 +63,7 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         return key
     }
 
-    fun changeItem(position: Int, item: AddTransactionPurchaseItem) {
+    fun changeItem(position: Int, item: AddTransactionItem) {
         val draft = liveData.value?: AddDetailedTransactionDraft(emptyList())
         val currentList = draft.items
         currentEvent = TransactionDetailEvent.Change
@@ -107,7 +113,23 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
     }
 
     fun finishTransaction() {
-        //Save to DB
+        val draft = liveData.value!!
+        val total = draft.items.map { it.amount!! }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+        val date = ZonedDateTime.now()
+        val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
+        val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        val offset = date.offset.id
+        val zone = date.zone.id
+        val transaction = TransactionDb(null, 0, total, "USD", false, dateString, offset, zone, dateString, offset, zone)
+        tempTransactionDao.addTransaction(transaction).subscribe( { id ->
+            val items = draft.items.map { draftItem -> TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateString, offset, zone) }
+            for (item in items) {
+                tempTransactionItemDao.addTransactionItem(item)
+            }
+        }, {
+
+        })
+
         fileHandler.deleteDraft()
     }
 

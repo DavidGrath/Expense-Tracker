@@ -6,7 +6,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="8dp">
     <ImageView
-        android:id="@+id/image_view_purchase_item_category"
+        android:id="@+id/image_view_transaction_item_category"
         android:layout_width="24dp"
         android:layout_height="24dp"
         tools:src="@drawable/baseline_restaurant_24"
@@ -14,22 +14,22 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
     <TextView
-        android:id="@+id/text_view_purchase_item_description"
+        android:id="@+id/text_view_transaction_item_description"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="Chicken"
-        app:layout_constraintStart_toEndOf="@id/image_view_purchase_item_category"
+        app:layout_constraintStart_toEndOf="@id/image_view_transaction_item_category"
         app:layout_constraintTop_toTopOf="parent" />
     <TextView
-        android:id="@+id/text_view_purchase_item_store"
+        android:id="@+id/text_view_transaction_item_store"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="KFC"
-        app:layout_constraintStart_toStartOf="@id/text_view_purchase_item_description"
-        app:layout_constraintTop_toBottomOf="@id/text_view_purchase_item_description" />
+        app:layout_constraintStart_toStartOf="@id/text_view_transaction_item_description"
+        app:layout_constraintTop_toBottomOf="@id/text_view_transaction_item_description" />
 
     <TextView
-        android:id="@+id/text_view_purchase_item_amount"
+        android:id="@+id/text_view_transaction_item_amount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"

@@ -19,4 +19,8 @@ data class TransactionDb(
     val datedAt: String,
     val datedAtOffset: String,
     val datedAtTimezone: String
-)
+): Comparable<TransactionDb> {
+    override fun compareTo(other: TransactionDb): Int {
+        return this.id!!.compareTo(other.id!!)
+    }
+}

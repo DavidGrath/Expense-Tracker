@@ -14,17 +14,17 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
-import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
 
-class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurchaseItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionPurchaseItemRecyclerAdapter.AddTransactionPurchaseItemViewHolder>() {
+class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
 
-        var items = listOf<AddTransactionPurchaseItem>()
-    fun submitList(submitted: List<AddTransactionPurchaseItem>) {
+        var items = listOf<AddTransactionItem>()
+    fun submitList(submitted: List<AddTransactionItem>) {
         this.items = submitted
     }
 
@@ -38,21 +38,21 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
     private val textWatcherDescriptionMap = mutableMapOf<Int, TextWatcher>()
     private val textWatcherBrandMap = mutableMapOf<Int, TextWatcher>()
 
-    interface AddTransactionPurchaseItemRecyclerListener {
-        fun onItemChanged(position: Int, item: AddTransactionPurchaseItem)
+    interface AddTransactionItemRecyclerListener {
+        fun onItemChanged(position: Int, item: AddTransactionItem)
         fun onItemDeleted(position: Int)
         fun onRequestAddImage(position: Int, itemId: Int)
     }
 
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionPurchaseItemViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionItemViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = RecyclerviewAddDetailedTransactionItemBinding.inflate(inflater, parent, false)
-        val viewHolder = AddTransactionPurchaseItemViewHolder(binding)
+        val viewHolder = AddTransactionItemViewHolder(binding)
         return viewHolder
     }
 
-    override fun onBindViewHolder(holder: AddTransactionPurchaseItemViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: AddTransactionItemViewHolder, position: Int) {
         holder.binding.let { binding ->
             val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, CategoryUi.TEMP_DEFAULT_CATEGORIES.toTypedArray())
             val absPosition = position
@@ -165,6 +165,6 @@ class AddTransactionPurchaseItemRecyclerAdapter(var listener: AddTransactionPurc
     }
 
 
-    class AddTransactionPurchaseItemViewHolder(val binding: RecyclerviewAddDetailedTransactionItemBinding): ViewHolder(binding.root)
+    class AddTransactionItemViewHolder(val binding: RecyclerviewAddDetailedTransactionItemBinding): ViewHolder(binding.root)
 }
 

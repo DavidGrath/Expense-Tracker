@@ -2,11 +2,9 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.net.Uri
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
-import com.davidgrath.expensetracker.Constants
-import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -21,14 +19,14 @@ class AddDetailedTransactionViewModel(private val repository: AddDetailedTransac
             repository.addItem()
         }
     }
-    val purchaseItemsLiveData = repository.getDraft()
-    val transactionTotalLiveData : LiveData<BigDecimal> = purchaseItemsLiveData.map { items -> items.first.items.map { it.amount?: BigDecimal.ZERO }.reduceOrNull {acc,bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) }
+    val transactionItemsLiveData = repository.getDraft()
+    val transactionTotalLiveData : LiveData<BigDecimal> = transactionItemsLiveData.map { items -> items.first.items.map { it.amount?: BigDecimal.ZERO }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) }
 
     fun addItem(): Boolean {
         return repository.addItem()
     }
 
-    fun onItemChanged(position: Int, item: AddTransactionPurchaseItem) {
+    fun onItemChanged(position: Int, item: AddTransactionItem) {
         repository.changeItem(position, item)
     }
 

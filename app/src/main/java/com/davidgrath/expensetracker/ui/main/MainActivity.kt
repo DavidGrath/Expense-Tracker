@@ -7,8 +7,10 @@ import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
+import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import java.math.BigDecimal
 
@@ -24,7 +26,9 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
-        viewModel = ViewModelProvider(this, ViewModelProvider.NewInstanceFactory()).get(
+        val app = application as ExpenseTracker
+        val tempRepository = TransactionRepository(app.transactionDao(), app.transactionItemDao())
+        viewModel = ViewModelProvider(this, MainViewModelFactory(tempRepository)).get(
             MainViewModel::class.java)
         addTransactionDialog = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         if(savedInstanceState == null) {

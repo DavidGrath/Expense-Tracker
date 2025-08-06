@@ -3,7 +3,7 @@ package com.davidgrath.expensetracker.entities.ui
 import android.net.Uri
 
 data class AddDetailedTransactionDraft(
-    val items: List<AddTransactionPurchaseItem>,
+    val items: List<AddTransactionItem>,
     /**
      * To prevent the user from adding duplicate images
      */

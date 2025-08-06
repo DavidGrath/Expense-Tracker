@@ -4,10 +4,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class PurchaseItemCategoriesDb(
+data class TransactionItemCategoriesDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val purchaseItemId: Long,
+    val transactionItemId: Long,
     val categoryId: Long,
     val createdAt: String,
     val createdAtOffset: String,

@@ -32,7 +32,7 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
         super.onCreate(savedInstanceState)
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
-        val repository = AddDetailedTransactionRepository(app, TempImagesDao())
+        val repository = AddDetailedTransactionRepository(app, TempImagesDao(), app.transactionDao(), app.transactionItemDao())
         viewModel = ViewModelProvider.create(viewModelStore, AddDetailedTransactionViewModelFactory(repository)).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
         val extras = intent.extras

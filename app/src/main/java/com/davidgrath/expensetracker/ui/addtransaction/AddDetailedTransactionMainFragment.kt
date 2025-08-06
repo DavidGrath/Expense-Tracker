@@ -3,25 +3,21 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
-import com.davidgrath.expensetracker.entities.db.PurchaseItemDb
-import com.davidgrath.expensetracker.entities.db.TransactionDb
-import com.davidgrath.expensetracker.entities.ui.AddTransactionPurchaseItem
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import org.threeten.bp.ZonedDateTime
 import java.math.BigDecimal
 import java.util.Locale
 
-class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItemRecyclerAdapter.AddTransactionPurchaseItemRecyclerListener, OnClickListener {
+class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener {
 
 
     interface AddDetailedTransactionMainListener {
@@ -31,7 +27,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
     private var listener: AddDetailedTransactionMainListener? = null
     lateinit var binding: FragmentAddDetailedTransactionMainBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
-    lateinit var adapter: AddTransactionPurchaseItemRecyclerAdapter
+    lateinit var adapter: AddTransactionItemRecyclerAdapter
     var currencyCode = "USD"
 
     override fun onAttach(context: Context) {
@@ -49,10 +45,11 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        adapter = AddTransactionPurchaseItemRecyclerAdapter(this)
+        adapter = AddTransactionItemRecyclerAdapter(this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
-        viewModel.purchaseItemsLiveData.observe(viewLifecycleOwner) { triple ->
+        viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
+            Log.d("TRIPLE", triple.toString())
             val list = triple.first.items
             val event = triple.second
             val position = triple.third
@@ -107,7 +104,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionPurchaseItem
         }
     }
 
-    override fun onItemChanged(position: Int, item: AddTransactionPurchaseItem) {
+    override fun onItemChanged(position: Int, item: AddTransactionItem) {
         viewModel.onItemChanged(position, item)
     }
 

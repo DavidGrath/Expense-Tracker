@@ -95,16 +95,21 @@ dependencies {
     //Dagger
     implementation("com.google.dagger:dagger:2.57")
     kapt 'com.google.dagger:dagger-compiler:2.57'
-
+    def lifecycle_version = "2.9.2"
+    def arch_version = "2.2.0"
+    implementation "androidx.lifecycle:lifecycle-reactivestreams-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-reactivestreams:$lifecycle_version"
 
 
     //Basic Tests
     testImplementation libs.junit
     testImplementation("androidx.test.espresso:espresso-contrib:3.6.1")
     testImplementation("androidx.test.espresso:espresso-intents:3.6.1")
+    testImplementation(project(":sharedTest"))
     androidTestImplementation("androidx.test.espresso:espresso-contrib:3.6.1")
     androidTestImplementation("androidx.test.espresso:espresso-intents:3.6.1")
     androidTestImplementation "androidx.fragment:fragment-testing:$fragment_version"
+    androidTestImplementation(project(":sharedTest"))
     testImplementation libs.androidx.junit
     testImplementation libs.androidx.espresso.core
     androidTestImplementation libs.androidx.junit

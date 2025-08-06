@@ -2,7 +2,7 @@ package com.davidgrath.expensetracker.entities.ui
 
 import java.math.BigDecimal
 
-data class PurchaseItemUi(
+data class TransactionItemUi(
     val transaction: TransactionUi,
     val amount: BigDecimal,
     val description: String,

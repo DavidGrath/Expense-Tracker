@@ -1,7 +1,7 @@
 package com.davidgrath.expensetracker
 
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
-import com.davidgrath.expensetracker.entities.ui.TransactionItem
+import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 
 class Utils {
     companion object {
@@ -65,12 +65,12 @@ class Utils {
     }
 }
 
-fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<TransactionItem> {
-    val itemsList = arrayListOf<TransactionItem>()
+fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<GeneralTransactionListItem> {
+    val itemsList = arrayListOf<GeneralTransactionListItem>()
     for(transaction in transactions) {
-        itemsList.add(TransactionItem(true, transaction, null))
+        itemsList.add(GeneralTransactionListItem(true, transaction, null))
         for(item in transaction.items) {
-            itemsList.add(TransactionItem(false, null, item))
+            itemsList.add(GeneralTransactionListItem(false, null, item))
         }
     }
     return itemsList

@@ -5,14 +5,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.davidgrath.expensetracker.databinding.RecyclerviewPurchaseItemBinding
+import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
-import com.davidgrath.expensetracker.entities.ui.TransactionItem
+import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import java.text.DecimalFormat
 
-class PurchaseItemsAdapter(private var items: List<TransactionItem>): RecyclerView.Adapter<PurchaseItemsAdapter.SealedViewHolder>() {
+class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
 
     private val decimalFormat = DecimalFormat("0.00")
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
@@ -26,9 +26,9 @@ class PurchaseItemsAdapter(private var items: List<TransactionItem>): RecyclerVi
                 val binding = RecyclerviewTransactionBinding.inflate(inflater, parent, false)
                 SealedViewHolder.TransactionViewHolder(binding)
             }
-            VIEW_TYPE_PURCHASE_ITEM -> {
-                val binding = RecyclerviewPurchaseItemBinding.inflate(inflater, parent, false)
-                SealedViewHolder.PurchaseItemViewHolder(binding)
+            VIEW_TYPE_TRANSACTION_ITEM -> {
+                val binding = RecyclerviewTransactionItemBinding.inflate(inflater, parent, false)
+                SealedViewHolder.TransactionItemViewHolder(binding)
             }
             else -> {
                 val binding = RecyclerviewTransactionBinding.inflate(inflater, parent, false)
@@ -41,13 +41,13 @@ class PurchaseItemsAdapter(private var items: List<TransactionItem>): RecyclerVi
 
     override fun onBindViewHolder(holder: SealedViewHolder, position: Int) {
         when(holder) {
-            is SealedViewHolder.PurchaseItemViewHolder -> {
-                items[position].purchaseItem!!.let { purchaseItem ->
+            is SealedViewHolder.TransactionItemViewHolder -> {
+                items[position].transactionItem!!.let { transactionItem ->
                     holder.binding.let { binding ->
-                        binding.textViewPurchaseItemStore.visibility = View.GONE
-                        binding.textViewPurchaseItemAmount.text = purchaseItem.transaction.currencyCode + " " + decimalFormat.format(purchaseItem.amount)
-                        binding.textViewPurchaseItemDescription.text = purchaseItem.description
-                        binding.imageViewPurchaseItemCategory.setImageResource(purchaseItem.category.iconId)
+                        binding.textViewTransactionItemStore.visibility = View.GONE
+                        binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + decimalFormat.format(transactionItem.amount)
+                        binding.textViewTransactionItemDescription.text = transactionItem.description
+                        binding.imageViewTransactionItemCategory.setImageResource(transactionItem.category.iconId)
                     }
                 }
             }
@@ -68,21 +68,21 @@ class PurchaseItemsAdapter(private var items: List<TransactionItem>): RecyclerVi
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position].transactionOrItem) VIEW_TYPE_TRANSACTION else VIEW_TYPE_PURCHASE_ITEM
+        return if (items[position].transactionOrItem) VIEW_TYPE_TRANSACTION else VIEW_TYPE_TRANSACTION_ITEM
     }
 
-    fun setItems(items: List<TransactionItem>) {
+    fun setItems(items: List<GeneralTransactionListItem>) {
         this.items = items
         notifyDataSetChanged()
     }
 
     sealed class SealedViewHolder(itemView: View): ViewHolder(itemView) {
         class TransactionViewHolder(val binding: RecyclerviewTransactionBinding): SealedViewHolder(binding.root)
-        class PurchaseItemViewHolder(val binding: RecyclerviewPurchaseItemBinding): SealedViewHolder(binding.root)
+        class TransactionItemViewHolder(val binding: RecyclerviewTransactionItemBinding): SealedViewHolder(binding.root)
     }
 
     companion object {
         val VIEW_TYPE_TRANSACTION = 100
-        val VIEW_TYPE_PURCHASE_ITEM = 101
+        val VIEW_TYPE_TRANSACTION_ITEM = 101
     }
 }

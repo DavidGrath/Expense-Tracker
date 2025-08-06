@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.ui.main
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,12 +15,12 @@ class TransactionsFragment: Fragment() {
 
     lateinit var binding: FragmentTransactionsBinding
     lateinit var viewModel: MainViewModel
-    lateinit var adapter: PurchaseItemsAdapter
+    lateinit var adapter: TransactionItemsAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentTransactionsBinding.inflate(inflater, null, false)
         viewModel = ViewModelProvider.create(requireActivity()).get(MainViewModel::class.java)
-        adapter = PurchaseItemsAdapter(emptyList())
+        adapter = TransactionItemsAdapter(emptyList())
         return binding.root
     }
 
@@ -27,9 +28,9 @@ class TransactionsFragment: Fragment() {
         binding.recyclerviewTransactions.adapter = adapter
         binding.recyclerviewTransactions.layoutManager = LinearLayoutManager(requireContext())
         viewModel.listLiveData.observe(viewLifecycleOwner) { list ->
+            Log.d("Transactions", "Item Count: ${list.size}")
             adapter.setItems(list)
         }
-        val app = requireContext().applicationContext as ExpenseTracker
     }
 
     companion object {

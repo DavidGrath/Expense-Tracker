@@ -27,7 +27,7 @@ class AddDetailedTransactionRepositoryTest {
     val rule = ActivityScenarioRule(AddDetailedTransactionActivity::class.java)
 
     @Test
-    fun givenDetailedTransactionInDraftWhenDoneThenDraftFileNoLongerExist() {
+    fun givenDetailedTransactionInDraftWhenDoneThenDraftFileNoLongerExists() {
         val context = RuntimeEnvironment.getApplication()
         val folder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         val file = File(folder, Constants.DRAFT_FILE_NAME)

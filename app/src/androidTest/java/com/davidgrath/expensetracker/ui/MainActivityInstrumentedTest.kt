@@ -27,7 +27,7 @@ class MainActivityInstrumentedTest {
         onView(withId(R.id.edit_text_add_transaction_amount)).perform(typeText("100.00"))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
         onView(withId(android.R.id.button1)).perform(click())
-        onView(withId(R.id.text_view_purchase_item_description)).check(ViewAssertions.matches(ViewMatchers.withText("Basic Description")))
+        onView(withId(R.id.text_view_transaction_item_description)).check(ViewAssertions.matches(ViewMatchers.withText("Basic Description")))
     }
 
     @Test

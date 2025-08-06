@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 import java.math.BigDecimal
 
 @Entity
-data class PurchaseItemDb(
+data class TransactionItemDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
     val transactionId: Long,

@@ -4,10 +4,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class PurchaseItemImagesDb(
+data class TransactionItemImagesDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val purchaseItemID: Long,
+    val transactionItemID: Long,
     val imageID: Long,
     val createdAt: String,
     val createdAtOffset: String,
