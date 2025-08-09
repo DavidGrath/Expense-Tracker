@@ -9,4 +9,5 @@ interface DraftFileHandler {
     fun createDraft(): Boolean
     fun deleteDraft(): Boolean
     fun getDraft(): LiveData<AddDetailedTransactionDraft>
+    fun getDraftValue(): AddDetailedTransactionDraft
 }

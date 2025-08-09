@@ -95,7 +95,12 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         }
         currentEvent = TransactionDetailEvent.ChangeInvalidate
         currentPosition = index
-        val newHashes =  if(draft.imageHashes[localUri] == null) draft.imageHashes + (localUri to sha256) else draft.imageHashes
+        val existingHash = draft.imageHashes[localUri]
+        val newHashes =  if(existingHash == null) {
+            draft.imageHashes + (localUri to sha256)
+        } else {
+            draft.imageHashes
+        }
         fileHandler.saveDraft(AddDetailedTransactionDraft(newItems, newHashes))
     }
 
@@ -110,6 +115,10 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
     }
     fun createDraft(): Boolean {
         return fileHandler.createDraft()
+    }
+
+    fun getDraftValue(): AddDetailedTransactionDraft {
+        return fileHandler.getDraftValue()
     }
 
     fun finishTransaction() {

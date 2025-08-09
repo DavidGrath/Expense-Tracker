@@ -1,14 +1,18 @@
 package com.davidgrath.expensetracker
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.davidgrath.expensetracker.db.dao.TempImagesDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.File
@@ -18,10 +22,11 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     private var draft = AddDetailedTransactionDraft(emptyList())
     private val _draftLiveData = MutableLiveData<AddDetailedTransactionDraft>()
     private val draftLiveData: LiveData<AddDetailedTransactionDraft> = _draftLiveData
-    private val gson = Gson()
+    private val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
 
     private val tempTransactionDao = TempTransactionDao()
     private val tempTransactionItemDao = TempTransactionItemDao()
+    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, TempImagesDao(), transactionDao(), transactionItemDao())
 
     @Suppress("DEPRECATION")
     override fun onCreate() {
@@ -34,18 +39,18 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
 
 
     override fun saveDraft(draft: AddDetailedTransactionDraft) {
-        saveFile(draft)
+        Thread {
+            saveFile(draft)
+        }.start()
         this.draft = draft
         _draftLiveData.postValue(draft)
     }
 
-    private fun saveFile(draft: AddDetailedTransactionDraft): Single<Unit> {
-        return Single.just(Unit).subscribeOn(Schedulers.io()).map {
-            val string = gson.toJson(draft)
-            val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-            val file = File(root, Constants.DRAFT_FILE_NAME)
-            file.writeText(string)
-        }
+    private fun saveFile(draft: AddDetailedTransactionDraft) {
+        val string = gson.toJson(draft)
+        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+        val file = File(root, Constants.DRAFT_FILE_NAME)
+        file.writeText(string)
     }
 
     override fun draftExists(): Boolean {
@@ -60,10 +65,10 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         val file = File(root, Constants.DRAFT_FILE_NAME)
         val ret = file.createNewFile()
         if (ret) {
-            val emptyDraft = AddDetailedTransactionDraft(listOf(AddTransactionItem(0)))
+            val emptyDraft = AddDetailedTransactionDraft(emptyList())
             val string = gson.toJson(emptyDraft)
             file.writeText(string)
-            //TODO LiveData post
+            _draftLiveData.postValue(emptyDraft)
         }
         return ret
     }
@@ -78,6 +83,10 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         return draftLiveData
     }
 
+    override fun getDraftValue(): AddDetailedTransactionDraft {
+        return draft
+    }
+
     override fun transactionDao(): TempTransactionDao {
         return tempTransactionDao
     }
@@ -86,5 +95,8 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         return tempTransactionItemDao
     }
 
+    override fun addDetailedTransactionRepository(): AddDetailedTransactionRepository {
+        return addDetailedTransactionRepository
+    }
 }
 

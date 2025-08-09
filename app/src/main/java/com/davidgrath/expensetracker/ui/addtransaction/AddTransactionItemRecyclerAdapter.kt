@@ -9,7 +9,9 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import androidx.core.widget.addTextChangedListener
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
@@ -148,14 +150,11 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
                     }
                 }
                 textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newDescriptionWatcher
-
-                if(_item.images.size > 0) {
-                    val imageUri = _item.images[0]
-                    Glide.with(holder.binding.root)
-                        .load(Uri.parse(imageUri))
-                        .centerCrop()
-                        .into(binding.tempImageViewAddDetailedTransactionItemFirstImage)
-                }
+                val adapter = AddTransactionItemImagesRecyclerAdapter(_item.images)
+                val layoutManager = LinearLayoutManager(binding.root.context)
+                layoutManager.orientation = LinearLayoutManager.HORIZONTAL
+                binding.recyclerviewAddDetailedTransactionItemImages.adapter = adapter
+                binding.recyclerviewAddDetailedTransactionItemImages.layoutManager = layoutManager
                 binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
                     listener?.onRequestAddImage(absPosition, _item.id)
                 }

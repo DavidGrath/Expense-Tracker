@@ -1,7 +1,14 @@
 package com.davidgrath.expensetracker
 
+import android.net.Uri
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
+import com.google.gson.TypeAdapter
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonWriter
+import java.io.InputStream
+import java.math.BigInteger
+import java.security.MessageDigest
 
 class Utils {
     companion object {
@@ -74,4 +81,30 @@ fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<Gene
         }
     }
     return itemsList
+}
+
+fun getSha256(inputStream: InputStream): String {
+    val bufSize = DEFAULT_BUFFER_SIZE
+    val bufferedStream = inputStream.buffered()
+    val md = MessageDigest.getInstance("SHA256")
+    var array = ByteArray(bufSize)
+    var len = 0
+    while(len >= 0) {
+        len = bufferedStream.read(array)
+        if(len >= 0) {
+            md.update(array, 0, len)
+        }
+    }
+    val hash = md.digest()
+    return BigInteger(1, hash).toString(16)
+}
+
+class UriTypeAdapter: TypeAdapter<Uri>() {
+    override fun write(out: JsonWriter?, value: Uri?) {
+        out!!.value(value?.toString())
+    }
+
+    override fun read(`in`: JsonReader?): Uri {
+        return Uri.parse(`in`?.nextString())
+    }
 }

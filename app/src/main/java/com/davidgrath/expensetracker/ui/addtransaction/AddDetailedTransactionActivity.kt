@@ -32,7 +32,7 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
         super.onCreate(savedInstanceState)
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
-        val repository = AddDetailedTransactionRepository(app, TempImagesDao(), app.transactionDao(), app.transactionItemDao())
+        val repository = app.addDetailedTransactionRepository()
         viewModel = ViewModelProvider.create(viewModelStore, AddDetailedTransactionViewModelFactory(repository)).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
         val extras = intent.extras
@@ -63,32 +63,33 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
                     REQUEST_CODE_ITEM_OPEN_IMAGE -> {
                         //TODO Move all to ViewModel and test
                         val uri = data!!.data!!
-                        var inputStream = contentResolver.openInputStream(uri)!!
-
-                        val bytes = inputStream.readBytes()
-                        val hash = MessageDigest.getInstance("SHA256").digest(bytes)
-                        val checksum = BigInteger(1, hash).toString(16)
-                        inputStream.close()
-                        if(!viewModel.doesHashExist(checksum)) {
-
-                        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-                        val imagesFolder = File(root, Constants.SUBFOLDER_NAME_IMAGES)
-                        root.mkdir()
-                        val filename = UUID.randomUUID().toString()
-                        val extension = when(data.type) {
-                            "image/jpeg" -> ".jpg"
-                            "image/png" -> ".png"
-                            else -> ""
-                        }
-                            inputStream = contentResolver.openInputStream(uri)!!
-                        val file = File(imagesFolder, "$filename$extension")
-                            val outputStream = file.outputStream()
-                            inputStream.copyTo(outputStream)
-                            viewModel.addItemFile(file.toUri(), checksum)
-                        } else {
-                            val existingDraftImage = viewModel.getDraftImageUri(checksum)
-                            viewModel.addItemFile(existingDraftImage, checksum)
-                        }
+//                        var inputStream = contentResolver.openInputStream(uri)!!
+//
+//                        val bytes = inputStream.readBytes()
+//                        val hash = MessageDigest.getInstance("SHA256").digest(bytes)
+//                        val checksum = BigInteger(1, hash).toString(16)
+//                        inputStream.close()
+//                        if(!viewModel.doesHashExist(checksum)) {
+//
+//                        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+//                        val imagesFolder = File(root, Constants.SUBFOLDER_NAME_IMAGES)
+//                        root.mkdir()
+//                        val filename = UUID.randomUUID().toString()
+//                        val extension = when(data.type) {
+//                            "image/jpeg" -> ".jpg"
+//                            "image/png" -> ".png"
+//                            else -> ""
+//                        }
+//                            inputStream = contentResolver.openInputStream(uri)!!
+//                        val file = File(imagesFolder, "$filename$extension")
+//                            val outputStream = file.outputStream()
+//                            inputStream.copyTo(outputStream)
+//                            viewModel.addItemFile(file.toUri(), checksum)
+//                        } else {
+//                            val existingDraftImage = viewModel.getDraftImageUri(checksum)
+//                            viewModel.addItemFile(existingDraftImage, checksum)
+                            viewModel.addItemFile(uri, "")
+//                        }
                     }
                 }
             }

@@ -13,10 +13,11 @@ import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
 import org.hamcrest.Matcher
+import org.hamcrest.Matchers
 
 class RecyclerInputTextItemAction(private val id: Int, private val input: String): ViewAction {
     override fun getConstraints(): Matcher<View> {
-        return ViewMatchers.isDisplayed()
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
     }
 
     override fun getDescription(): String {
@@ -34,7 +35,7 @@ class RecyclerInputTextItemAction(private val id: Int, private val input: String
  */
 class RecyclerInputNumberItemAction(private val id: Int, private val input: String): ViewAction {
     override fun getConstraints(): Matcher<View> {
-        return ViewMatchers.isDisplayed()
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
     }
 
     override fun getDescription(): String {
@@ -49,16 +50,17 @@ class RecyclerInputNumberItemAction(private val id: Int, private val input: Stri
 
 class RecyclerClickItemAction(private val id: Int): ViewAction {
     override fun getConstraints(): Matcher<View> {
-        return ViewMatchers.isDisplayed()
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
     }
 
     override fun getDescription(): String {
-        return "Inputting description"
+        return "Clicking item"
     }
 
     override fun perform(uiController: UiController?, view: View?) {
-        val editText = view!!.findViewById<EditText>(id)
-        ViewActions.click().perform(uiController, editText)
+        val subView = view!!.findViewById<View>(id)
+        subView.performClick()
+//        ViewActions.click().perform(uiController, subView) //Doesn't work with local tests for some reason
     }
 }
 
@@ -67,4 +69,9 @@ fun <VH : RecyclerView.ViewHolder> typeTextRecyclerViewItem(@IdRes recyclerViewI
 }
 fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputNumberItemAction(editTextId, text)))
+}
+
+fun <VH : RecyclerView.ViewHolder> clickRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int) {
+    Espresso.onView(ViewMatchers.withId(recyclerViewId))
+        .perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(viewId)))
 }
