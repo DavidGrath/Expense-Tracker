@@ -50,10 +50,14 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         }
     }
 
-    fun doesHashExist(sha256: String): Boolean {
-        val draft = liveData.value?: AddDetailedTransactionDraft(emptyList())
+    fun hashInDb(sha256: String): Boolean {
+        return tempImagesDao.doesHashExist(sha256)
+    }
+
+    fun hashInDraft(sha256: String): Boolean {
+        val draft = fileHandler.getDraftValue()
         val draftImageHashes = draft.imageHashes.values
-        return tempImagesDao.doesHashExist(sha256) or (sha256 in draftImageHashes)
+        return (sha256 in draftImageHashes)
     }
 
     fun getDraftImageUri(sha256: String): Uri {
@@ -61,6 +65,10 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         val draftImageMap = draft.imageHashes
         val key = draftImageMap.keys.find { draftImageMap[it] == sha256 }!!
         return key
+    }
+
+    fun getDbImageUri(sha256: String): Uri {
+        return Uri.parse(tempImagesDao.findBySha256(sha256).uri)
     }
 
     fun changeItem(position: Int, item: AddTransactionItem) {

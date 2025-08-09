@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker
 
+import android.content.Context
 import android.view.View
 import android.widget.EditText
 import androidx.annotation.IdRes
@@ -9,11 +10,11 @@ import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
 import androidx.test.espresso.action.ReplaceTextAction
 import androidx.test.espresso.action.TypeTextAction
-import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers
+import java.io.File
 
 class RecyclerInputTextItemAction(private val id: Int, private val input: String): ViewAction {
     override fun getConstraints(): Matcher<View> {
@@ -74,4 +75,17 @@ fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItem(@IdRes recyclerVi
 fun <VH : RecyclerView.ViewHolder> clickRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId))
         .perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(viewId)))
+}
+
+fun addContentProviderImages(context: Context, classLoader: ClassLoader, vararg images: TestData.Companion.Images) {
+    val contentDir = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+    contentDir.mkdir()
+    for (image in images) {
+        val resourceInputStream = classLoader.getResourceAsStream(image.resourceName)
+        val file = File(contentDir, image.fileName)
+        val outputStream = file.outputStream()
+        resourceInputStream.copyTo(outputStream)
+        resourceInputStream.close()
+        outputStream.close()
+    }
 }

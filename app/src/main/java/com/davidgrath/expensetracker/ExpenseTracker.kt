@@ -26,7 +26,8 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
 
     private val tempTransactionDao = TempTransactionDao()
     private val tempTransactionItemDao = TempTransactionItemDao()
-    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, TempImagesDao(), transactionDao(), transactionItemDao())
+    private val tempImagesDao = TempImagesDao()
+    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionDao(), transactionItemDao())
 
     @Suppress("DEPRECATION")
     override fun onCreate() {
@@ -93,6 +94,10 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
 
     override fun transactionItemDao(): TempTransactionItemDao {
         return tempTransactionItemDao
+    }
+
+    override fun imagesDao(): TempImagesDao {
+        return tempImagesDao
     }
 
     override fun addDetailedTransactionRepository(): AddDetailedTransactionRepository {

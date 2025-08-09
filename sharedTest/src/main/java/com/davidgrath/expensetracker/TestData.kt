@@ -14,8 +14,15 @@ class TestData {
              * The file name that appears in the application files
              */
             val fileName: String = resourceName,
-            val uri: Uri = uriBuilder.path(fileName).build()
+            var uri: Uri = uriBuilder.path(fileName).build()
             ) {
+            /**
+             * Return a copy with a new file name and Uri
+             */
+            fun fileName(fileName: String): Images {
+                val copy = this.copy(fileName = fileName, uri = uriBuilder.path(fileName).build())
+                return copy
+            }
             companion object {
                 private val uriBuilder = Uri.Builder().scheme("content").authority(TestContentProvider.AUTHORITY)
                 val BREAD = Images("ad94e42e0323ccba436e70ebc3cbbfca6a54469c2058a782b5ee14c90ae637a4", "pexels-pixabay-209206.jpg")

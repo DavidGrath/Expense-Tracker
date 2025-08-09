@@ -1,8 +1,6 @@
 package com.davidgrath.expensetracker.repositories
 
-import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
@@ -18,7 +16,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
-import java.util.Date
 
 @RunWith(RobolectricTestRunner::class)
 class AddDetailedTransactionRepositoryTest {

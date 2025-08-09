@@ -46,8 +46,8 @@ class TestContentProvider: ContentProvider() {
 
     override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor? {
         val path = uri.path
-        val tempDir = File(context!!.filesDir, "temp")
-        val file = File(tempDir, path!!)
+        val contentDir = File(context!!.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+        val file = File(contentDir, path!!)
         val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         return AssetFileDescriptor(fd, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
     }

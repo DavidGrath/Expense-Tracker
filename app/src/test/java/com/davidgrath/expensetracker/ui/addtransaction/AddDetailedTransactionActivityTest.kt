@@ -3,15 +3,13 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
-import android.net.Uri
-import android.view.View
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
@@ -21,25 +19,24 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.RecyclerClickItemAction
+import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestContentProvider
 import com.davidgrath.expensetracker.TestData
-import com.davidgrath.expensetracker.UriTypeAdapter
+import com.davidgrath.expensetracker.addContentProviderImages
 import com.davidgrath.expensetracker.clickRecyclerViewItem
-import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.ui.main.MainActivity
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import org.hamcrest.MatcherAssert
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.`is`
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 
 
@@ -49,11 +46,20 @@ class AddDetailedTransactionActivityTest {
     @get:Rule
     val intentsRule = IntentsRule()
 
+    @Before
+    fun setUp() {
+        Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
+    }
+
     @After
     fun tearDown() {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         draftFolder.deleteRecursively()
+        val contentFolder = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+        contentFolder.deleteRecursively()
+        val mainFolder = File(context.filesDir, Constants.FOLDER_NAME_DATA)
+        mainFolder.deleteRecursively()
     }
 
     @Test
@@ -165,6 +171,8 @@ class AddDetailedTransactionActivityTest {
         val returnIntent = Intent().also {
             it.data = TestData.Companion.Images.BREAD.uri
         }
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        addContentProviderImages(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Companion.Images.BREAD)
 
         //Open Image from system
 
@@ -198,25 +206,33 @@ class AddDetailedTransactionActivityTest {
             0,
             R.id.image_view_add_detailed_transaction_item_add_image
         )
-        //TODO Rely on repository instead of draft file
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val draft = context.addDetailedTransactionRepository().getDraftValue()
         val images = draft.items[0].images
         assertEquals(1, images.size)
     }
 
     @Test
-    @Ignore("Not ready yet")
     fun givenUserSelectsSameImageThatSomehowHasDifferentUrisThenImageOnlyAddedOnce() {
-        val duplicateBread = TestData.Companion.Images.BREAD.copy(fileName = "bread_duplicate.jpg")
-        addImages(TestData.Companion.Images.BREAD, duplicateBread)
+
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        val duplicateBread = TestData.Companion.Images.BREAD.fileName("bread_duplicate.jpg")
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        addContentProviderImages(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Companion.Images.BREAD, duplicateBread)
         val returnIntent = Intent().also {
             it.data = TestData.Companion.Images.BREAD.uri
         }
         val duplicateBreadIntent = Intent().also {
             it.data = duplicateBread.uri
         }
-        clickRecyclerViewItem<AddTransactionItemImagesRecyclerAdapter.AddTransactionItemImagesViewHolder>(
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK,
+                returnIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.image_view_add_detailed_transaction_item_add_image
@@ -224,64 +240,164 @@ class AddDetailedTransactionActivityTest {
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
             Instrumentation.ActivityResult(
                 Activity.RESULT_OK,
-                returnIntent
-            )
-        )
-        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
-            Instrumentation.ActivityResult(
-                Activity.RESULT_OK,
                 duplicateBreadIntent
             )
         )
-        //TODO Rely on repository instead of draft file
-        val gson = Gson()
-        val draftFile = File(
-            File(
-                ApplicationProvider.getApplicationContext<ExpenseTracker>().filesDir,
-                Constants.FOLDER_NAME_DRAFT
-            ), Constants.DRAFT_FILE_NAME
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
         )
-        val reader = draftFile.reader()
-        val draft = gson.fromJson(reader, AddDetailedTransactionDraft::class.java)
+        val draft = context.addDetailedTransactionRepository().getDraftValue()
         val images = draft.items[0].images
         assertEquals(1, images.size)
     }
 
 
     @Test
-    @Ignore("Not ready yet")
-    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToInternalStorage() {
-        //Open Image from system
-        //Add new item
-        //Open same
-    }
+    @Config(qualifiers = "h720dp")
+    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToDraftStorage() {
 
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
-    @Test
-    @Ignore("Not ready yet")
-    fun givenUserSelectsImageThatHasBeenSavedToMainStorageWhenSelectImageThenImageNotCopiedToInternalStorage() {
-        //Copy Image to DB
-        //Add same item
-        //Assert no new files, or assert no existing files match same hash, use deleteOnExit maybe?
-    }
-
-    @Test
-    @Ignore("Not ready yet")
-    fun givenExternalImageWasModifiedAndOriginalImageAddedToDraftWhenAddImageThenNewImageExistsInInternalStorage() {
-
-    }
-
-    fun addImages(vararg images: TestData.Companion.Images) {
-        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        val temp = File(app.filesDir, "temp")
-        for (image in images) {
-            val resourceInputStream =
-                AddDetailedTransactionActivityTest::class.java.classLoader.getResourceAsStream(image.resourceName)
-            val file = File(temp, image.resourceName)
-            val outputStream = file.outputStream()
-            resourceInputStream.copyTo(outputStream)
-            resourceInputStream.close()
-            outputStream.close()
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        addContentProviderImages(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Companion.Images.BREAD)
+        val returnIntent = Intent().also {
+            it.data = TestData.Companion.Images.BREAD.uri
         }
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK,
+                returnIntent
+            )
+        )
+        //Open Image from system
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        //Add new item
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(click())
+        //Open same at different position
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val imagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+
+        assertEquals(1, getHashCount(TestData.Companion.Images.BREAD.sha256, imagesFolder))
+    }
+
+
+    @Test
+    fun givenUserSelectsImageThatHasBeenSavedToMainStorageWhenSelectImageThenImageNotCopiedToDraftStorage() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        addContentProviderImages(context, classLoader, TestData.Companion.Images.BREAD)
+        //Copy Image to DB
+        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val mainFolder = File(context.filesDir, Constants.FOLDER_NAME_DATA)
+        val mainImagesFolder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        mainImagesFolder.mkdirs()
+        val existingImage = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
+        val resourceInputStream = classLoader.getResourceAsStream(TestData.Companion.Images.BREAD.resourceName)
+        val outputStream = existingImage.outputStream()
+        resourceInputStream.copyTo(outputStream)
+        resourceInputStream.close()
+        outputStream.close()
+        context.imagesDao().addImage(ImageDb(null, 0, TestData.Companion.Images.BREAD.sha256, "image/jpeg", existingImage.toUri().toString(), "2025-08-09T12:08:00", "-04:00", "America/New_York")).blockingGet()
+
+        //Add same item
+        val returnIntent = Intent().also {
+            it.data = TestData.Companion.Images.BREAD.uri
+        }
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK,
+                returnIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+
+        //Assert no new files, or assert no existing files match same hash, use deleteOnExit maybe?
+
+        val draft = context.addDetailedTransactionRepository().getDraftValue()
+        assertEquals(0, getHashCount(TestData.Companion.Images.BREAD.sha256, draftImagesFolder))
+        assertEquals(1, draft.items[0].images.size)
+    }
+
+    @Test
+    fun givenExternalImageWasModifiedAndOriginalImageAddedToDraftWhenAddImageThenNewImageExistsInDraftStorage() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        val bread = TestData.Companion.Images.BREAD
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        addContentProviderImages(context, classLoader, bread)
+        val returnIntent = Intent().also {
+            it.data = TestData.Companion.Images.BREAD.uri
+        }
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK,
+                returnIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        val modifiedBread = bread.copy(resourceName = TestData.Companion.Images.TOOTHBRUSH.resourceName)
+        addContentProviderImages(context, classLoader, modifiedBread)
+        val modifiedBreadIntent = Intent().also {
+            it.data = modifiedBread.uri
+        }
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK,
+                modifiedBreadIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        val draft = context.addDetailedTransactionRepository().getDraftValue()
+        val images = draft.items[0].images
+        assertEquals(2, images.size)
+        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val imagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        assertEquals(1, getHashCount(bread.sha256, imagesFolder))
+        assertEquals(1, getHashCount(TestData.Companion.Images.TOOTHBRUSH.sha256, imagesFolder))
+    }
+
+    fun getHashCount(sha256: String, folder: File): Int {
+        if(!folder.exists() || !folder.isDirectory) {
+            return 0
+        }
+        var hashCount = 0
+        for(f in folder.listFiles()) {
+            val inputStream = f.inputStream()
+            if(getSha256(inputStream) == sha256) {
+                hashCount++
+            }
+        }
+        return hashCount
     }
 }

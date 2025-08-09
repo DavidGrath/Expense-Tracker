@@ -2,7 +2,6 @@ package com.davidgrath.expensetracker
 
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityTest
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -19,9 +18,9 @@ class TestContentProviderTest {
     @Before
     fun setUp() {
         val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        val temp = File(app.filesDir, "temp")
-        temp.mkdir()
-        val bread = File(temp, "bread.jpg")
+        val contentDir = File(app.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+        contentDir.mkdir()
+        val bread = File(contentDir, "bread.jpg")
         val inputStream =
             TestContentProviderTest::class.java.classLoader.getResourceAsStream(breadFileName)
         val outputStream = bread.outputStream()
@@ -34,8 +33,8 @@ class TestContentProviderTest {
     @After
     fun tearDown() {
         val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        val temp = File(app.filesDir, "temp")
-        temp.deleteRecursively()
+        val contentDir = File(app.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+        contentDir.deleteRecursively()
     }
 
     @Test

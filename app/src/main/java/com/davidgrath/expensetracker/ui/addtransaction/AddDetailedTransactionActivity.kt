@@ -13,6 +13,7 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
+import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import java.io.File
 import java.math.BigDecimal
@@ -20,7 +21,8 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.UUID
 
-class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener {
+class AddDetailedTransactionActivity : FragmentActivity(),
+    AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener {
 
     private val TAG_FRAGMENT_ADD_DETAILED_ITEMS_MAIN = "addDetailedItemsMain"
 
@@ -33,63 +35,46 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
         val repository = app.addDetailedTransactionRepository()
-        viewModel = ViewModelProvider.create(viewModelStore, AddDetailedTransactionViewModelFactory(repository)).get(AddDetailedTransactionViewModel::class.java)
+        viewModel = ViewModelProvider.create(
+            viewModelStore,
+            AddDetailedTransactionViewModelFactory(app, repository)
+        ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
         val extras = intent.extras
-        if(savedInstanceState == null) {
-            if(extras != null) {
+        if (savedInstanceState == null) {
+            if (extras != null) {
                 val amount = extras.getString(ARG_INITIAL_AMOUNT)
-                val bd = if(amount != null) BigDecimal(amount) else null
-                mainFragment = AddDetailedTransactionMainFragment.newInstance(bd, extras.getString(
-                    ARG_INITIAL_DESCRIPTION
-                ), extras.getInt(ARG_INITIAL_CATEGORY_ID))
+                val bd = if (amount != null) BigDecimal(amount) else null
+                mainFragment = AddDetailedTransactionMainFragment.newInstance(
+                    bd, extras.getString(
+                        ARG_INITIAL_DESCRIPTION
+                    ), extras.getInt(ARG_INITIAL_CATEGORY_ID)
+                )
             } else {
                 mainFragment = AddDetailedTransactionMainFragment.newInstance()
             }
             supportFragmentManager.beginTransaction()
-                .add(R.id.frame_add_detailed_transaction, mainFragment, TAG_FRAGMENT_ADD_DETAILED_ITEMS_MAIN)
+                .add(
+                    R.id.frame_add_detailed_transaction,
+                    mainFragment,
+                    TAG_FRAGMENT_ADD_DETAILED_ITEMS_MAIN
+                )
                 .show(mainFragment)
                 .commit()
         } else {
-            mainFragment = supportFragmentManager.findFragmentByTag(TAG_FRAGMENT_ADD_DETAILED_ITEMS_MAIN) as AddDetailedTransactionMainFragment
+            mainFragment =
+                supportFragmentManager.findFragmentByTag(TAG_FRAGMENT_ADD_DETAILED_ITEMS_MAIN) as AddDetailedTransactionMainFragment
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        when(resultCode) {
+        when (resultCode) {
             RESULT_OK -> {
-                when(requestCode) {
+                when (requestCode) {
                     REQUEST_CODE_ITEM_OPEN_IMAGE -> {
-                        //TODO Move all to ViewModel and test
                         val uri = data!!.data!!
-//                        var inputStream = contentResolver.openInputStream(uri)!!
-//
-//                        val bytes = inputStream.readBytes()
-//                        val hash = MessageDigest.getInstance("SHA256").digest(bytes)
-//                        val checksum = BigInteger(1, hash).toString(16)
-//                        inputStream.close()
-//                        if(!viewModel.doesHashExist(checksum)) {
-//
-//                        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-//                        val imagesFolder = File(root, Constants.SUBFOLDER_NAME_IMAGES)
-//                        root.mkdir()
-//                        val filename = UUID.randomUUID().toString()
-//                        val extension = when(data.type) {
-//                            "image/jpeg" -> ".jpg"
-//                            "image/png" -> ".png"
-//                            else -> ""
-//                        }
-//                            inputStream = contentResolver.openInputStream(uri)!!
-//                        val file = File(imagesFolder, "$filename$extension")
-//                            val outputStream = file.outputStream()
-//                            inputStream.copyTo(outputStream)
-//                            viewModel.addItemFile(file.toUri(), checksum)
-//                        } else {
-//                            val existingDraftImage = viewModel.getDraftImageUri(checksum)
-//                            viewModel.addItemFile(existingDraftImage, checksum)
-                            viewModel.addItemFile(uri, "")
-//                        }
+                        viewModel.addItemFile(uri)
                     }
                 }
             }
@@ -108,7 +93,11 @@ class AddDetailedTransactionActivity: FragmentActivity(), AddDetailedTransaction
         val REQUEST_CODE_ITEM_OPEN_IMAGE = 100
         val REQUEST_CODE_OPEN_DOCUMENT = 101
 
-        fun createBundle(initialAmount: String?, initialDescription: String, initialCategoryId: Int): Bundle {
+        fun createBundle(
+            initialAmount: String?,
+            initialDescription: String,
+            initialCategoryId: Int
+        ): Bundle {
             return bundleOf(
                 ARG_INITIAL_AMOUNT to initialAmount,
                 ARG_INITIAL_DESCRIPTION to initialDescription,
