@@ -1,7 +1,6 @@
 package com.davidgrath.expensetracker.db.dao
 
 import com.davidgrath.expensetracker.entities.db.ImageDb
-import com.davidgrath.expensetracker.entities.db.TransactionDb
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 

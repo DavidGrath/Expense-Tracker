@@ -1,6 +1,5 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
-import android.net.Uri
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -11,9 +10,7 @@ import android.widget.AdapterView.OnItemSelectedListener
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
@@ -23,16 +20,9 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
 
-class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
+class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
 
-        var items = listOf<AddTransactionItem>()
-    fun submitList(submitted: List<AddTransactionItem>) {
-        this.items = submitted
-    }
-
-    override fun getItemCount(): Int {
-        return items.size
-    }
+    var _items = listOf<AddTransactionItem>()
 
 
     private var currentItem = -1
@@ -56,10 +46,10 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
 
     override fun onBindViewHolder(holder: AddTransactionItemViewHolder, position: Int) {
         holder.binding.let { binding ->
-            val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, CategoryUi.TEMP_DEFAULT_CATEGORIES.toTypedArray())
+            val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, categories.toTypedArray())
             val absPosition = position
 //            val absPosition = holder.absoluteAdapterPosition
-            items[absPosition].let { item ->
+            _items[absPosition].let { item ->
                 var _item = item.copy()
                 if(absPosition != 0) {
                     binding.imageViewAddDetailedTransactionItemDelete.visibility = View.VISIBLE
@@ -108,7 +98,7 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
                 }
                 textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()] = newDescriptionWatcher
 
-                var categoryPosition = CategoryUi.TEMP_DEFAULT_CATEGORIES.indexOf(_item.category)
+                var categoryPosition = categories.indexOf(_item.category)
                 if(categoryPosition == -1) categoryPosition = 0
                 binding.spinnerAddDetailedTransactionItemCategory.adapter = spinnerAdapter
                 binding.spinnerAddDetailedTransactionItemCategory.setSelection(categoryPosition)
@@ -116,7 +106,7 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, _position: Int, id: Long) {
                         currentItem = absPosition
                         if(_item.category.id != _position.toLong()) {
-                            _item = _item.copy(category = CategoryUi.TEMP_DEFAULT_CATEGORIES[absPosition])
+                            _item = _item.copy(category = categories[absPosition])
                             listener?.onItemChanged(absPosition, _item)
                         }
                     }
@@ -125,7 +115,6 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
 
                     }
                 }
-
                 binding.linearLayoutAddDetailedTransactionDetails.visibility = if(_item.showDetails) View.VISIBLE else View.GONE
                 binding.textViewAddDetailedTransactionShowDetails.setOnClickListener {
                     currentItem = absPosition
@@ -161,6 +150,20 @@ class AddTransactionItemRecyclerAdapter(var listener: AddTransactionItemRecycler
 
             }
         }
+    }
+
+
+    override fun getItemCount(): Int {
+        return _items.size
+    }
+
+    fun setItems(items: List<AddTransactionItem>) {
+        this._items = items
+    }
+
+    fun setCategories(categories: List<CategoryUi>) {
+        this.categories = categories
+        notifyDataSetChanged()
     }
 
 

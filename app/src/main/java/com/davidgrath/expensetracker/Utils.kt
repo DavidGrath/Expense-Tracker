@@ -1,6 +1,8 @@
 package com.davidgrath.expensetracker
 
 import android.net.Uri
+import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.google.gson.TypeAdapter
@@ -31,6 +33,7 @@ class Utils {
             "fitness",
             "miscellaneous",
         )
+        //TODO Context and string ids
         val CATEGORY_NAMES_DEFAULT = mapOf(
             "food" to "Food",
             "rent" to "Housing",
@@ -81,6 +84,18 @@ fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<Gene
         }
     }
     return itemsList
+}
+
+//TODO Context and string ids
+fun categoryDbToCategoryUi(categoryDb: CategoryDb): CategoryUi {
+    val category = if(categoryDb.isCustom) {
+        val categoryIcon = R.drawable.baseline_category_24
+        CategoryUi(categoryDb.id!!, null, categoryDb.name!!, categoryIcon)
+    } else {
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(categoryDb.stringID)!!
+        CategoryUi(categoryDb.id!!, categoryDb.stringID, Utils.CATEGORY_NAMES_DEFAULT[categoryDb.stringID]!!, categoryIcon)
+    }
+    return category
 }
 
 fun getSha256(inputStream: InputStream): String {

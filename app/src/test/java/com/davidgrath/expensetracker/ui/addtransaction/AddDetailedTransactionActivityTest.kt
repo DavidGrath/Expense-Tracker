@@ -17,16 +17,26 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withSpinnerText
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestContentProvider
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderImages
+import com.davidgrath.expensetracker.assertRecyclerViewItemSpinnerText
+import com.davidgrath.expensetracker.assertRecyclerViewItemText
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
+import org.hamcrest.Matchers
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -38,6 +48,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.math.BigDecimal
 
 
 @RunWith(RobolectricTestRunner::class)
@@ -49,6 +60,7 @@ class AddDetailedTransactionActivityTest {
     @Before
     fun setUp() {
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
     }
 
     @After
@@ -63,12 +75,14 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    @Ignore("Not ready yet")
     fun givenIntentHasArgsWhenStartActivityThenDetailsArePopulated() {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val categoryRepository = context.categoryRepository()
+        val category = categoryRepository.findByStringId("fitness").blockingGet()!!
         val basicAmount = "300.00"
         val basicDescription = "Description"
-        val categoryId = "fitness"
+        val categoryId = category.id!!
         mainActivityScenario.onActivity {
             val intent = Intent(it, AddDetailedTransactionActivity::class.java).also {
                 it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_CATEGORY_ID, categoryId)
@@ -96,14 +110,68 @@ class AddDetailedTransactionActivityTest {
         )
         onView(withId(R.id.spinner_add_detailed_transaction_item_category)).check(
             matches(
-                withSpinnerText("Fitness")
+                withSpinnerText(Matchers.containsString("Fitness"))
             )
         )
     }
 
     @Test
-    @Ignore("Not ready yet")
     fun givenIntentHasArgsAndDraftExistsWhenStartActivityThenArgsMovedToTopOfList() {
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val categoryRepository = context.categoryRepository()
+        val category = categoryRepository.findByStringId("food").blockingGet()!!
+        val draft = buildDraft(BigDecimal.TEN, "Candy", categoryDbToCategoryUi(category))
+        val fileHandler: DraftFileHandler = context
+        fileHandler.createDraft()
+        fileHandler.saveDraft(draft)
+        //Start on MainActivity
+        val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
+        val dumbbellCategory = categoryRepository.findByStringId("fitness").blockingGet()!!
+        val basicAmount = "300.00"
+        val basicDescription = "Dumbbells"
+        val categoryId = dumbbellCategory.id!!
+        mainActivityScenario.onActivity {
+            val intent = Intent(it, AddDetailedTransactionActivity::class.java).also {
+                it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_CATEGORY_ID, categoryId)
+                it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_AMOUNT, basicAmount)
+                it.putExtra(
+                    AddDetailedTransactionActivity.ARG_INITIAL_DESCRIPTION,
+                    basicDescription
+                )
+            }
+            val addDetailedTransactionActivityScenario =
+                ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+        }
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount, "300.00"
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description, "Dumbbells"
+        )
+        assertRecyclerViewItemSpinnerText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.spinner_add_detailed_transaction_item_category, "Fitness"
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount, "10.00"
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_description, "Candy"
+        )
+        assertRecyclerViewItemSpinnerText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.spinner_add_detailed_transaction_item_category, "Food"
+        )
 
     }
 
@@ -387,6 +455,18 @@ class AddDetailedTransactionActivityTest {
         assertEquals(1, getHashCount(TestData.Companion.Images.TOOTHBRUSH.sha256, imagesFolder))
     }
 
+    @Test
+    @Ignore("Not ready yet")
+    fun givenCustomCategoryModifiedWhenRestoreDraftThenDraftCategoryCorrect() {
+
+    }
+
+    @Test
+    @Ignore("Not ready yet")
+    fun givenCustomCategoryDeletedWhenRestoreDraftThenCategoryBecomesMisc() {
+
+    }
+
     fun getHashCount(sha256: String, folder: File): Int {
         if(!folder.exists() || !folder.isDirectory) {
             return 0
@@ -399,5 +479,9 @@ class AddDetailedTransactionActivityTest {
             }
         }
         return hashCount
+    }
+
+    fun buildDraft(amount: BigDecimal, description: String, category: CategoryUi): AddDetailedTransactionDraft {
+        return AddDetailedTransactionDraft(items = listOf(AddTransactionItem(0, category, amount, description)))
     }
 }

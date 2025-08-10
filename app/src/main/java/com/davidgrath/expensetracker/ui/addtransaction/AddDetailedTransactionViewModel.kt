@@ -2,44 +2,56 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Application
 import android.net.Uri
-import android.os.Looper
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
-import androidx.lifecycle.viewModelScope
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.davidgrath.expensetracker.repositories.CategoryRepository
+import io.reactivex.rxjava3.core.Single
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
-import java.util.logging.Handler
 
-class AddDetailedTransactionViewModel(private val application: Application, private val repository: AddDetailedTransactionRepository): AndroidViewModel(application) {
+class AddDetailedTransactionViewModel(
+    private val application: Application, private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
+    private val categoryRepository: CategoryRepository,
+    private val initialAmount: BigDecimal?,
+    private val initialDescription: String?,
+    private val initialCategoryId: Long?
+    ): AndroidViewModel(application) {
 
 
     var getImageItemId = -1
     init {
-        if(!repository.draftExists()) {
-            repository.createDraft()
-            repository.addItem()
+        if(!addDetailedTransactionRepository.draftExists()) {
+            if(initialAmount != null || initialDescription != null || initialCategoryId != null) {
+                addDetailedTransactionRepository.createDraft()
+                addDetailedTransactionRepository.initializeDraft(initialAmount, initialDescription, initialCategoryId)
+            } else {
+                addDetailedTransactionRepository.createDraft()
+                addDetailedTransactionRepository.addItem()
+            }
+        } else {
+            if(initialAmount != null || initialDescription != null || initialCategoryId != null) {
+                addDetailedTransactionRepository.moveToTopOfDraft(initialAmount, initialDescription, initialCategoryId)
+            }
         }
     }
-    val transactionItemsLiveData = repository.getDraft()
+    val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
     val transactionTotalLiveData : LiveData<BigDecimal> = transactionItemsLiveData.map { items -> items.first.items.map { it.amount?: BigDecimal.ZERO }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) }
 
     fun addItem(): Boolean {
-        return repository.addItem()
+        return addDetailedTransactionRepository.addItem()
     }
 
     fun onItemChanged(position: Int, item: AddTransactionItem) {
-        repository.changeItem(position, item)
+        addDetailedTransactionRepository.changeItem(position, item)
     }
 
     fun addItemFile(returnedUri: Uri) {
@@ -49,12 +61,12 @@ class AddDetailedTransactionViewModel(private val application: Application, priv
             var inputStream = application.contentResolver.openInputStream(returnedUri)!!
             val checksum = getSha256(inputStream)
 //            inputStream.close()
-            if(repository.hashInDb(checksum)) {
-                val existingDraftImage = repository.getDbImageUri(checksum)
-                repository.addImageToItem(getImageItemId, existingDraftImage, checksum)
-            } else if(repository.hashInDraft(checksum)) {
-                val existingDraftImage = repository.getDraftImageUri(checksum)
-                repository.addImageToItem(getImageItemId, existingDraftImage, checksum)
+            if(addDetailedTransactionRepository.hashInDb(checksum)) {
+                val existingDraftImage = addDetailedTransactionRepository.getDbImageUri(checksum)
+                addDetailedTransactionRepository.addImageToItem(getImageItemId, existingDraftImage, checksum)
+            } else if(addDetailedTransactionRepository.hashInDraft(checksum)) {
+                val existingDraftImage = addDetailedTransactionRepository.getDraftImageUri(checksum)
+                addDetailedTransactionRepository.addImageToItem(getImageItemId, existingDraftImage, checksum)
             } else {
                 val root = File(application.filesDir, Constants.FOLDER_NAME_DRAFT)
                 val imagesFolder = File(root, Constants.SUBFOLDER_NAME_IMAGES)
@@ -71,18 +83,22 @@ class AddDetailedTransactionViewModel(private val application: Application, priv
                 inputStream.copyTo(outputStream)
 //                inputStream.close()
                 outputStream.close()
-                repository.addImageToItem(getImageItemId, file.toUri(), checksum)
+                addDetailedTransactionRepository.addImageToItem(getImageItemId, file.toUri(), checksum)
             }
             getImageItemId = -1
 //        }
     }
 
     fun onItemDeleted(position: Int) {
-        repository.deleteItem(position)
+        addDetailedTransactionRepository.deleteItem(position)
     }
 
     fun finishDraft() {
-        repository.finishTransaction()
+        addDetailedTransactionRepository.finishTransaction()
+    }
+
+    fun getCategories(): Single<List<CategoryDb>> {
+        return categoryRepository.getCategoriesSingle()
     }
 
 }

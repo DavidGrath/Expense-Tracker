@@ -4,9 +4,17 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.repositories.CategoryRepository
+import java.math.BigDecimal
 
-class AddDetailedTransactionViewModelFactory(private val application: Application, private val repository: AddDetailedTransactionRepository): ViewModelProvider.Factory {
+class AddDetailedTransactionViewModelFactory(
+    private val application: Application, private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
+    private val categoryRepository: CategoryRepository,
+    private val initialAmount: BigDecimal?,
+    private val initialDescription: String?,
+    private val initialCategoryId: Long?
+    ): ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return AddDetailedTransactionViewModel(application, repository) as T
+        return AddDetailedTransactionViewModel(application, addDetailedTransactionRepository, categoryRepository, initialAmount, initialDescription, initialCategoryId) as T
     }
 }

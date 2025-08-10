@@ -9,9 +9,11 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
-import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
 
 class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
@@ -27,8 +29,9 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
         super.onCreate(savedInstanceState)
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
-        val tempRepository = TransactionRepository(app.transactionDao(), app.transactionItemDao())
-        viewModel = ViewModelProvider(this, MainViewModelFactory(tempRepository)).get(
+        val transactionRepository = app.transactionRepository()
+        val categoryRepository = app.categoryRepository()
+        viewModel = ViewModelProvider(this, MainViewModelFactory(transactionRepository, categoryRepository)).get(
             MainViewModel::class.java)
         addTransactionDialog = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         if(savedInstanceState == null) {
@@ -50,7 +53,12 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
             when(view) {
                 activityMainBinding.fabMain -> {
                     if(addTransactionDialog == null) {
+                        val categories = viewModel.getCategories()
+//                            .observeOn(Schedulers.io())
+//                            .subscribeOn(AndroidSchedulers.mainThread())
+                            .blockingGet()
                         addTransactionDialog = AddTransactionDialogFragment()
+                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
                     }
                     addTransactionDialog?.listener = this
                     addTransactionDialog?.show(supportFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
@@ -72,11 +80,11 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
         return true
     }
 
-    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Int) {
+    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
 
     }
 
-    override fun onGoToDetails(amount: BigDecimal?, description: String, categoryId: Int) {
+    override fun onGoToDetails(amount: BigDecimal?, description: String?, categoryId: Long?) {
         val bundle = AddDetailedTransactionActivity.createBundle(amount?.toString(), description, categoryId)
         val intent = Intent(this, AddDetailedTransactionActivity::class.java)
         intent.putExtras(bundle)

@@ -35,24 +35,25 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
         val repository = app.addDetailedTransactionRepository()
+        val categoryRepository = app.categoryRepository()
+        val extras = intent.extras
+        var amount: BigDecimal? = null
+        var description: String? = null
+        var categoryId: Long? = null
+        if (extras != null) {
+            val amountString = extras.getString(ARG_INITIAL_AMOUNT)
+            amount = if (amountString != null) BigDecimal(amountString) else null
+            description = extras.getString(ARG_INITIAL_DESCRIPTION)
+            categoryId = extras.getLong(ARG_INITIAL_CATEGORY_ID)
+        }
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, repository)
+            AddDetailedTransactionViewModelFactory(app, repository, categoryRepository, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
-        val extras = intent.extras
+
         if (savedInstanceState == null) {
-            if (extras != null) {
-                val amount = extras.getString(ARG_INITIAL_AMOUNT)
-                val bd = if (amount != null) BigDecimal(amount) else null
-                mainFragment = AddDetailedTransactionMainFragment.newInstance(
-                    bd, extras.getString(
-                        ARG_INITIAL_DESCRIPTION
-                    ), extras.getInt(ARG_INITIAL_CATEGORY_ID)
-                )
-            } else {
-                mainFragment = AddDetailedTransactionMainFragment.newInstance()
-            }
+            mainFragment = AddDetailedTransactionMainFragment.newInstance()
             supportFragmentManager.beginTransaction()
                 .add(
                     R.id.frame_add_detailed_transaction,
@@ -95,8 +96,8 @@ class AddDetailedTransactionActivity : FragmentActivity(),
 
         fun createBundle(
             initialAmount: String?,
-            initialDescription: String,
-            initialCategoryId: Int
+            initialDescription: String?,
+            initialCategoryId: Long?
         ): Bundle {
             return bundleOf(
                 ARG_INITIAL_AMOUNT to initialAmount,

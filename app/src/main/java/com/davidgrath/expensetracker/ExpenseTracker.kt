@@ -5,16 +5,21 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.davidgrath.expensetracker.db.dao.TempCategoryDao
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
+import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
-import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import com.google.gson.Gson
+import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.google.gson.GsonBuilder
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZonedDateTime
+import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 
 class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
@@ -27,7 +32,11 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     private val tempTransactionDao = TempTransactionDao()
     private val tempTransactionItemDao = TempTransactionItemDao()
     private val tempImagesDao = TempImagesDao()
-    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionDao(), transactionItemDao())
+    private val tempCategoryDao = TempCategoryDao()
+    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionDao(), transactionItemDao(), tempCategoryDao)
+    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao)
+    private val categoryRepository = CategoryRepository(tempCategoryDao)
+
 
     @Suppress("DEPRECATION")
     override fun onCreate() {
@@ -36,6 +45,7 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         val draftFile = File(root, Constants.DRAFT_FILE_NAME)
         Log.d("DraftFile", draftFile.absolutePath)
         _draftLiveData.postValue(draft)
+        tempInitCategories()
     }
 
 
@@ -100,8 +110,34 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         return tempImagesDao
     }
 
+    override fun categoryDao(): TempCategoryDao {
+        return tempCategoryDao
+    }
+
     override fun addDetailedTransactionRepository(): AddDetailedTransactionRepository {
         return addDetailedTransactionRepository
+    }
+
+    override fun transactionRepository(): TransactionRepository {
+        return transactionRepository
+    }
+
+    override fun categoryRepository(): CategoryRepository {
+        return categoryRepository
+    }
+
+    fun tempInitCategories() {
+        val date = ZonedDateTime.now()
+        val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
+        val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        val offset = date.offset.id
+        val zone = date.zone.id
+        for(category in Utils.CORE_CATEGORIES) {
+            val categoryDb = tempCategoryDao.findByStringId(category).blockingGet()
+            if(categoryDb == null) {
+                tempCategoryDao.addCategory(CategoryDb(null, 0, category, false, null, dateString, offset, zone))
+            }
+        }
     }
 }
 

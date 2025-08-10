@@ -11,9 +11,12 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
 import java.util.Locale
 
@@ -45,7 +48,12 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        adapter = AddTransactionItemRecyclerAdapter(this)
+        val categories = viewModel.getCategories()
+//            .observeOn(Schedulers.io())
+//            .subscribeOn(AndroidSchedulers.mainThread())
+            .blockingGet()
+        val c = categories.map { categoryDbToCategoryUi(it) }
+        adapter = AddTransactionItemRecyclerAdapter(c, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
@@ -55,23 +63,23 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             val position = triple.third
             when(event) {
                 AddDetailedTransactionRepository.TransactionDetailEvent.Delete -> {
-                    adapter.submitList(list)
+                    adapter.setItems(list)
                     adapter.notifyItemRemoved(position)
                 }
                 AddDetailedTransactionRepository.TransactionDetailEvent.Insert -> {
-                    adapter.submitList(list)
+                    adapter.setItems(list)
                     adapter.notifyItemInserted(position)
                 }
                 AddDetailedTransactionRepository.TransactionDetailEvent.All -> {
-                    adapter.submitList(list)
+                    adapter.setItems(list)
                     adapter.notifyDataSetChanged()
                 }
                 AddDetailedTransactionRepository.TransactionDetailEvent.Change -> {
-                    adapter.submitList(list)
+                    adapter.setItems(list)
                     //No change to prevent EditText focus loss
                 }
                 AddDetailedTransactionRepository.TransactionDetailEvent.ChangeInvalidate -> {
-                    adapter.submitList(list)
+                    adapter.setItems(list)
                     adapter.notifyItemChanged(position)
                 }
                 AddDetailedTransactionRepository.TransactionDetailEvent.None -> {
@@ -118,14 +126,5 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         intent.type = "*/*"
         intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
         requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
-    }
-
-    companion object {
-        @JvmStatic
-        fun newInstance(initialAmount: BigDecimal? = null, initialDescription: String? = null, initialCategoryId: Int? = null): AddDetailedTransactionMainFragment {
-            val fragment = AddDetailedTransactionMainFragment()
-            //TODO Bundle
-            return fragment
-        }
     }
 }
