@@ -7,12 +7,15 @@ import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withSpinnerText
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -33,6 +36,8 @@ import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.getSha256
+import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
+import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -60,7 +65,6 @@ class AddDetailedTransactionActivityTest {
     @Before
     fun setUp() {
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
     }
 
     @After
@@ -96,22 +100,20 @@ class AddDetailedTransactionActivityTest {
                 ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
         }
 
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_amount)).check(
-            matches(
-                withText(
-                    basicAmount
-                )
-            )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount, basicAmount
         )
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_description)).check(
-            matches(
-                withText(basicDescription)
-            )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description, basicDescription
         )
-        onView(withId(R.id.spinner_add_detailed_transaction_item_category)).check(
-            matches(
-                withSpinnerText(Matchers.containsString("Fitness"))
-            )
+        assertRecyclerViewItemSpinnerText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.spinner_add_detailed_transaction_item_category, "Fitness"
         )
     }
 
@@ -175,18 +177,120 @@ class AddDetailedTransactionActivityTest {
 
     }
 
+    /**
+     * This test is flaky for some reason. Still leaving it here
+     */
     @Test
-    @Ignore("Not ready yet")
+    @Config(qualifiers = "h720dp")
     fun givenAnyAmountNonPositiveOrEmptyWhenDoneThenFail() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         //More than one item
-        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(click())
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "100.00"
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            "Description"
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "0.00"
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            "Description"
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            2,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            2,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            ""
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            2,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            "Description"
+        )
+        onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
+        onView(withText("Invalid input")).check(matches(isDisplayed()))
     }
 
     @Test
-    @Ignore("Not ready yet")
+    @Config(qualifiers = "h720dp")
     fun givenAnyDescriptionEmptyWhenDoneThenFail() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         //More than one item
-        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(click())
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "100.00"
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            "Description"
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "200.00"
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            ""
+        )
+        onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
+        onView(withText("Invalid input")).check(matches(isDisplayed()))
     }
 
     @Test
@@ -244,8 +348,7 @@ class AddDetailedTransactionActivityTest {
 
         //Open Image from system
 
-        //This doesn't need to happen because the sub-views aren't bound by the constraints and so effectiveVisibility GONE doesn't make a difference. Maybe fix
-//        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
 
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
             Instrumentation.ActivityResult(
@@ -303,6 +406,12 @@ class AddDetailedTransactionActivityTest {
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
+            R.id.text_view_add_detailed_transaction_show_details
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
             R.id.image_view_add_detailed_transaction_item_add_image
         )
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
@@ -340,6 +449,7 @@ class AddDetailedTransactionActivityTest {
                 returnIntent
             )
         )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
         //Open Image from system
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -347,7 +457,7 @@ class AddDetailedTransactionActivityTest {
             R.id.image_view_add_detailed_transaction_item_add_image
         )
         //Add new item
-        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(click())
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
         //Open same at different position
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -394,6 +504,10 @@ class AddDetailedTransactionActivityTest {
                 returnIntent
             )
         )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.text_view_add_detailed_transaction_show_details
+        )
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
@@ -424,6 +538,10 @@ class AddDetailedTransactionActivityTest {
                 Activity.RESULT_OK,
                 returnIntent
             )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.text_view_add_detailed_transaction_show_details
         )
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,

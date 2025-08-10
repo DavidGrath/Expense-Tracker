@@ -101,4 +101,28 @@ class AddDetailedTransactionViewModel(
         return categoryRepository.getCategoriesSingle()
     }
 
+    fun validateDraft(): Boolean {
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        val items = draft.items
+        var valid = true
+        for(item in items) {
+            if(item.amount == null) {
+                valid = false
+                break
+            }
+            if(item.amount.compareTo(BigDecimal.ZERO) == 0) {
+                valid = false
+                break
+            }
+            if(item.description == null) {
+                valid = false
+                break
+            }
+            if(item.description.isBlank()) {
+                valid = false
+                break
+            }
+        }
+        return valid
+    }
 }

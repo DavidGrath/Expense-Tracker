@@ -16,6 +16,9 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.RecyclerClickItemAction
 import com.davidgrath.expensetracker.RecyclerInputNumberItemAction
 import com.davidgrath.expensetracker.RecyclerInputTextItemAction
+import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
+import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import org.hamcrest.Description
 import org.hamcrest.TypeSafeMatcher
@@ -51,15 +54,24 @@ class AddDetailedTransactionActivityInstrumentedTest {
                 RecyclerInputTextItemAction(R.id.edit_text_add_detailed_transaction_item_description, basicDescription)
             ))
 
-        onView(withId(R.id.recyclerview_add_detailed_transaction_main))
-            .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(1,
-                RecyclerClickItemAction(R.id.edit_text_add_detailed_transaction_item_amount)))
-        onView(withId(R.id.recyclerview_add_detailed_transaction_main))
-            .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(1,
-                RecyclerInputNumberItemAction(R.id.edit_text_add_detailed_transaction_item_amount, "")))
-        onView(withId(R.id.recyclerview_add_detailed_transaction_main))
-            .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(1,
-                RecyclerInputTextItemAction(R.id.edit_text_add_detailed_transaction_item_amount, "400.00")))
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            ""
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "400.00"
+        )
+
         onView(withId(R.id.recyclerview_add_detailed_transaction_main))
             .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(1,
                 RecyclerInputTextItemAction(R.id.edit_text_add_detailed_transaction_item_description, "Bread")))

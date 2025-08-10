@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.Utils
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
@@ -37,13 +38,7 @@ class MainViewModel(private val transactionRepository: TransactionRepository, pr
                 val transaction = TransactionUi(k.id!!, k.amount, k.currencyCode, k.cashOrCredit, localDateTime, localDateTime, null, emptyList())
                 val items = v.map { item ->
                     val dbCategory = categories.find { it.id == item.primaryCategoryId }!!
-                    val category = if(dbCategory.isCustom) {
-                        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(dbCategory.stringID)!!
-                        CategoryUi(dbCategory.id!!, dbCategory.stringID, Utils.CATEGORY_NAMES_DEFAULT[dbCategory.stringID]!!, categoryIcon)
-                    } else {
-                        val categoryIcon = R.drawable.baseline_category_24
-                        CategoryUi(dbCategory.id!!, null, dbCategory.name!!, categoryIcon)
-                    }
+                    val category = categoryDbToCategoryUi(dbCategory)
 
                     TransactionItemUi(transaction, item.amount, item.description, category, item.brand)
                 }

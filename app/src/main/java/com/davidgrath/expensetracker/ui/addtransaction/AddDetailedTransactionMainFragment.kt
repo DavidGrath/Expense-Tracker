@@ -15,6 +15,7 @@ import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
@@ -101,9 +102,12 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                     viewModel.addItem()
                 }
                 binding.imageButtonAddDetailedTransactionDone -> {
-                    //TODO Validate items
-                    viewModel.finishDraft()
-                    listener?.onFinished()
+                    if(viewModel.validateDraft()) {
+                        viewModel.finishDraft()
+                        listener?.onFinished()
+                    } else {
+                        Snackbar.make(binding.root, "Invalid input", Snackbar.LENGTH_SHORT).show()
+                    }
                 }
                 else -> {
 
@@ -126,5 +130,13 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         intent.type = "*/*"
         intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
         requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
+    }
+
+    companion object {
+        @JvmStatic
+        fun newInstance(): AddDetailedTransactionMainFragment {
+            val fragment = AddDetailedTransactionMainFragment()
+            return fragment
+        }
     }
 }

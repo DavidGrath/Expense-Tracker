@@ -81,6 +81,10 @@ fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItem(@IdRes recyclerVi
 
 fun <VH : RecyclerView.ViewHolder> clickRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId))
+        .check { view, noViewFoundException ->
+            val subView = view!!.findViewById<View>(viewId)
+            ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)).check(subView, null)
+        }
         .perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(viewId)))
 }
 
