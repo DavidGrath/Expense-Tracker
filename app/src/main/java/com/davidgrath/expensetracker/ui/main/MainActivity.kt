@@ -81,7 +81,7 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
     }
 
     override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
-
+        viewModel.saveTransaction(amount, description, categoryId)
     }
 
     override fun onGoToDetails(amount: BigDecimal?, description: String?, categoryId: Long?) {

@@ -8,6 +8,8 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.Utils
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.TransactionDb
+import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
@@ -20,8 +22,11 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.OffsetDateTime
+import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
+import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
+import java.math.BigDecimal
 
 class MainViewModel(private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository): ViewModel() {
 
@@ -33,7 +38,7 @@ class MainViewModel(private val transactionRepository: TransactionRepository, pr
             for((k,v) in transactions) {
                 val utcDateTime = LocalDateTime.parse(k.datedAt)
                 val offset = ZoneOffset.of(k.datedAtOffset)
-                val offsetDateTime = OffsetDateTime.of(utcDateTime, offset)
+                val offsetDateTime = utcDateTime.atOffset(offset)
                 val localDateTime = offsetDateTime.toLocalDateTime()
                 val transaction = TransactionUi(k.id!!, k.amount, k.currencyCode, k.cashOrCredit, localDateTime, localDateTime, null, emptyList())
                 val items = v.map { item ->
@@ -50,5 +55,9 @@ class MainViewModel(private val transactionRepository: TransactionRepository, pr
 
     fun getCategories(): Single<List<CategoryDb>> {
         return categoryRepository.getCategoriesSingle()
+    }
+
+    fun saveTransaction(amount: BigDecimal, description: String, categoryId: Long) {
+        transactionRepository.addTransaction(amount, description, categoryId).subscribe( { id -> }, {})
     }
 }

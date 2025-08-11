@@ -2,10 +2,14 @@ package com.davidgrath.expensetracker.ui
 
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions
+import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.hasErrorText
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.R
@@ -24,22 +28,39 @@ class MainActivityInstrumentedTest {
     @Test
     fun givenFieldsAreValidWhenSubmitThenTransactionAdded() {
         onView(withId(R.id.fab_main)).perform(click())
-        onView(withId(R.id.edit_text_add_transaction_amount)).perform(typeText("100.00"))
+        onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(), typeText("100.00"))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
         onView(withId(android.R.id.button1)).perform(click())
         onView(withId(R.id.text_view_transaction_item_description)).check(ViewAssertions.matches(ViewMatchers.withText("Basic Description")))
     }
 
     @Test
-    @Ignore("Not ready yet")
-    fun givenAmountIsNotPositiveOrEmptyWhenSubmitThenFail() {
-
+    fun givenAmountIsNotPositiveWhenSubmitThenFail() {
+        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  typeText("0"))
+        onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_amount)).check(matches(ViewMatchers.hasErrorText("Invalid")))
+    }
+    @Test
+    fun givenAmountIsEmptyWhenSubmitThenFail() {
+        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  replaceText(""))
+        onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_amount)).check(matches(ViewMatchers.hasErrorText("Invalid")))
     }
 
 
     @Test
-    @Ignore("Not ready yet")
     fun givenDescriptionIsNotValidWhenSubmitThenFail() {
-
+        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  replaceText("100.00"))
+        onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText(""))
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_description)).check(matches(hasErrorText("Empty")))
+        onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("\t  "))
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(R.id.edit_text_add_transaction_description)).check(matches(hasErrorText("Empty")))
     }
 }

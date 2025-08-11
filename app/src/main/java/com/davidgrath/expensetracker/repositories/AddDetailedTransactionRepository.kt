@@ -21,7 +21,7 @@ import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.math.BigDecimal
 
-class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, private val tempImagesDao: TempImagesDao, private val tempTransactionDao: TempTransactionDao, private val tempTransactionItemDao: TempTransactionItemDao, private val tempCategoryDao: TempCategoryDao) {
+class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, private val tempImagesDao: TempImagesDao, private val transactionRepository: TransactionRepository, private val tempCategoryDao: TempCategoryDao) {
 
     //TODO Relying on this variable is probably a terrible way to work with a FileObserver
     private var currentEvent = TransactionDetailEvent.All
@@ -182,14 +182,8 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         val offset = date.offset.id
         val zone = date.zone.id
         val transaction = TransactionDb(null, 0, total, "USD", false, dateString, offset, zone, dateString, offset, zone)
-        tempTransactionDao.addTransaction(transaction).subscribe( { id ->
-            val items = draft.items.map { draftItem -> TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateString, offset, zone) }
-            for (item in items) {
-                tempTransactionItemDao.addTransactionItem(item)
-            }
-        }, {
-
-        })
+        val items = draft.items.map { draftItem -> TransactionItemDb(null, -1, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateString, offset, zone) }
+        transactionRepository.addTransaction(transaction, items).subscribe({  }, {})
 
         fileHandler.deleteDraft()
     }

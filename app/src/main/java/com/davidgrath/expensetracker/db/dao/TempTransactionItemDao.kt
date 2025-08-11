@@ -15,12 +15,25 @@ class TempTransactionItemDao {
         return behaviorSubject.map { list -> list.filter {  t -> t.transactionId == transactionId } }
     }
 
+
+    fun getTransactionItems(): Observable<List<TransactionItemDb>> {
+        return behaviorSubject
+    }
+
     fun getTransactionItemsSingle(transactionId: Long): Single<List<TransactionItemDb>> {
         return Single.just(transactionItems.filter {  t -> t.transactionId == transactionId } )
     }
 
     fun addTransactionItem(transactionItem: TransactionItemDb): Single<Unit> {
         transactionItems.add(transactionItem.copy(id = ++incrementId))
+        behaviorSubject.onNext(transactionItems)
+        return Single.just(Unit)
+    }
+
+    fun addTransactionItems(transactionItems: List<TransactionItemDb>): Single<Unit> {
+        for(transactionItem in transactionItems) {
+            this.transactionItems.add(transactionItem.copy(id = ++incrementId))
+        }
         behaviorSubject.onNext(transactionItems)
         return Single.just(Unit)
     }

@@ -15,7 +15,7 @@ import java.text.DecimalFormat
 class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
 
     private val decimalFormat = DecimalFormat("0.00")
-    private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+    private val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SealedViewHolder {
