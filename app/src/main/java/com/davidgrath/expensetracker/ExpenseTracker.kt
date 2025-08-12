@@ -9,6 +9,7 @@ import com.davidgrath.expensetracker.db.dao.TempCategoryDao
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
+import com.davidgrath.expensetracker.db.dao.TempTransactionItemImagesDao
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
@@ -33,8 +34,9 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     private val tempTransactionItemDao = TempTransactionItemDao()
     private val tempImagesDao = TempImagesDao()
     private val tempCategoryDao = TempCategoryDao()
-    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao)
-    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionRepository, tempCategoryDao)
+    val itemImagesDao = TempTransactionItemImagesDao()
+    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao, itemImagesDao, tempImagesDao)
+    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionRepository, tempCategoryDao, itemImagesDao)
     private val categoryRepository = CategoryRepository(tempCategoryDao)
 
 
@@ -96,6 +98,18 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
 
     override fun getDraftValue(): AddDetailedTransactionDraft {
         return draft
+    }
+
+    override fun moveFileToMain(file: File): File {
+        val mainFolder = File(filesDir, Constants.FOLDER_NAME_DATA)
+        val folder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        val f = File(folder, file.name)
+        file.copyTo(f)
+        Log.i("ExpenseTracker", "Created ${f.path}")
+        val b = file.delete()
+        Log.i("ExpenseTracker", "Deleted ${file.path}: $b")
+
+        return f
     }
 
     override fun transactionDao(): TempTransactionDao {

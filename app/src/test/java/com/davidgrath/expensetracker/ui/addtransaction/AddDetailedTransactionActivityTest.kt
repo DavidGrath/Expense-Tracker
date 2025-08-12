@@ -31,10 +31,12 @@ import com.davidgrath.expensetracker.assertRecyclerViewItemSpinnerText
 import com.davidgrath.expensetracker.assertRecyclerViewItemText
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
@@ -487,11 +489,7 @@ class AddDetailedTransactionActivityTest {
         val mainImagesFolder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
         val existingImage = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
-        val resourceInputStream = classLoader.getResourceAsStream(TestData.Companion.Images.BREAD.resourceName)
-        val outputStream = existingImage.outputStream()
-        resourceInputStream.copyTo(outputStream)
-        resourceInputStream.close()
-        outputStream.close()
+        copyResourceToFile(classLoader, TestData.Companion.Images.BREAD.resourceName, existingImage)
         context.imagesDao().addImage(ImageDb(null, 0, TestData.Companion.Images.BREAD.sha256, "image/jpeg", existingImage.toUri().toString(), "2025-08-09T12:08:00", "-04:00", "America/New_York")).blockingGet()
 
         //Add same item
@@ -583,20 +581,6 @@ class AddDetailedTransactionActivityTest {
     @Ignore("Not ready yet")
     fun givenCustomCategoryDeletedWhenRestoreDraftThenCategoryBecomesMisc() {
 
-    }
-
-    fun getHashCount(sha256: String, folder: File): Int {
-        if(!folder.exists() || !folder.isDirectory) {
-            return 0
-        }
-        var hashCount = 0
-        for(f in folder.listFiles()) {
-            val inputStream = f.inputStream()
-            if(getSha256(inputStream) == sha256) {
-                hashCount++
-            }
-        }
-        return hashCount
     }
 
     fun buildDraft(amount: BigDecimal, description: String, category: CategoryUi): AddDetailedTransactionDraft {

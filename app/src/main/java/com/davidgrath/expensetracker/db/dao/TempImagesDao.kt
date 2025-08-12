@@ -17,6 +17,10 @@ class TempImagesDao() {
         return images.find { it.sha256 == sha256 }!!
     }
 
+    fun findById(id: Long): ImageDb {
+        return images.find { it.id == id }!!
+    }
+
     fun addImage(imageDb: ImageDb): Single<Long> {
         images.add(imageDb.copy(id = ++incrementId))
         behaviorSubject.onNext(images)

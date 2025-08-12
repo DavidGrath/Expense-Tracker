@@ -1,6 +1,8 @@
 package com.davidgrath.expensetracker.repositories
 
 import android.net.Uri
+import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import com.davidgrath.expensetracker.Constants
@@ -8,20 +10,20 @@ import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.db.dao.TempCategoryDao
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
-import com.davidgrath.expensetracker.db.dao.TempTransactionDao
-import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
+import com.davidgrath.expensetracker.db.dao.TempTransactionItemImagesDao
+import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
+import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.core.Single
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.math.BigDecimal
 
-class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, private val tempImagesDao: TempImagesDao, private val transactionRepository: TransactionRepository, private val tempCategoryDao: TempCategoryDao) {
+class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler, private val tempImagesDao: TempImagesDao, private val transactionRepository: TransactionRepository, private val tempCategoryDao: TempCategoryDao, private val tempItemImagesDao: TempTransactionItemImagesDao) {
 
     //TODO Relying on this variable is probably a terrible way to work with a FileObserver
     private var currentEvent = TransactionDetailEvent.All
@@ -126,7 +128,7 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         fileHandler.saveDraft(draft.copy(items = newItems))
     }
 
-    fun addImageToItem(itemId: Int, localUri: Uri, sha256: String) { //TODO Handle hashing flow properly - is it in onActivityResult or here that I actually compute the hash, and then also skip existing values?
+    fun addImageToItem(itemId: Int, localUri: Uri, sha256: String) {
         val draft = fileHandler.getDraftValue()
         val currentList = draft.items
         val item = currentList.find { it.id == itemId }
@@ -181,9 +183,38 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val offset = date.offset.id
         val zone = date.zone.id
+
+        val imagesMap = mutableMapOf<Uri, Long>()
+        for((k,v) in draft.imageHashes) {
+
+            val file = k.toFile()
+            val hash = v
+            val mimeType = "image/jpeg" //TODO Mime type fix
+            val mainFile = fileHandler.moveFileToMain(file)
+            val uri = mainFile.toUri()
+
+            val length = mainFile.length()
+            val image = ImageDb(null, length, hash, mimeType, uri.toString(), dateString, offset, zone)
+            val imageId = tempImagesDao.addImage(image).blockingGet()
+            imagesMap[uri] = imageId
+        }
         val transaction = TransactionDb(null, 0, total, "USD", false, dateString, offset, zone, dateString, offset, zone)
-        val items = draft.items.map { draftItem -> TransactionItemDb(null, -1, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateString, offset, zone) }
-        transactionRepository.addTransaction(transaction, items).subscribe({  }, {})
+
+        transactionRepository.addTransaction(transaction).flatMap { id ->
+            val singles = draft.items.map { draftItem ->
+                val item = TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateString, offset, zone)
+                transactionRepository.addTransactionItem(item)
+                    .map {  itemId ->
+                        for(image in draftItem.images) {
+                            val uri = Uri.parse(image)
+                            val imageId = imagesMap[uri]!!
+                            val itemImage = TransactionItemImagesDb(null, itemId, imageId, dateString, offset, zone)
+                            tempItemImagesDao.addImage(itemImage)
+                        }
+                    }
+            }
+            Single.mergeDelayError(singles).toList()
+        }.subscribe({},{})
 
         fileHandler.deleteDraft()
     }

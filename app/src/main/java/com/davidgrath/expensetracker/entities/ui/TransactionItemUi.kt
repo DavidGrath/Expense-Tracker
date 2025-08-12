@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.entities.ui
 
+import android.net.Uri
 import java.math.BigDecimal
 
 data class TransactionItemUi(
@@ -7,5 +8,6 @@ data class TransactionItemUi(
     val amount: BigDecimal,
     val description: String,
     val category: CategoryUi,
-    val brand: String? = null
+    val brand: String? = null,
+    val images: List<Uri> = emptyList()
 )

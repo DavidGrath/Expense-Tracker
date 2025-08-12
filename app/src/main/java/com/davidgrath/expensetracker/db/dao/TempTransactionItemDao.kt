@@ -24,17 +24,20 @@ class TempTransactionItemDao {
         return Single.just(transactionItems.filter {  t -> t.transactionId == transactionId } )
     }
 
-    fun addTransactionItem(transactionItem: TransactionItemDb): Single<Unit> {
+    fun addTransactionItem(transactionItem: TransactionItemDb): Single<Long> {
         transactionItems.add(transactionItem.copy(id = ++incrementId))
         behaviorSubject.onNext(transactionItems)
-        return Single.just(Unit)
+        return Single.just(incrementId)
     }
 
-    fun addTransactionItems(transactionItems: List<TransactionItemDb>): Single<Unit> {
+    fun addTransactionItems(transactionItems: List<TransactionItemDb>): Single<List<Long>> {
+        val ids = arrayListOf<Long>()
         for(transactionItem in transactionItems) {
-            this.transactionItems.add(transactionItem.copy(id = ++incrementId))
+            val id = ++incrementId
+            this.transactionItems.add(transactionItem.copy(id = id))
+            ids.add(id)
         }
         behaviorSubject.onNext(transactionItems)
-        return Single.just(Unit)
+        return Single.just(ids)
     }
 }

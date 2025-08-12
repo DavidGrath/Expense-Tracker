@@ -1,7 +1,10 @@
 package com.davidgrath.expensetracker.repositories
 
+import com.davidgrath.expensetracker.db.dao.TempImagesDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
+import com.davidgrath.expensetracker.db.dao.TempTransactionItemImagesDao
+import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import io.reactivex.rxjava3.core.Observable
@@ -14,7 +17,7 @@ import java.math.BigDecimal
 import java.util.SortedMap
 import java.util.TreeMap
 
-class TransactionRepository(private val transactionDao: TempTransactionDao, private val transactionItemDao: TempTransactionItemDao) {
+class TransactionRepository(private val transactionDao: TempTransactionDao, private val transactionItemDao: TempTransactionItemDao, private val transactionItemImagesDao: TempTransactionItemImagesDao, private val imagesDao: TempImagesDao) {
 
     fun addTransaction(amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
         val date = ZonedDateTime.now()
@@ -29,16 +32,23 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
         }
     }
 
-    fun addTransaction(transactionDb: TransactionDb, items: List<TransactionItemDb>): Single<Long> {
+    fun addTransaction(transactionDb: TransactionDb, items: List<TransactionItemDb>): Single<List<Long>> {
         return transactionDao.addTransaction(transactionDb).flatMap { id ->
             val idItems = items.map { it.copy(transactionId = id) }
-            transactionItemDao.addTransactionItems(idItems).map { id }
+            transactionItemDao.addTransactionItems(idItems)
 
         }
     }
+
+    fun addTransaction(transactionDb: TransactionDb): Single<Long> {
+        return transactionDao.addTransaction(transactionDb)
+    }
+    fun addTransactionItem(item: TransactionItemDb): Single<Long> {
+        return transactionItemDao.addTransactionItem(item)
+    }
     fun getTransactions(): Observable<SortedMap<TransactionDb, List<TransactionItemDb>>> {
         //TODO Terrible solution
-        return Observable.combineLatest(transactionDao.getTransactions(), transactionItemDao.getTransactionItems()) { transactions, items ->
+        return Observable.combineLatest(transactionDao.getTransactions(), transactionItemDao.getTransactionItems(), transactionItemImagesDao.getTransactionItemImages()) { transactions, items, itemImages ->
             transactions
         }.map { transactions ->
             val map = TreeMap<TransactionDb, List<TransactionItemDb>>()
@@ -48,5 +58,12 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
             }
             map
         }
+    }
+
+    fun getTransactionItemImages(itemId: Long): Single<List<ImageDb>> {
+        return transactionItemImagesDao.getTransactionItemImagesByItemIdSingle(itemId)
+            .map {  list ->
+                list.map { itemImage -> imagesDao.findById(itemImage.imageID) }
+            }
     }
 }

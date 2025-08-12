@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class ImageDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val sizeBytes: Int,
+    val sizeBytes: Long,
     val sha256: String,
     val mimeType: String,
     val uri: String,

@@ -18,16 +18,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="Chicken"
+        app:layout_constraintHorizontal_bias="0"
         app:layout_constraintStart_toEndOf="@id/image_view_transaction_item_category"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/image_view_transaction_item_first_image" />
     <TextView
         android:id="@+id/text_view_transaction_item_store"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="KFC"
+        app:layout_constraintHorizontal_bias="0"
         app:layout_constraintStart_toStartOf="@id/text_view_transaction_item_description"
-        app:layout_constraintTop_toBottomOf="@id/text_view_transaction_item_description" />
-
+        app:layout_constraintTop_toBottomOf="@id/text_view_transaction_item_description"
+        app:layout_constraintEnd_toStartOf="@id/image_view_transaction_item_first_image"/>
+    <ImageView
+        android:id="@+id/image_view_transaction_item_first_image"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        app:layout_constraintEnd_toStartOf="@id/text_view_transaction_item_amount"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:src="@tools:sample/avatars"
+        android:contentDescription="Main Image" />
     <TextView
         android:id="@+id/text_view_transaction_item_amount"
         android:layout_width="wrap_content"

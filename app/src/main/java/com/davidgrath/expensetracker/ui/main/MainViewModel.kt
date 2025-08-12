@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -44,8 +45,10 @@ class MainViewModel(private val transactionRepository: TransactionRepository, pr
                 val items = v.map { item ->
                     val dbCategory = categories.find { it.id == item.primaryCategoryId }!!
                     val category = categoryDbToCategoryUi(dbCategory)
-
-                    TransactionItemUi(transaction, item.amount, item.description, category, item.brand)
+                    val images = transactionRepository.getTransactionItemImages(item.id!!).blockingGet().map {
+                        Uri.parse(it.uri)
+                    }
+                    TransactionItemUi(transaction, item.amount, item.description, category, item.brand, images)
                 }
                 list.add(transaction.copy(items = items))
             }

@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
@@ -48,6 +49,17 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                         binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + decimalFormat.format(transactionItem.amount)
                         binding.textViewTransactionItemDescription.text = transactionItem.description
                         binding.imageViewTransactionItemCategory.setImageResource(transactionItem.category.iconId)
+                        val image = transactionItem.images.firstOrNull()
+                        if(image != null) {
+                            binding.imageViewTransactionItemFirstImage.visibility = View.VISIBLE
+                            Glide.with(holder.binding.root)
+                                .load(image)
+                                .into(binding.imageViewTransactionItemFirstImage)
+                        } else {
+                            binding.imageViewTransactionItemFirstImage.visibility = View.GONE
+                            Glide.with(holder.binding.root)
+                                .clear(binding.imageViewTransactionItemFirstImage)
+                        }
                     }
                 }
             }
