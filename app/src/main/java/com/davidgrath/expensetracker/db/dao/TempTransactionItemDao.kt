@@ -40,4 +40,9 @@ class TempTransactionItemDao {
         behaviorSubject.onNext(transactionItems)
         return Single.just(ids)
     }
+
+    fun deleteAll() {
+        transactionItems.clear()
+        behaviorSubject.onNext(transactionItems)
+    }
 }

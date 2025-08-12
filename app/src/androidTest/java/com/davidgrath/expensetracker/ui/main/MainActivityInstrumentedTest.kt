@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.main
 
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click

@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.view.View
 import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.longClick
@@ -12,6 +13,7 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.RecyclerClickItemAction
 import com.davidgrath.expensetracker.RecyclerInputNumberItemAction
@@ -22,11 +24,18 @@ import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import org.hamcrest.Description
 import org.hamcrest.TypeSafeMatcher
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AddDetailedTransactionActivityInstrumentedTest {
+
+    @After
+    fun tearDown() {
+        ApplicationProvider.getApplicationContext<ExpenseTracker>().transactionItemDao().deleteAll()
+        ApplicationProvider.getApplicationContext<ExpenseTracker>().transactionDao().deleteAll()
+    }
 
     @Test
     fun givenItemsAreAllValidWhenDoneThenTransactionAdded() {

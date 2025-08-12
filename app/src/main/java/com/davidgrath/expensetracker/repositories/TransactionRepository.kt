@@ -48,7 +48,11 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
     }
     fun getTransactions(): Observable<SortedMap<TransactionDb, List<TransactionItemDb>>> {
         //TODO Terrible solution
-        return Observable.combineLatest(transactionDao.getTransactions(), transactionItemDao.getTransactionItems(), transactionItemImagesDao.getTransactionItemImages()) { transactions, items, itemImages ->
+        return Observable.combineLatest(
+            transactionDao.getTransactions(),
+            transactionItemDao.getTransactionItems().startWithItem(emptyList()),
+            transactionItemImagesDao.getTransactionItemImages().startWithItem(emptyList())
+        ) { transactions, items, itemImages ->
             transactions
         }.map { transactions ->
             val map = TreeMap<TransactionDb, List<TransactionItemDb>>()

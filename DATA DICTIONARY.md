@@ -99,7 +99,7 @@
 * ID: Long
 * TransactionID: Long
 * Type: String ["link", "document"]
-* SizeBytes: Int?
+* SizeBytes: Long?
 * SHA256: String?
 * MimeType: String?
 * URI: String
@@ -109,7 +109,7 @@
 
 **Image**
 * ID: Long
-* SizeBytes: Int
+* SizeBytes: Long
 * SHA256: String
 * URI: String
 * CreatedAt: String

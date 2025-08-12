@@ -19,4 +19,9 @@ class TempTransactionDao {
         behaviorSubject.onNext(transactions)
         return Single.just(incrementId)
     }
+
+    fun deleteAll() {
+        transactions.clear()
+        behaviorSubject.onNext(transactions)
+    }
 }
