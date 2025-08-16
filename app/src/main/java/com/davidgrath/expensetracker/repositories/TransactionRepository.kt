@@ -1,9 +1,11 @@
 package com.davidgrath.expensetracker.repositories
 
+import com.davidgrath.expensetracker.db.dao.TempCategoryDao
 import com.davidgrath.expensetracker.db.dao.TempImagesDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TempTransactionItemImagesDao
+import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
@@ -17,7 +19,7 @@ import java.math.BigDecimal
 import java.util.SortedMap
 import java.util.TreeMap
 
-class TransactionRepository(private val transactionDao: TempTransactionDao, private val transactionItemDao: TempTransactionItemDao, private val transactionItemImagesDao: TempTransactionItemImagesDao, private val imagesDao: TempImagesDao) {
+class TransactionRepository(private val transactionDao: TempTransactionDao, private val transactionItemDao: TempTransactionItemDao, private val transactionItemImagesDao: TempTransactionItemImagesDao, private val imagesDao: TempImagesDao, private val categoriesDao: TempCategoryDao) {
 
     fun addTransaction(amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
         val date = ZonedDateTime.now()
@@ -50,7 +52,7 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
         //TODO Terrible solution
         return Observable.combineLatest(
             transactionDao.getTransactions(),
-            transactionItemDao.getTransactionItems().startWithItem(emptyList()),
+            transactionItemDao.getTransactionItems(),
             transactionItemImagesDao.getTransactionItemImages().startWithItem(emptyList())
         ) { transactions, items, itemImages ->
             transactions
@@ -61,6 +63,18 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
                 map.put(t, items)
             }
             map
+        }
+    }
+
+    fun getTransaction7DaySummary(): Observable<List<Pair<CategoryDb, BigDecimal>>> {
+        return transactionDao.getTransactions().flatMap { transactions ->
+            val ids = transactions.map { it.id!! }
+            transactionItemDao.getTransactionItemsSumByCategory(ids)
+        }.map {  summary ->
+            val categories = summary.map {
+                categoriesDao.getById(it.first).blockingGet() to it.second
+            }.sortedBy { it.second }.take(5)
+            categories
         }
     }
 

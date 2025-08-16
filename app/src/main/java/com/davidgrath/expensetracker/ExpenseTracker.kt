@@ -35,7 +35,7 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     private val tempImagesDao = TempImagesDao()
     private val tempCategoryDao = TempCategoryDao()
     val itemImagesDao = TempTransactionItemImagesDao()
-    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao, itemImagesDao, tempImagesDao)
+    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao, itemImagesDao, tempImagesDao, tempCategoryDao)
     private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionRepository, tempCategoryDao, itemImagesDao)
     private val categoryRepository = CategoryRepository(tempCategoryDao)
 

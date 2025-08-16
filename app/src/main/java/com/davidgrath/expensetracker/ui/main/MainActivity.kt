@@ -31,7 +31,7 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
         val app = application as ExpenseTracker
         val transactionRepository = app.transactionRepository()
         val categoryRepository = app.categoryRepository()
-        viewModel = ViewModelProvider(this, MainViewModelFactory(transactionRepository, categoryRepository)).get(
+        viewModel = ViewModelProvider(this, MainViewModelFactory(app, transactionRepository, categoryRepository)).get(
             MainViewModel::class.java)
         addTransactionDialog = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         if(savedInstanceState == null) {
@@ -60,8 +60,10 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
                         addTransactionDialog = AddTransactionDialogFragment()
                         addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
                     }
-                    addTransactionDialog?.listener = this
-                    addTransactionDialog?.show(supportFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
+                    if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
+                        addTransactionDialog?.listener = this
+                        addTransactionDialog?.show(supportFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
+                    }
                 }
                 else -> {}
             }

@@ -3,11 +3,13 @@ package com.davidgrath.expensetracker
 import android.net.Uri
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
-import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
+import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
 import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -33,6 +35,7 @@ class Utils {
             "fitness",
             "miscellaneous",
         )
+
         //TODO Context and string ids
         val CATEGORY_NAMES_DEFAULT = mapOf(
             "food" to "Food",
@@ -77,10 +80,15 @@ class Utils {
 
 fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<GeneralTransactionListItem> {
     val itemsList = arrayListOf<GeneralTransactionListItem>()
+    var currentDate: LocalDate? = null
     for(transaction in transactions) {
-        itemsList.add(GeneralTransactionListItem(true, transaction, null))
+        if(currentDate != transaction.datedTimestamp.toLocalDate()) {
+            currentDate = transaction.datedTimestamp.toLocalDate()
+            itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Date, currentDate, null, null))
+        }
+        itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Transaction, null, transaction, null))
         for(item in transaction.items) {
-            itemsList.add(GeneralTransactionListItem(false, null, item))
+            itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.TransactionItem, null, null, item))
         }
     }
     return itemsList

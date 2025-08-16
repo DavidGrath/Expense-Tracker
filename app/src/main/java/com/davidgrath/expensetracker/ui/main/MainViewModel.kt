@@ -1,6 +1,9 @@
 package com.davidgrath.expensetracker.ui.main
 
+import android.app.Application
 import android.net.Uri
+import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,6 +21,9 @@ import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionsToTransactionItems
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.PieEntry
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -29,9 +35,10 @@ import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.math.BigDecimal
 
-class MainViewModel(private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository): ViewModel() {
+class MainViewModel(private val application: Application, private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository): AndroidViewModel(application) {
 
     val listLiveData : LiveData<List<GeneralTransactionListItem>>
+    val past7ByCategory: LiveData<List<BarEntry>>
 
     init {
         listLiveData = Observable.combineLatest(transactionRepository.getTransactions(), categoryRepository.getCategories()) { transactions, categories ->
@@ -53,6 +60,14 @@ class MainViewModel(private val transactionRepository: TransactionRepository, pr
                 list.add(transaction.copy(items = items))
             }
             transactionsToTransactionItems(list)
+        }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        past7ByCategory = transactionRepository.getTransaction7DaySummary().map { list ->
+            val mapped = list.mapIndexed { i, it ->
+                val cat = categoryDbToCategoryUi(it.first)
+//                BarEntry(i.toFloat(), it.second.toFloat(), ResourcesCompat.getDrawable(application.resources, cat.iconId, null))
+                BarEntry(i.toFloat(), it.second.toFloat(), ResourcesCompat.getDrawable(application.resources, cat.iconId, null))
+            }
+            mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 

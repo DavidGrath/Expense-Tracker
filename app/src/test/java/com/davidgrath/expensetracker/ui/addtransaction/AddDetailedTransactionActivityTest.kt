@@ -186,7 +186,6 @@ class AddDetailedTransactionActivityTest {
      * This test is flaky for some reason. Ignoring it
      */
     @Test
-    @Config(qualifiers = "h720dp")
     @Ignore("Flaky")
     fun givenAnyAmountNonPositiveOrEmptyWhenDoneThenFail() {
         val addDetailedTransactionActivityScenario =
@@ -253,7 +252,6 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    @Config(qualifiers = "h720dp")
     fun givenAnyDescriptionEmptyWhenDoneThenFail() {
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
@@ -438,7 +436,6 @@ class AddDetailedTransactionActivityTest {
 
 
     @Test
-    @Config(qualifiers = "h720dp")
     fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToDraftStorage() {
 
         val addDetailedTransactionActivityScenario =

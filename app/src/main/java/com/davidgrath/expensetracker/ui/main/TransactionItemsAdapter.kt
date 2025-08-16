@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
+import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDateBinding
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
@@ -16,7 +17,8 @@ import java.text.DecimalFormat
 class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
 
     private val decimalFormat = DecimalFormat("0.00")
-    private val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+    private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+    private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SealedViewHolder {
@@ -30,6 +32,10 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
             VIEW_TYPE_TRANSACTION_ITEM -> {
                 val binding = RecyclerviewTransactionItemBinding.inflate(inflater, parent, false)
                 SealedViewHolder.TransactionItemViewHolder(binding)
+            }
+            VIEW_TYPE_TRANSACTION_DATE -> {
+                val binding = RecyclerviewTransactionDateBinding.inflate(inflater, parent, false)
+                SealedViewHolder.TransactionDateViewHolder(binding)
             }
             else -> {
                 val binding = RecyclerviewTransactionBinding.inflate(inflater, parent, false)
@@ -66,8 +72,16 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
             is SealedViewHolder.TransactionViewHolder -> {
                 items[position].transaction!!.let { transaction ->
                     holder.binding.let { binding ->
-                        binding.textViewTransactionDate.text = dateFormat.format(transaction.timestamp)
-                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
+                        binding.textViewTransactionDate.text = timeFormat.format(transaction.timestamp)
+//                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
+                        binding.textViewTransactionAmount.text = ""
+                    }
+                }
+            }
+            is SealedViewHolder.TransactionDateViewHolder -> {
+                items[position].date!!.let { date ->
+                    holder.binding.let { binding ->
+                        binding.textViewTransactionDateDate.text = dateFormat.format(date)
                     }
                 }
             }
@@ -80,7 +94,11 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position].transactionOrItem) VIEW_TYPE_TRANSACTION else VIEW_TYPE_TRANSACTION_ITEM
+        return when (items[position].type) {
+            GeneralTransactionListItem.Type.Transaction -> VIEW_TYPE_TRANSACTION
+            GeneralTransactionListItem.Type.TransactionItem -> VIEW_TYPE_TRANSACTION_ITEM
+            GeneralTransactionListItem.Type.Date -> VIEW_TYPE_TRANSACTION_DATE
+        }
     }
 
     fun setItems(items: List<GeneralTransactionListItem>) {
@@ -91,10 +109,12 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
     sealed class SealedViewHolder(itemView: View): ViewHolder(itemView) {
         class TransactionViewHolder(val binding: RecyclerviewTransactionBinding): SealedViewHolder(binding.root)
         class TransactionItemViewHolder(val binding: RecyclerviewTransactionItemBinding): SealedViewHolder(binding.root)
+        class TransactionDateViewHolder(val binding: RecyclerviewTransactionDateBinding): SealedViewHolder(binding.root)
     }
 
     companion object {
-        val VIEW_TYPE_TRANSACTION = 100
-        val VIEW_TYPE_TRANSACTION_ITEM = 101
+        const val VIEW_TYPE_TRANSACTION = 100
+        const val VIEW_TYPE_TRANSACTION_ITEM = 101
+        const val VIEW_TYPE_TRANSACTION_DATE = 102
     }
 }
