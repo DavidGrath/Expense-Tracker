@@ -43,10 +43,6 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     @Suppress("DEPRECATION")
     override fun onCreate() {
         super.onCreate()
-        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-        val draftFile = File(root, Constants.DRAFT_FILE_NAME)
-        Log.d("DraftFile", draftFile.absolutePath)
-        _draftLiveData.postValue(draft)
         tempInitCategories()
     }
 
@@ -69,7 +65,9 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     override fun draftExists(): Boolean {
         val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
         val file = File(root, Constants.DRAFT_FILE_NAME)
-        return file.exists()
+        val exists = file.exists()
+        Log.i(LOG_TAG, "Draft Exists: $exists")
+        return exists
     }
 
     override fun createDraft(): Boolean {
@@ -81,6 +79,7 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
             val emptyDraft = AddDetailedTransactionDraft(emptyList())
             val string = gson.toJson(emptyDraft)
             file.writeText(string)
+            this.draft = emptyDraft
             _draftLiveData.postValue(emptyDraft)
         }
         return ret
@@ -89,6 +88,8 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
     override fun deleteDraft(): Boolean {
         val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
         val file = File(root, Constants.DRAFT_FILE_NAME)
+        this.draft = AddDetailedTransactionDraft(emptyList())
+        _draftLiveData.postValue(this.draft)
         return file.delete()
     }
 
@@ -152,6 +153,10 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
                 tempCategoryDao.addCategory(CategoryDb(null, 0, category, false, null, dateString, offset, zone))
             }
         }
+    }
+
+    companion object {
+        const val LOG_TAG = "ExpenseTracker"
     }
 }
 

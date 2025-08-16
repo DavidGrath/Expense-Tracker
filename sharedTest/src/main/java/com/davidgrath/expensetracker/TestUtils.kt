@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker
 
+import android.content.ContentValues
 import android.content.Context
 import android.view.View
 import android.widget.EditText
@@ -56,6 +57,21 @@ class RecyclerInputNumberItemAction(private val id: Int, private val input: Stri
     }
 }
 
+class RecyclerClearTextItemAction(private val id: Int): ViewAction {
+    override fun getConstraints(): Matcher<View> {
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
+    }
+
+    override fun getDescription(): String {
+        return "Inputting description"
+    }
+
+    override fun perform(uiController: UiController?, view: View?) {
+        val editText = view!!.findViewById<EditText>(id)
+        ReplaceTextAction("").perform(uiController, editText)
+    }
+}
+
 class RecyclerClickItemAction(private val id: Int): ViewAction {
     override fun getConstraints(): Matcher<View> {
         return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
@@ -77,6 +93,10 @@ fun <VH : RecyclerView.ViewHolder> typeTextRecyclerViewItem(@IdRes recyclerViewI
 }
 fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputNumberItemAction(editTextId, text)))
+}
+
+fun <VH : RecyclerView.ViewHolder> clearTextRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int) {
+    Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClearTextItemAction(editTextId)))
 }
 
 fun <VH : RecyclerView.ViewHolder> clickRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int) {
@@ -128,5 +148,15 @@ fun addContentProviderImages(context: Context, classLoader: ClassLoader, vararg 
         resourceInputStream.copyTo(outputStream)
         resourceInputStream.close()
         outputStream.close()
+        println("File exists: $file; ${file.exists()}")
+    }
+}
+
+fun addContentProviderImagesInstrumented(context: Context, vararg images: TestData.Companion.Images) {
+    for(image in images) {
+        val contentValues = ContentValues()
+        contentValues.put("resourceName", image.resourceName)
+        contentValues.put("fileName", image.fileName)
+        context.contentResolver.insert(image.uri, contentValues)
     }
 }

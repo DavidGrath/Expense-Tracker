@@ -65,7 +65,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldAmountWatcher != null) {
                     binding.editTextAddDetailedTransactionItemAmount.removeTextChangedListener(oldAmountWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemAmount.setText(String.format(Locale.getDefault(), "%.2f", _item.amount?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)))
+                binding.editTextAddDetailedTransactionItemAmount.setText(if(_item.amount == null) "" else String.format(Locale.getDefault(), "%.2f", _item.amount))
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
                     if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) {
                     currentItem = absPosition

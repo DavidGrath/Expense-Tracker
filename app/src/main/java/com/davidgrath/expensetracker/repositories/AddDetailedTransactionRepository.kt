@@ -196,7 +196,7 @@ class AddDetailedTransactionRepository(private val fileHandler: DraftFileHandler
             val length = mainFile.length()
             val image = ImageDb(null, length, hash, mimeType, uri.toString(), dateString, offset, zone)
             val imageId = tempImagesDao.addImage(image).blockingGet()
-            imagesMap[uri] = imageId
+            imagesMap[k] = imageId
         }
         val transaction = TransactionDb(null, 0, total, "USD", false, dateString, offset, zone, dateString, offset, zone)
 
