@@ -1,33 +1,36 @@
 package com.davidgrath.expensetracker.ui.main
 
-import android.graphics.Color
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.OnClickListener
+import android.view.View.OnLongClickListener
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.MaterialColors
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
-import com.github.mikephil.charting.data.PieData
-import com.github.mikephil.charting.data.PieDataSet
-import com.github.mikephil.charting.utils.ColorTemplate
-import com.github.mikephil.charting.utils.MPPointF
+import java.math.BigDecimal
 
-class TransactionsFragment: Fragment() {
+class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
 
     lateinit var binding: FragmentTransactionsBinding
     lateinit var viewModel: MainViewModel
     lateinit var adapter: TransactionItemsAdapter
 
+    var addTransactionDialog: AddTransactionDialogFragment? = null
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentTransactionsBinding.inflate(inflater, null, false)
         viewModel = ViewModelProvider.create(requireActivity()).get(MainViewModel::class.java)
+        addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         adapter = TransactionItemsAdapter(emptyList())
         return binding.root
     }
@@ -39,29 +42,72 @@ class TransactionsFragment: Fragment() {
             Log.i("Transactions", "Item Count: ${list.size}")
             adapter.setItems(list)
         }
-//        binding.pieChartMain.legend.isEnabled = false
-//        binding.pieChartMain.description.isEnabled = false
         binding.barChartMain.legend.isEnabled = false
         binding.barChartMain.description.isEnabled = false
         binding.barChartMain.xAxis.setDrawLabels(false)
         binding.barChartMain.axisLeft.setDrawLabels(false)
         binding.barChartMain.axisLeft.axisMinimum = 0f
         binding.barChartMain.axisRight.axisMinimum = 0f
-        viewModel.past7ByCategory.observe(viewLifecycleOwner) { list ->
+        viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
             Log.i("Summary", "Item Count: ${list.size}")
             val dataSet = BarDataSet(list, "Summary for past 7 days")
             dataSet.colors = MaterialColors.Palette.map { it.value }
-//            dataSet.colors = ColorTemplate.MATERIAL_COLORS.toList()
             dataSet.setDrawIcons(true)
             dataSet.setDrawValues(true)
             val data = BarData(dataSet)
-//            binding.pieChartMain.isLogEnabled = true
-//            binding.pieChartMain.data = data
-//            binding.pieChartMain.invalidate()
             binding.barChartMain.isLogEnabled = true
             binding.barChartMain.data = data
             binding.barChartMain.invalidate()
         }
+
+        binding.fabTransactions.setOnClickListener(this)
+        binding.fabTransactions.setOnLongClickListener(this)
+    }
+
+    override fun onClick(v: View?) {
+        v?.let { view ->
+            when(view) {
+                binding.fabTransactions -> {
+                    if(addTransactionDialog == null) {
+                        val categories = viewModel.getCategories()
+//                            .observeOn(Schedulers.io())
+//                            .subscribeOn(AndroidSchedulers.mainThread())
+                            .blockingGet()
+                        addTransactionDialog = AddTransactionDialogFragment()
+                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
+                    }
+                    if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
+                        addTransactionDialog?.listener = this
+                        addTransactionDialog?.show(childFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+
+    override fun onLongClick(v: View?): Boolean {
+        v?.let {
+            when(v) {
+                binding.fabTransactions -> {
+                    val intent = Intent(requireActivity(), AddDetailedTransactionActivity::class.java)
+                    startActivity(intent)
+                }
+            }
+        }
+        return true
+    }
+
+    override fun onGoToDetails(amount: BigDecimal?, description: String?, categoryId: Long?) {
+        val bundle = AddDetailedTransactionActivity.createBundle(amount?.toString(), description, categoryId)
+        val intent = Intent(requireActivity(), AddDetailedTransactionActivity::class.java)
+        intent.putExtras(bundle)
+        startActivity(intent)
+    }
+
+    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
+        viewModel.saveTransaction(amount, description, categoryId)
     }
 
     companion object {
@@ -69,5 +115,6 @@ class TransactionsFragment: Fragment() {
             val transactionsFragment = TransactionsFragment()
             return transactionsFragment
         }
+        const val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
     }
 }

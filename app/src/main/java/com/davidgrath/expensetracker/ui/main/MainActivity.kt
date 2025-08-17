@@ -5,25 +5,25 @@ import android.os.Bundle
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
+import com.google.android.material.tabs.TabLayoutMediator
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
 
-class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
+class MainActivity : FragmentActivity() {
 
     lateinit var activityMainBinding: ActivityMainBinding
-    lateinit var transactionsFragment: TransactionsFragment
-    var addTransactionDialog: AddTransactionDialogFragment? = null
     lateinit var viewModel: MainViewModel
-    val FRAGMENT_TAG_TRANSACTIONS = "transactions"
-    val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,63 +33,28 @@ class MainActivity : FragmentActivity(), OnClickListener, OnLongClickListener, A
         val categoryRepository = app.categoryRepository()
         viewModel = ViewModelProvider(this, MainViewModelFactory(app, transactionRepository, categoryRepository)).get(
             MainViewModel::class.java)
-        addTransactionDialog = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
-        if(savedInstanceState == null) {
-            transactionsFragment = TransactionsFragment.newInstance()
-            supportFragmentManager.beginTransaction()
-                .add(R.id.frame_main, transactionsFragment, FRAGMENT_TAG_TRANSACTIONS)
-                .show(transactionsFragment)
-                .commit()
-        } else {
-            transactionsFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG_TRANSACTIONS) as TransactionsFragment
-        }
-        activityMainBinding.fabMain.setOnClickListener(this)
-        activityMainBinding.fabMain.setOnLongClickListener(this)
+        activityMainBinding.viewpagerMain.adapter = MainFragmentStateAdapter(this)
+        TabLayoutMediator(activityMainBinding.tabLayoutMain, activityMainBinding.viewpagerMain) { tab, position ->
+            if(position == 0) {
+                tab.text = "Transactions"
+            } else {
+                tab.text = "Statistics"
+            }
+        }.attach()
         setContentView(activityMainBinding.root)
     }
 
-    override fun onClick(v: View?) {
-        v?.let { view ->
-            when(view) {
-                activityMainBinding.fabMain -> {
-                    if(addTransactionDialog == null) {
-                        val categories = viewModel.getCategories()
-//                            .observeOn(Schedulers.io())
-//                            .subscribeOn(AndroidSchedulers.mainThread())
-                            .blockingGet()
-                        addTransactionDialog = AddTransactionDialogFragment()
-                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
-                    }
-                    if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
-                        addTransactionDialog?.listener = this
-                        addTransactionDialog?.show(supportFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
-                    }
-                }
-                else -> {}
+    class MainFragmentStateAdapter(mainActivity: MainActivity): FragmentStateAdapter(mainActivity) {
+        override fun getItemCount(): Int {
+            return 2
+        }
+
+        override fun createFragment(position: Int): Fragment {
+            if(position == 0) {
+                return TransactionsFragment.newInstance()
+            } else {
+                return StatisticsFragment.newInstance()
             }
         }
-    }
-
-    override fun onLongClick(v: View?): Boolean {
-        v?.let {
-            when(v) {
-                activityMainBinding.fabMain -> {
-                    val intent = Intent(this, AddDetailedTransactionActivity::class.java)
-                    startActivity(intent)
-                }
-            }
-        }
-        return true
-    }
-
-    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
-        viewModel.saveTransaction(amount, description, categoryId)
-    }
-
-    override fun onGoToDetails(amount: BigDecimal?, description: String?, categoryId: Long?) {
-        val bundle = AddDetailedTransactionActivity.createBundle(amount?.toString(), description, categoryId)
-        val intent = Intent(this, AddDetailedTransactionActivity::class.java)
-        intent.putExtras(bundle)
-        startActivity(intent)
     }
 }

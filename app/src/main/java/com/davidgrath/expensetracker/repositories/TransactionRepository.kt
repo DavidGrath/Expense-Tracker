@@ -12,6 +12,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
@@ -78,10 +79,31 @@ class TransactionRepository(private val transactionDao: TempTransactionDao, priv
         }
     }
 
+    fun getTotalSpentByCategory(): Observable<List<Pair<CategoryDb, BigDecimal>>> {
+        return transactionDao.getTransactions().flatMap { transactions ->
+            val ids = transactions.map { it.id!! }
+            transactionItemDao.getTransactionItemsSumByCategory(ids)
+        }.map {  summary ->
+            val categories = summary.map {
+                categoriesDao.getById(it.first).blockingGet() to it.second
+            }.sortedBy { it.second }
+            categories
+        }
+    }
+
     fun getTransactionItemImages(itemId: Long): Single<List<ImageDb>> {
         return transactionItemImagesDao.getTransactionItemImagesByItemIdSingle(itemId)
             .map {  list ->
                 list.map { itemImage -> imagesDao.findById(itemImage.imageID) }
             }
+    }
+
+    fun getTotalSpent(): Observable<BigDecimal> {
+        return transactionDao.getTotalSpent()
+    }
+
+    fun getTotalSpentByDate(): Observable<List<Pair<LocalDate, BigDecimal>>> {
+        //TODO Fill in missing/zero days for even spread
+        return transactionDao.getTransactionSumByDate()
     }
 }

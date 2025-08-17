@@ -27,7 +27,7 @@ class MainActivityInstrumentedTest {
 
     @Test
     fun givenFieldsAreValidWhenSubmitThenTransactionAdded() {
-        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.fab_transactions)).perform(click())
         onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(), typeText("100.00"))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
         onView(withId(android.R.id.button1)).perform(click())
@@ -36,7 +36,7 @@ class MainActivityInstrumentedTest {
 
     @Test
     fun givenAmountIsNotPositiveWhenSubmitThenFail() {
-        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.fab_transactions)).perform(click())
         onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  typeText("0"))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
         onView(withId(android.R.id.button1)).perform(click())
@@ -44,7 +44,7 @@ class MainActivityInstrumentedTest {
     }
     @Test
     fun givenAmountIsEmptyWhenSubmitThenFail() {
-        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.fab_transactions)).perform(click())
         onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  replaceText(""))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText("Basic Description"))
         onView(withId(android.R.id.button1)).perform(click())
@@ -54,7 +54,7 @@ class MainActivityInstrumentedTest {
 
     @Test
     fun givenDescriptionIsNotValidWhenSubmitThenFail() {
-        onView(withId(R.id.fab_main)).perform(click())
+        onView(withId(R.id.fab_transactions)).perform(click())
         onView(withId(R.id.edit_text_add_transaction_amount)).perform(click(),  replaceText("100.00"))
         onView(withId(R.id.edit_text_add_transaction_description)).perform(typeText(""))
         onView(withId(android.R.id.button1)).perform(click())

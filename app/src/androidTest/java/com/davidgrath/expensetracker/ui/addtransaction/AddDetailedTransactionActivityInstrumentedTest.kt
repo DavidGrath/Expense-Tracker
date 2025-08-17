@@ -66,7 +66,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
 
         onView(withId(R.id.text_view_transaction_item_amount)).check(doesNotExist())
-        onView(withId(R.id.fab_main)).perform(longClick())
+        onView(withId(R.id.fab_transactions)).perform(longClick())
 
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item))
             .perform(click())
@@ -112,7 +112,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
 
         onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
         //Be sure that the home screen is displayed
-        onView(withId(R.id.frame_main)).check(matches(isDisplayed()))
+        onView(withId(R.id.viewpager_main)).check(matches(isDisplayed()))
         onView(withText("Bread")).check(matches(isDisplayed()))
     }
 
@@ -121,7 +121,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
 
         onView(withId(R.id.text_view_transaction_item_amount)).check(ViewAssertions.doesNotExist())
-        onView(withId(R.id.fab_main)).perform(ViewActions.longClick())
+        onView(withId(R.id.fab_transactions)).perform(ViewActions.longClick())
 
         val basicAmount = "300"
         val basicDescription = "Water"
@@ -173,7 +173,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
 
         onView(withId(R.id.text_view_transaction_item_amount)).check(ViewAssertions.doesNotExist())
-        onView(withId(R.id.fab_main)).perform(ViewActions.longClick())
+        onView(withId(R.id.fab_transactions)).perform(ViewActions.longClick())
 
         val basicAmount = "300"
         val basicDescription = "Water"
@@ -195,10 +195,10 @@ class AddDetailedTransactionActivityInstrumentedTest {
             basicDescription
         )
         onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
-        onView(withId(R.id.frame_main)).check(matches(isDisplayed()))
+        onView(withId(R.id.viewpager_main)).check(matches(isDisplayed()))
         onView(withText(basicDescription)).check(matches(isDisplayed()))
 
-        onView(withId(R.id.fab_main)).perform(ViewActions.longClick())
+        onView(withId(R.id.fab_transactions)).perform(ViewActions.longClick())
         onView(withId(R.id.edit_text_add_detailed_transaction_item_amount)).check(matches(
             ViewMatchers.withText("")))
         onView(withId(R.id.edit_text_add_detailed_transaction_item_description)).check(matches(
