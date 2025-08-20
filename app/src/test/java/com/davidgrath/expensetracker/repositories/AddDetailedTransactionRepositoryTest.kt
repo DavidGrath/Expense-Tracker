@@ -107,4 +107,9 @@ class AddDetailedTransactionRepositoryTest {
     fun givenImageInDraftNotUsedWhenDoneThenImageNotInMainFolder() {
 
     }
+
+    /*@Test
+    fun givenDocumentInDraftWhenDoneThenDocumentNotInDraftAndDocumentInMainFolder() {
+
+    }*/
 }

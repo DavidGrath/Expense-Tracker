@@ -16,6 +16,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
+import java.io.File
 import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -172,4 +173,10 @@ class UriTypeAdapter: TypeAdapter<Uri>() {
     override fun read(`in`: JsonReader?): Uri {
         return Uri.parse(`in`?.nextString())
     }
+}
+
+fun file(vararg segments: String): File {
+    val sep = File.pathSeparator
+    val fullPath = segments.joinToString(sep)
+    return File(fullPath)
 }

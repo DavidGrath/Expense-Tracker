@@ -28,14 +28,14 @@ interface TransactionItemDao {
     @Query("SELECT c.id as categoryId, c.stringID, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " +
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
-            "WHERE date(:fromDate) >= date(t.datedAt) " +
+            "WHERE date(t.datedAt) >= date(:fromDate) " +
             "GROUP BY ti.primaryCategoryId")
     fun getSumByCategoryFrom(fromDate: String): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT c.id as categoryId, c.stringID, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " +
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
-            "WHERE date(:fromDate) >= date(t.datedAt) " +
+            "WHERE date(t.datedAt) >= date(:fromDate) " +
             "AND date(t.datedAt) <= date(:toDate) " +
             "GROUP BY ti.primaryCategoryId")
     fun getSumByCategoryFromTo(fromDate: String, toDate: String): Observable<List<ItemSumByCategory>>
@@ -50,7 +50,7 @@ interface TransactionItemDao {
             "FROM TransactionItemDb ti " +
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
-            "WHERE date(:fromDate) >= date(t.datedAt) ")
+            "WHERE date(t.datedAt) >= date(:fromDate)")
     fun getItemsWithTransactionsAndCategoryFrom(fromDate: String): Observable<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
@@ -63,7 +63,7 @@ interface TransactionItemDao {
             "FROM TransactionItemDb ti " +
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
-            "WHERE date(:fromDate) >= date(t.datedAt) " +
+            "WHERE date(t.datedAt) >= date(:fromDate)" +
             "AND date(t.datedAt) <= date(:toDate) ")
     fun getItemsWithTransactionsAndCategoryFromTo(fromDate: String, toDate: String): Observable<List<TransactionWithItemAndCategory>>
     // endregion
