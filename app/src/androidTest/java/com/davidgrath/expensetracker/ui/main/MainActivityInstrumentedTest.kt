@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main
 
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
@@ -12,18 +13,42 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.db.dao.TransactionDao
+import com.davidgrath.expensetracker.db.dao.TransactionItemDao
+import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import org.junit.After
+import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityInstrumentedTest {
 
     @get:Rule
     val rule = ActivityScenarioRule(MainActivity::class.java)
+    @Inject
+    lateinit var transactionItemDao: TransactionItemDao
+    @Inject
+    lateinit var transactionDao: TransactionDao
+
+    @Before
+    fun setUp() {
+        (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>().appComponent as InstrumentedTestComponent).inject(this)
+    }
+
+    @After
+    fun tearDown() {
+        transactionItemDao.deleteAll().blockingSubscribe()
+        transactionDao.deleteAll().blockingSubscribe()
+        ApplicationProvider.getApplicationContext<ExpenseTracker>().deleteDraft()
+    }
 
     @Test
     fun givenFieldsAreValidWhenSubmitThenTransactionAdded() {

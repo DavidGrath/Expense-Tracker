@@ -3,23 +3,19 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import androidx.core.net.toFile
-import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
-import com.davidgrath.expensetracker.db.dao.TempImagesDao
-import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import java.io.File
+import com.davidgrath.expensetracker.repositories.CategoryRepository
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
-import java.math.BigInteger
-import java.security.MessageDigest
-import java.util.UUID
+import javax.inject.Inject
 
 class AddDetailedTransactionActivity : FragmentActivity(),
     AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener {
@@ -29,13 +25,16 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var binding: ActivityAddDetailedTransactionBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
     lateinit var mainFragment: AddDetailedTransactionMainFragment
+    @Inject
+    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var categoryRepository: CategoryRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
-        val repository = app.addDetailedTransactionRepository()
-        val categoryRepository = app.categoryRepository()
+        app.appComponent.inject(this)
         val extras = intent.extras
         var amount: BigDecimal? = null
         var description: String? = null
@@ -48,7 +47,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         }
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, repository, categoryRepository, amount, description, categoryId)
+            AddDetailedTransactionViewModelFactory(app, addDetailedTransactionRepository, categoryRepository, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
 
@@ -75,7 +74,13 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                 when (requestCode) {
                     REQUEST_CODE_ITEM_OPEN_IMAGE -> {
                         val uri = data!!.data!!
-                        viewModel.addItemFile(uri)
+                        val liveData = viewModel.addItemFile(uri)
+                        liveData.observe(this, object: Observer<Unit> {
+                            override fun onChanged(value: Unit) {
+                                Log.i("AddDetailTransActivity", "File add done")
+                                liveData.removeObserver(this)
+                            }
+                        })
                     }
                 }
             }

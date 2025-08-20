@@ -8,5 +8,6 @@ class Constants {
         const val FOLDER_NAME_DATA = "data"
         const val FOLDER_NAME_DRAFT = "draft"
         const val SUBFOLDER_NAME_IMAGES = "images"
+        const val DATABASE_NAME = "expense-tracker-db"
     }
 }

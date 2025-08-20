@@ -148,7 +148,6 @@ fun addContentProviderImages(context: Context, classLoader: ClassLoader, vararg 
         resourceInputStream.copyTo(outputStream)
         resourceInputStream.close()
         outputStream.close()
-        println("File exists: $file; ${file.exists()}")
     }
 }
 

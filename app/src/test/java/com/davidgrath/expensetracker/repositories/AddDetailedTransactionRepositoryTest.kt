@@ -1,32 +1,29 @@
 package com.davidgrath.expensetracker.repositories
 
-import android.app.Activity
-import android.app.Instrumentation
-import android.content.Intent
-import android.os.FileObserver
 import androidx.core.net.toUri
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.action.ViewActions.replaceText
-import androidx.test.espresso.action.ViewActions.typeText
-import androidx.test.espresso.intent.Intents
-import androidx.test.espresso.intent.matcher.IntentMatchers
-import androidx.test.espresso.intent.rule.IntentsRule
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.TestContentProvider
+import com.davidgrath.expensetracker.test.TestContentProvider
 import com.davidgrath.expensetracker.TestData
+import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderImages
-import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.copyResourceToFile
+import com.davidgrath.expensetracker.db.dao.CategoryDao
+import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
-import com.davidgrath.expensetracker.ui.addtransaction.AddTransactionItemRecyclerAdapter
+import com.squareup.rx3.idler.Rx3Idler
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -35,18 +32,33 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
+import java.math.BigDecimal
+import java.math.RoundingMode
+import javax.inject.Inject
 
 @RunWith(RobolectricTestRunner::class)
 class AddDetailedTransactionRepositoryTest {
 
-    @get:Rule
-    val rule = ActivityScenarioRule(AddDetailedTransactionActivity::class.java)
-    @get:Rule
-    val intentsRule = IntentsRule()
+
+    @Inject
+    lateinit var repository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var categoryDao: CategoryDao
+    @Inject
+    lateinit var fileHandler: DraftFileHandler
+
+    companion object {
+        @JvmStatic
+        @BeforeClass
+        fun setUpClass() {
+            RxJavaPlugins.setInitIoSchedulerHandler(Rx3Idler.create("Robolectric Rx3 Handler"))
+        }
+    }
 
     @Before
     fun setUp() {
-        Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
+        val app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        (app.appComponent as TestComponent).inject(this)
     }
 
     @Test
@@ -54,21 +66,20 @@ class AddDetailedTransactionRepositoryTest {
         val context = RuntimeEnvironment.getApplication()
         val folder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         val file = File(folder, Constants.DRAFT_FILE_NAME)
-        assertTrue(file.exists())
+        fileHandler.createDraft()
         //Enter valid input
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_amount)).perform(click(), replaceText("300.00"))
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_description)).perform(typeText("Description"))
-        onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
+
+        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val draft = AddDetailedTransactionDraft(items = listOf(AddTransactionItem(0, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")))
+
+        fileHandler.saveDraft(draft)
+        repository.finishTransaction().blockingSubscribe()
         assertFalse(file.exists())
     }
 
-    /**
-     * When I used the "Add Image" button in this test, it prevented the deletion of the draft image for some reason
-     * Ignoring for now
-     */
     @Test
     fun givenImagesInDraftWhenDoneThenImagesNotInDraftAndImagesInMainFolder() {
-        val context = RuntimeEnvironment.getApplication() as ExpenseTracker
+        val context = RuntimeEnvironment.getApplication()
         val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
@@ -80,35 +91,15 @@ class AddDetailedTransactionRepositoryTest {
         copyResourceToFile(classLoader, TestData.Companion.Images.BREAD.resourceName, draftImage)
         val uri = draftImage.toUri()
         val map = mapOf(uri to TestData.Companion.Images.BREAD.sha256)
-        val draft = context.getDraftValue().copy(imageHashes = map)
-        context.saveDraft(draft)
+        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val draft = AddDetailedTransactionDraft(items =
+        listOf(AddTransactionItem(0, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), imageHashes = map)
+        fileHandler.createDraft()
+        fileHandler.saveDraft(draft)
         addContentProviderImages(context, classLoader, TestData.Companion.Images.BREAD)
-
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_amount)).perform(click(), replaceText("300.00"))
-        onView(withId(R.id.edit_text_add_detailed_transaction_item_description)).perform(typeText("Description"))
-
-
-        /*val returnIntent = Intent().also {
-            it.data = TestData.Companion.Images.BREAD.uri
-        }
-        Intents.intending(IntentMatchers.hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
-            Instrumentation.ActivityResult(
-                Activity.RESULT_OK,
-                returnIntent
-            )
-        )
-        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main,
-            0,
-            R.id.text_view_add_detailed_transaction_show_details
-        )
-        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
-            R.id.recyclerview_add_detailed_transaction_main,
-            0,
-            R.id.image_view_add_detailed_transaction_item_add_image
-        )*/
-        onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
-        assertEquals(0, getHashCount(TestData.Companion.Images.BREAD.sha256, draftImagesFolder))
-        assertEquals(1, getHashCount(TestData.Companion.Images.BREAD.sha256, mainImagesFolder))
+        repository.finishTransaction().blockingSubscribe()
+        assertEquals(0, getHashCount(TestData.Companion.Images.BREAD.sha256, draftImagesFolder).blockingGet())
+        assertEquals(1, getHashCount(TestData.Companion.Images.BREAD.sha256, mainImagesFolder).blockingGet())
     }
 
     @Test

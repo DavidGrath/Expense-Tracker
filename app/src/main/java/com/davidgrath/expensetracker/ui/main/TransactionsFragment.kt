@@ -17,6 +17,7 @@ import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
+import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
 
 class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
@@ -70,8 +71,8 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
                 binding.fabTransactions -> {
                     if(addTransactionDialog == null) {
                         val categories = viewModel.getCategories()
-//                            .observeOn(Schedulers.io())
-//                            .subscribeOn(AndroidSchedulers.mainThread())
+                            .subscribeOn(Schedulers.io())
+//                            .observeOn(AndroidSchedulers.mainThread())
                             .blockingGet()
                         addTransactionDialog = AddTransactionDialogFragment()
                         addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }

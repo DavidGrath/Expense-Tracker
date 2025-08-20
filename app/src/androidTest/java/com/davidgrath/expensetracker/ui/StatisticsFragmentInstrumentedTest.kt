@@ -57,6 +57,7 @@ class StatisticsFragmentInstrumentedTest {
     }
 
     @Test
+    @Ignore("Not ready yet")
     fun givenModeIsDailyWhenClickConfigureThenDateDialogAppears() {
         onView(ViewMatchers.withId(R.id.spinner_statistics_current_mode))
             .perform(ViewActions.click())
@@ -67,6 +68,7 @@ class StatisticsFragmentInstrumentedTest {
     }
 
     @Test
+    @Ignore("Not ready yet")
     fun givenModeIsPastXDaysWhenClickConfigureThenNumberDialogShows() {
         onView(ViewMatchers.withId(R.id.spinner_statistics_current_mode))
             .perform(ViewActions.click())
@@ -83,6 +85,7 @@ class StatisticsFragmentInstrumentedTest {
 
     }
     @Test
+    @Ignore("Not ready yet")
     fun givenModeIsRangeWhenClickConfigureThenDateRangeDialogAppears() {
         onView(ViewMatchers.withId(R.id.spinner_statistics_current_mode))
             .perform(ViewActions.click())

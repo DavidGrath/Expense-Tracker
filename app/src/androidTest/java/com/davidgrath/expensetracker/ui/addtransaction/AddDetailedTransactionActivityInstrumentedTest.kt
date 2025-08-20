@@ -21,10 +21,12 @@ import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.RecyclerInputTextItemAction
 import com.davidgrath.expensetracker.TestData
@@ -32,8 +34,15 @@ import com.davidgrath.expensetracker.addContentProviderImages
 import com.davidgrath.expensetracker.addContentProviderImagesInstrumented
 import com.davidgrath.expensetracker.clearTextRecyclerViewItem
 import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.db.dao.ImageDao
+import com.davidgrath.expensetracker.db.dao.TransactionDao
+import com.davidgrath.expensetracker.db.dao.TransactionItemDao
+import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import org.hamcrest.CoreMatchers.allOf
+import javax.inject.Inject
 import org.hamcrest.Description
 import org.hamcrest.TypeSafeMatcher
 import org.junit.After
@@ -47,16 +56,26 @@ class AddDetailedTransactionActivityInstrumentedTest {
 
     @get:Rule
     val intentsRule = IntentsRule()
+    @Inject
+    lateinit var transactionItemDao: TransactionItemDao
+    @Inject
+    lateinit var transactionDao: TransactionDao
+    @Inject
+    lateinit var transactionItemImagesDao: TransactionItemImagesDao
+    @Inject
+    lateinit var imageDao: ImageDao
 
     @Before
     fun setUp() {
-
+        (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>().appComponent as InstrumentedTestComponent).inject(this)
     }
 
     @After
     fun tearDown() {
-        ApplicationProvider.getApplicationContext<ExpenseTracker>().transactionItemDao().deleteAll()
-        ApplicationProvider.getApplicationContext<ExpenseTracker>().transactionDao().deleteAll()
+        transactionItemImagesDao.deleteAll().blockingSubscribe()
+        imageDao.deleteAll().blockingSubscribe()
+        transactionItemDao.deleteAll().blockingSubscribe()
+        transactionDao.deleteAll().blockingSubscribe()
         ApplicationProvider.getApplicationContext<ExpenseTracker>().deleteDraft()
     }
 
@@ -165,7 +184,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             R.id.image_view_add_detailed_transaction_item_add_image
         )
         onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
-        onView(withId(R.id.image_view_transaction_item_first_image)).check(matches(isDisplayed()))
+        onView(withId(R.id.image_view_transaction_item_first_image)).check(matches(allOf(isDisplayed(), withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))))
     }
 
     @Test

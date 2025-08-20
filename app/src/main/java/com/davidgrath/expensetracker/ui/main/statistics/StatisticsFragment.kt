@@ -96,7 +96,8 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.barChartStatisticsCategories.axisLeft.setDrawLabels(false)
         binding.barChartStatisticsCategories.axisLeft.axisMinimum = 0f
         binding.barChartStatisticsCategories.axisRight.axisMinimum = 0f
-        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { list ->
+//        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { list ->
+        viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
             Log.i("StatisticsFragment", "Item Count: ${list.size}")
             val dataSet = BarDataSet(list, null)
             dataSet.colors = MaterialColors.Palette.map { it.value }
@@ -116,15 +117,15 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.lineChartStatisticsTotal.axisRight.axisMinimum = 0f
         viewModel.statsTotalByDay.observe(viewLifecycleOwner) { list ->
             Log.i("StatisticsFragment", "Item Count: ${list.size}")
-            val entries = list.mapIndexed { i, pair ->
-                Entry(i.toFloat(), pair.second.toFloat())
+            val entries = list.mapIndexed { i, summary ->
+                Entry(i.toFloat(), summary.sum.toFloat())
             }
             val dataSet = LineDataSet(entries, null)
             dataSet.colors = MaterialColors.Palette.map { it.value }
             dataSet.setDrawIcons(true)
             dataSet.setDrawValues(true)
             val data = LineData(dataSet)
-            val dates = list.map { it.first }
+            val dates = list.map { summary -> summary.aggregateDate }
             data.setValueFormatter(DateValuesFormatter(dates))
             binding.lineChartStatisticsTotal.isLogEnabled = true
             binding.lineChartStatisticsTotal.data = data

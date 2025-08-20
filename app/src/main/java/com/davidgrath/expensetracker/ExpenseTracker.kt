@@ -5,61 +5,50 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.davidgrath.expensetracker.db.dao.TempCategoryDao
-import com.davidgrath.expensetracker.db.dao.TempImagesDao
-import com.davidgrath.expensetracker.db.dao.TempTransactionDao
-import com.davidgrath.expensetracker.db.dao.TempTransactionItemDao
-import com.davidgrath.expensetracker.db.dao.TempTransactionItemImagesDao
+import com.davidgrath.expensetracker.di.DaggerMainComponent
+import com.davidgrath.expensetracker.di.MainComponent
+import com.davidgrath.expensetracker.di.MainModule
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
-import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import com.davidgrath.expensetracker.repositories.CategoryRepository
-import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 
-class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
+open class ExpenseTracker : Application(), DraftFileHandler{
 
+    open lateinit var appComponent: MainComponent
     private var draft = AddDetailedTransactionDraft(emptyList())
     private val _draftLiveData = MutableLiveData<AddDetailedTransactionDraft>()
     private val draftLiveData: LiveData<AddDetailedTransactionDraft> = _draftLiveData
     private val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
 
-    private val tempTransactionDao = TempTransactionDao()
-    private val tempTransactionItemDao = TempTransactionItemDao()
-    private val tempImagesDao = TempImagesDao()
-    private val tempCategoryDao = TempCategoryDao()
-    val itemImagesDao = TempTransactionItemImagesDao()
-    private val transactionRepository = TransactionRepository(tempTransactionDao, tempTransactionItemDao, itemImagesDao, tempImagesDao, tempCategoryDao)
-    private val addDetailedTransactionRepository = AddDetailedTransactionRepository(this, tempImagesDao, transactionRepository, tempCategoryDao, itemImagesDao)
-    private val categoryRepository = CategoryRepository(tempCategoryDao)
 
-
-    @Suppress("DEPRECATION")
+//    @Suppress("DEPRECATION")
     override fun onCreate() {
         super.onCreate()
+        appComponent = DaggerMainComponent.builder().mainModule(MainModule(this, this)).build()
         tempInitCategories()
     }
 
 
     override fun saveDraft(draft: AddDetailedTransactionDraft) {
-        Thread {
-            saveFile(draft)
-        }.start()
+        saveFile(draft).subscribeOn(Schedulers.io()).blockingSubscribe()
         this.draft = draft
         _draftLiveData.postValue(draft)
     }
 
-    private fun saveFile(draft: AddDetailedTransactionDraft) {
-        val string = gson.toJson(draft)
-        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-        val file = File(root, Constants.DRAFT_FILE_NAME)
-        file.writeText(string)
+    private fun saveFile(draft: AddDetailedTransactionDraft): Single<Unit> {
+        return Single.fromCallable {
+            val string = gson.toJson(draft)
+            val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+            val file = File(root, Constants.DRAFT_FILE_NAME)
+            file.writeText(string)
+        }.subscribeOn(Schedulers.io())
     }
 
     override fun draftExists(): Boolean {
@@ -101,56 +90,37 @@ class ExpenseTracker : Application(), DraftFileHandler, TempAppModule {
         return draft
     }
 
-    override fun moveFileToMain(file: File): File {
-        val mainFolder = File(filesDir, Constants.FOLDER_NAME_DATA)
-        val folder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
-        val f = File(folder, file.name)
-        file.copyTo(f)
-        Log.i("ExpenseTracker", "Created ${f.path}")
-        val b = file.delete()
-        Log.i("ExpenseTracker", "Deleted ${file.path}: $b")
+    override fun moveFileToMain(file: File): Single<File> {
+        return Single.fromCallable<File> {
+            val mainFolder = File(filesDir, Constants.FOLDER_NAME_DATA)
+            val folder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
+            val f = File(folder, file.name)
+            file.copyTo(f)
+            Log.i("ExpenseTracker", "Created ${f.path}")
+            val b = file.delete()
+            Log.i("ExpenseTracker", "Deleted ${file.path}: $b")
+            f
+        }.subscribeOn(Schedulers.io())
 
-        return f
     }
 
-    override fun transactionDao(): TempTransactionDao {
-        return tempTransactionDao
-    }
-
-    override fun transactionItemDao(): TempTransactionItemDao {
-        return tempTransactionItemDao
-    }
-
-    override fun imagesDao(): TempImagesDao {
-        return tempImagesDao
-    }
-
-    override fun categoryDao(): TempCategoryDao {
-        return tempCategoryDao
-    }
-
-    override fun addDetailedTransactionRepository(): AddDetailedTransactionRepository {
-        return addDetailedTransactionRepository
-    }
-
-    override fun transactionRepository(): TransactionRepository {
-        return transactionRepository
-    }
-
-    override fun categoryRepository(): CategoryRepository {
-        return categoryRepository
-    }
 
     fun tempInitCategories() {
-        val date = ZonedDateTime.now()
+        val clock = appComponent.clock()
+        val date = ZonedDateTime.now(clock)
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val offset = date.offset.id
         val zone = date.zone.id
+        val categoryDao = appComponent.categoryDao()
         for(category in Utils.CORE_CATEGORIES) {
-            val categoryDb = tempCategoryDao.findByStringId(category).blockingGet()
+            val categoryDb = categoryDao.findByStringId(category)
+                .subscribeOn(Schedulers.io())
+                .blockingGet()
             if(categoryDb == null) {
-                tempCategoryDao.addCategory(CategoryDb(null, 0, category, false, null, dateString, offset, zone))
+                categoryDao.insertCategory(CategoryDb(null, 0, category, false, null, dateString, offset, zone))
+                    .subscribeOn(Schedulers.io())
+                    .blockingGet()
             }
         }
     }

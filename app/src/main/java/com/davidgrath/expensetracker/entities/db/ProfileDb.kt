@@ -1,9 +1,10 @@
 package com.davidgrath.expensetracker.entities.db
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity
+@Entity(indices = [Index(value = ["stringId"], unique = true)])
 data class ProfileDb(
     @PrimaryKey val id: Long?,
     val name: String,

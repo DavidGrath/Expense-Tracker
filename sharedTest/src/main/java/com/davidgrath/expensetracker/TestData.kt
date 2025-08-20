@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker
 
 import android.net.Uri
+import com.davidgrath.expensetracker.test.TestContentProvider
 
 class TestData {
     companion object {
@@ -24,7 +25,8 @@ class TestData {
                 return copy
             }
             companion object {
-                private val uriBuilder = Uri.Builder().scheme("content").authority(TestContentProvider.AUTHORITY)
+                private val uriBuilder = Uri.Builder().scheme("content").authority(
+                    TestContentProvider.AUTHORITY)
                 val BREAD = Images("ad94e42e0323ccba436e70ebc3cbbfca6a54469c2058a782b5ee14c90ae637a4", "pexels-pixabay-209206.jpg")
                 val DUMBBELLS_1 = Images("586e73609a7c3ca0a3a9f4674010743b479af3022bf2dac7fce6061fc5c120bb", "pexels-ivan-samkov-4164765.jpg")
                 val DUMBBELLS_2 = Images("815f293f09b584afe5bfe306f4e2a0ba64ec4255baebd32a03c0ebd504c367e7", "pexels-lee-catherine-collins-1371715-2652236.jpg")

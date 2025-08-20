@@ -57,7 +57,9 @@
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
+* Ordinal: Int - To allow for reordering of transactions as well as imposing an ordering on timeless transactions
 * DatedAt: String
+* DatedAtTime: String?
 * DatedAtOffset: String - An ISO8601 Offset
 * DatedAtTimezone: String
 

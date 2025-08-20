@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.ui.main
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
@@ -12,6 +13,7 @@ import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDateBind
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
+import java.io.File
 import java.text.DecimalFormat
 
 class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
@@ -56,7 +58,7 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                         binding.textViewTransactionItemDescription.text = transactionItem.description
                         binding.imageViewTransactionItemCategory.setImageResource(transactionItem.category.iconId)
                         val image = transactionItem.images.firstOrNull()
-                        if(image != null) {
+                        if(image != null && image.toFile().exists()) {
                             binding.imageViewTransactionItemFirstImage.visibility = View.VISIBLE
                             Glide.with(holder.binding.root)
                                 .load(image)
@@ -72,7 +74,11 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
             is SealedViewHolder.TransactionViewHolder -> {
                 items[position].transaction!!.let { transaction ->
                     holder.binding.let { binding ->
-                        binding.textViewTransactionDate.text = timeFormat.format(transaction.timestamp)
+                        if(transaction.datedTime == null) {
+                            binding.textViewTransactionTime.text = ""
+                        } else {
+                            binding.textViewTransactionTime.text = timeFormat.format(transaction.datedTime)
+                        }
 //                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
                         binding.textViewTransactionAmount.text = ""
                     }

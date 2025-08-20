@@ -2,12 +2,18 @@ package com.davidgrath.expensetracker
 
 import android.net.Uri
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
+import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
+import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
+import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import java.io.InputStream
@@ -78,18 +84,30 @@ class Utils {
     }
 }
 
-fun transactionsToTransactionItems(transactions: List<TransactionUi>): List<GeneralTransactionListItem> {
+fun transactionsToTransactionItems(transactions: List<TransactionWithItemAndCategoryUi>): List<GeneralTransactionListItem> {
     val itemsList = arrayListOf<GeneralTransactionListItem>()
     var currentDate: LocalDate? = null
+    var currentTransaction: TransactionUi? = null
     for(transaction in transactions) {
-        if(currentDate != transaction.datedTimestamp.toLocalDate()) {
-            currentDate = transaction.datedTimestamp.toLocalDate()
+        val ld = transaction.transactionDatedAt
+        if(currentDate != ld) {
+            currentDate = ld
             itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Date, currentDate, null, null))
         }
-        itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Transaction, null, transaction, null))
-        for(item in transaction.items) {
-            itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.TransactionItem, null, null, item))
+        if(currentTransaction?.id != transaction.transactionId) {
+            val transactionUi = TransactionUi(transaction.transactionId, transaction.itemAmount, transaction.currencyCode, transaction.cashOrCredit,
+                transaction.transactionCreatedAt, currentDate, transaction.transactionDatedAtTime, null, emptyList())
+            currentTransaction = transactionUi
+            itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Transaction, null, transactionUi, null))
         }
+        val item = TransactionItemUi(
+            currentTransaction, transaction.itemAmount, transaction.description,
+            transaction.category,
+            null,
+            transaction.itemImages
+        )
+        itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.TransactionItem, null, null, item))
+
     }
     return itemsList
 }
@@ -105,21 +123,45 @@ fun categoryDbToCategoryUi(categoryDb: CategoryDb): CategoryUi {
     }
     return category
 }
-
-fun getSha256(inputStream: InputStream): String {
-    val bufSize = DEFAULT_BUFFER_SIZE
-    val bufferedStream = inputStream.buffered()
-    val md = MessageDigest.getInstance("SHA256")
-    var array = ByteArray(bufSize)
-    var len = 0
-    while(len >= 0) {
-        len = bufferedStream.read(array)
-        if(len >= 0) {
-            md.update(array, 0, len)
-        }
+//TODO Context and string ids
+fun categoryDbToCategoryUi(transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
+    val category = if(transactionWithItemAndCategory.categoryIsCustom) {
+        val categoryIcon = R.drawable.baseline_category_24
+        CategoryUi(transactionWithItemAndCategory.primaryCategoryId, null, transactionWithItemAndCategory.categoryName!!, categoryIcon)
+    } else {
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(transactionWithItemAndCategory.categoryStringID)!!
+        CategoryUi(transactionWithItemAndCategory.primaryCategoryId, transactionWithItemAndCategory.categoryStringID, Utils.CATEGORY_NAMES_DEFAULT[transactionWithItemAndCategory.categoryStringID]!!, categoryIcon)
     }
-    val hash = md.digest()
-    return BigInteger(1, hash).toString(16)
+    return category
+}
+//TODO Context and string ids
+fun categoryDbToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
+    val category = if(itemSumByCategory.isCustom) {
+        val categoryIcon = R.drawable.baseline_category_24
+        CategoryUi(itemSumByCategory.categoryId, null, itemSumByCategory.name!!, categoryIcon)
+    } else {
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(itemSumByCategory.stringID)!!
+        CategoryUi(itemSumByCategory.categoryId, itemSumByCategory.stringID, Utils.CATEGORY_NAMES_DEFAULT[itemSumByCategory.stringID]!!, categoryIcon)
+    }
+    return category
+}
+
+fun getSha256(inputStream: InputStream): Single<String> {
+    return Single.fromCallable {
+        val bufSize = DEFAULT_BUFFER_SIZE
+        val bufferedStream = inputStream.buffered()
+        val md = MessageDigest.getInstance("SHA256")
+        var array = ByteArray(bufSize)
+        var len = 0
+        while (len >= 0) {
+            len = bufferedStream.read(array)
+            if (len >= 0) {
+                md.update(array, 0, len)
+            }
+        }
+        val hash = md.digest()
+        BigInteger(1, hash).toString(16)
+    }.subscribeOn(Schedulers.io())
 }
 
 class UriTypeAdapter: TypeAdapter<Uri>() {

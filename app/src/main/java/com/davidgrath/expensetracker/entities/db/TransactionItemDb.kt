@@ -2,9 +2,11 @@ package com.davidgrath.expensetracker.entities.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import org.jilt.Builder
 import java.math.BigDecimal
 
 @Entity
+@Builder
 data class TransactionItemDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,

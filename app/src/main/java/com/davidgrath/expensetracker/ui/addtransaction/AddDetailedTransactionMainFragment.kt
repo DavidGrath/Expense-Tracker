@@ -50,15 +50,14 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val categories = viewModel.getCategories()
-//            .observeOn(Schedulers.io())
-//            .subscribeOn(AndroidSchedulers.mainThread())
+            .subscribeOn(Schedulers.io())
             .blockingGet()
         val c = categories.map { categoryDbToCategoryUi(it) }
         adapter = AddTransactionItemRecyclerAdapter(c, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
-            Log.d("TRIPLE", triple.toString())
+            Log.i("AddDetailTransFragment", "Event: ${triple.second}, Position: ${triple.third}")
             val list = triple.first.items
             val event = triple.second
             val position = triple.third
@@ -104,7 +103,10 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                 binding.imageButtonAddDetailedTransactionDone -> {
                     if(viewModel.validateDraft()) {
                         viewModel.finishDraft()
-                        listener?.onFinished()
+                            .observe(viewLifecycleOwner) {
+                                Log.i("AddDetailTransFragment", "Transaction Added. Draft discarded")
+                                listener?.onFinished() //TODO SimpleResult
+                            }
                     } else {
                         Snackbar.make(binding.root, "Invalid input", Snackbar.LENGTH_SHORT).show()
                     }

@@ -29,9 +29,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
-        val transactionRepository = app.transactionRepository()
-        val categoryRepository = app.categoryRepository()
-        viewModel = ViewModelProvider(this, MainViewModelFactory(app, transactionRepository, categoryRepository)).get(
+        viewModel = ViewModelProvider(this, MainViewModelFactory(app.appComponent)).get(
             MainViewModel::class.java)
         activityMainBinding.viewpagerMain.adapter = MainFragmentStateAdapter(this)
         TabLayoutMediator(activityMainBinding.tabLayoutMain, activityMainBinding.viewpagerMain) { tab, position ->

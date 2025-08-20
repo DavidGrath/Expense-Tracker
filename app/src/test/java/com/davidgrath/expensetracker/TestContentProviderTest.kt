@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker
 
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
+import com.davidgrath.expensetracker.test.TestContentProvider
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -44,8 +45,8 @@ class TestContentProviderTest {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val inputStream =
             context.contentResolver.openInputStream(Uri.parse("content://expensetracker.test/bread.jpg"))
-        val computedHash = getSha256(inputStream!!)
-//            inputStream.close() // Crashes for some reason
+        val computedHash = getSha256(inputStream!!).blockingGet()
+        inputStream.close()
         Assert.assertEquals(fileHash, computedHash)
     }
 }

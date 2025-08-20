@@ -15,9 +15,15 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "com.davidgrath.expensetracker.ExpenseTrackerTestRunner"
         vectorDrawables {
             useSupportLibrary true
+        }
+
+        kapt {
+            arguments {
+                arg("room.schemaLocation", "$projectDir/schemas")
+            }
         }
     }
 
@@ -50,9 +56,10 @@ android {
     testOptions {
         unitTests {
             includeAndroidResources = true
-        }
-        unitTests.all {
-            jvmArgs(["--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.util=ALL-UNNAMED"])
+            // https://github.com/robolectric/robolectric/issues/7456#issue-1312396867
+            all {
+                jvmArgs "--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED"
+            }
         }
     }
 }
@@ -87,6 +94,10 @@ dependencies {
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("com.google.code.gson:gson:2.12.1")
+
+    compileOnly 'cc.jilt:jilt:1.8.3'
+    annotationProcessor 'cc.jilt:jilt:1.8.3'
+
     //Room
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
@@ -96,9 +107,14 @@ dependencies {
     //RxJava
     implementation("io.reactivex.rxjava3:rxjava:3.1.11")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
+    testImplementation 'com.squareup.rx.idler:rx3-idler:0.11.0'
+    androidTestImplementation 'com.squareup.rx.idler:rx3-idler:0.11.0'
     //Dagger
-    implementation("com.google.dagger:dagger:2.57")
-    kapt 'com.google.dagger:dagger-compiler:2.57'
+    implementation("com.google.dagger:dagger:2.15")
+    kapt 'com.google.dagger:dagger-compiler:2.15'
+    kaptTest 'com.google.dagger:dagger-compiler:2.15'
+    kaptAndroidTest 'com.google.dagger:dagger-compiler:2.15'
+
     def lifecycle_version = "2.9.2"
     def arch_version = "2.2.0"
     implementation "androidx.lifecycle:lifecycle-reactivestreams-ktx:$lifecycle_version"
