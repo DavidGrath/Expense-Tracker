@@ -1,15 +1,11 @@
 package com.davidgrath.expensetracker.repositories
 
 import androidx.core.net.toUri
-import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
-import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.test.TestContentProvider
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
-import com.davidgrath.expensetracker.addContentProviderImages
+import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.db.dao.CategoryDao
@@ -17,7 +13,6 @@ import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.getHashCount
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.squareup.rx3.idler.Rx3Idler
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -25,10 +20,8 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
@@ -88,18 +81,18 @@ class AddDetailedTransactionRepositoryTest {
         val mainImagesFolder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
         val draftImage = File(draftImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
-        copyResourceToFile(classLoader, TestData.Companion.Images.BREAD.resourceName, draftImage)
+        copyResourceToFile(classLoader, TestData.Resource.Images.BREAD.resourceName, draftImage)
         val uri = draftImage.toUri()
-        val map = mapOf(uri to TestData.Companion.Images.BREAD.sha256)
+        val map = mapOf(uri to TestData.Resource.Images.BREAD.sha256)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
         val draft = AddDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), imageHashes = map)
         fileHandler.createDraft()
         fileHandler.saveDraft(draft)
-        addContentProviderImages(context, classLoader, TestData.Companion.Images.BREAD)
+        addContentProviderResources(context, classLoader, TestData.Resource.Images.BREAD)
         repository.finishTransaction().blockingSubscribe()
-        assertEquals(0, getHashCount(TestData.Companion.Images.BREAD.sha256, draftImagesFolder).blockingGet())
-        assertEquals(1, getHashCount(TestData.Companion.Images.BREAD.sha256, mainImagesFolder).blockingGet())
+        assertEquals(0, getHashCount(TestData.Resource.Images.BREAD.sha256, draftImagesFolder).blockingGet())
+        assertEquals(1, getHashCount(TestData.Resource.Images.BREAD.sha256, mainImagesFolder).blockingGet())
     }
 
     @Test
@@ -108,8 +101,9 @@ class AddDetailedTransactionRepositoryTest {
 
     }
 
-    /*@Test
+    @Test
+    @Ignore("Not ready yet")
     fun givenDocumentInDraftWhenDoneThenDocumentNotInDraftAndDocumentInMainFolder() {
 
-    }*/
+    }
 }

@@ -11,6 +11,7 @@ import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.google.android.material.tabs.TabLayout
@@ -30,23 +31,7 @@ class StatisticsFragmentInstrumentedTest {
 
     @Before
     fun setUp() {
-        onView(ViewMatchers.withId(R.id.tab_layout_main)).perform(object : ViewAction {
-            override fun getConstraints(): Matcher<View> {
-                return Matchers.allOf(
-                    ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE),
-                    ViewMatchers.isDisplayed()
-                )
-            }
-
-            override fun getDescription(): String {
-                return "Clicking statistics tab"
-            }
-
-            override fun perform(uiController: UiController?, view: View?) {
-                val tabLayout = view as TabLayout
-                tabLayout.getTabAt(1)!!.view.performClick()
-            }
-        })
+        onView(ViewMatchers.withId(R.id.tab_layout_main)).perform(TabLayoutItemClick(1))
     }
 
     @After

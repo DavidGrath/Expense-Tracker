@@ -6,6 +6,7 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.CategoryDao
+import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
@@ -61,6 +62,11 @@ class MainModule(private val application: Application, private val fileHandler: 
     @Provides
     fun transactionItemImagesDao(): TransactionItemImagesDao {
         return appDatabase().transactionItemImagesDao()
+    }
+
+    @Provides
+    fun evidenceDao(): EvidenceDao {
+        return appDatabase().evidenceDao()
     }
 
 

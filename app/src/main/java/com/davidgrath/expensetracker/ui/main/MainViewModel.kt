@@ -75,7 +75,7 @@ constructor(
                 list.add(view)
             }
             transactionsToTransactionItems(list)
-        }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }.toLiveData()
         statsPastXByCategory = transactionRepository.getTotalSpentByCategory().map { list ->
             val mapped = list.mapIndexed { i, it ->
                 val cat = categoryDbToCategoryUi(it)

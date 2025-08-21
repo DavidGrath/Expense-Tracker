@@ -7,6 +7,7 @@ import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.TestExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.CategoryDao
+import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
@@ -77,6 +78,10 @@ class TestModule(private val application: Application, private val fileHandler: 
         return appDatabase().transactionItemImagesDao()
     }
 
+    @Provides
+    fun evidenceDao(): EvidenceDao {
+        return appDatabase().evidenceDao()
+    }
 
     @Provides
     fun fileHandler(): DraftFileHandler {

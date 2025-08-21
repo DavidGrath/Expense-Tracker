@@ -6,6 +6,7 @@ import androidx.room.Query
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 
@@ -51,7 +52,7 @@ interface TransactionItemDao {
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
             "WHERE date(t.datedAt) >= date(:fromDate)")
-    fun getItemsWithTransactionsAndCategoryFrom(fromDate: String): Observable<List<TransactionWithItemAndCategory>>
+    fun getItemsWithTransactionsAndCategoryFrom(fromDate: String): Flowable<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
             "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.cashOrCredit, " +

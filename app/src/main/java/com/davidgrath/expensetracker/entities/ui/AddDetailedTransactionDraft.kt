@@ -7,5 +7,7 @@ data class AddDetailedTransactionDraft(
     /**
      * To prevent the user from adding duplicate images
      */
-    val imageHashes: Map<Uri, String> = emptyMap()
+    val imageHashes: Map<Uri, String> = emptyMap(),
+    val evidence: List<AddTransactionEvidence> = emptyList(),
+    val evidenceHashes: Map<Uri, String> = emptyMap()
 )

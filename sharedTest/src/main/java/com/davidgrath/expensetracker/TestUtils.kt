@@ -9,18 +9,18 @@ import android.widget.TextView
 import androidx.annotation.IdRes
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso
-import androidx.test.espresso.NoMatchingViewException
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
-import androidx.test.espresso.ViewInteraction
 import androidx.test.espresso.action.ReplaceTextAction
 import androidx.test.espresso.action.TypeTextAction
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
+import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.google.android.material.tabs.TabLayout
+import org.hamcrest.CustomTypeSafeMatcher
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers
-import org.junit.Assert
 import org.junit.Assert.assertNotNull
 import java.io.File
 
@@ -88,6 +88,36 @@ class RecyclerClickItemAction(private val id: Int): ViewAction {
     }
 }
 
+class CategoryStringIdMatcher(val stringId: String): CustomTypeSafeMatcher<CategoryUi>("A category") {
+    override fun matchesSafely(item: CategoryUi?): Boolean {
+        if(item == null) {
+            return false
+        }
+        if(item.stringId == null) {
+            return false
+        }
+        return item.stringId == stringId
+    }
+}
+
+class TabLayoutItemClick(val position: Int): ViewAction {
+    override fun getConstraints(): Matcher<View> {
+        return Matchers.allOf(
+            ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE),
+            ViewMatchers.isDisplayed()
+        )
+    }
+
+    override fun getDescription(): String {
+        return "Click TabLayout at item $position"
+    }
+
+    override fun perform(uiController: UiController?, view: View?) {
+        val tabLayout = view as TabLayout
+        tabLayout.getTabAt(position)!!.view.performClick()
+    }
+}
+
 fun <VH : RecyclerView.ViewHolder> typeTextRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputTextItemAction(editTextId, text)))
 }
@@ -138,7 +168,7 @@ fun <VH : RecyclerView.ViewHolder> assertRecyclerViewItemSpinnerText(@IdRes recy
         }
 }
 
-fun addContentProviderImages(context: Context, classLoader: ClassLoader, vararg images: TestData.Companion.Images) {
+fun addContentProviderResources(context: Context, classLoader: ClassLoader, vararg images: TestData.Resource) {
     val contentDir = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
     contentDir.mkdir()
     for (image in images) {
@@ -151,7 +181,7 @@ fun addContentProviderImages(context: Context, classLoader: ClassLoader, vararg 
     }
 }
 
-fun addContentProviderImagesInstrumented(context: Context, vararg images: TestData.Companion.Images) {
+fun addContentProviderResourcesInstrumented(context: Context, vararg images: TestData.Resource) {
     for(image in images) {
         val contentValues = ContentValues()
         contentValues.put("resourceName", image.resourceName)

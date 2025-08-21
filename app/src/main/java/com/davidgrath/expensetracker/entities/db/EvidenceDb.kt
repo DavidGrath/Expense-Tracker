@@ -9,7 +9,7 @@ data class EvidenceDb(
     val id: Long?,
     val transactionId: Long,
     val type: Type,
-    val sizeBytes: Int?,
+    val sizeBytes: Long?,
     val sha256: String?,
     val mimeType: String?,
     val uri: String,

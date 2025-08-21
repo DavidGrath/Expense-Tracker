@@ -161,7 +161,7 @@ fun getSha256(inputStream: InputStream): Single<String> {
             }
         }
         val hash = md.digest()
-        BigInteger(1, hash).toString(16)
+        String.format("%064x", BigInteger(1, hash))
     }.subscribeOn(Schedulers.io())
 }
 
@@ -176,7 +176,7 @@ class UriTypeAdapter: TypeAdapter<Uri>() {
 }
 
 fun file(vararg segments: String): File {
-    val sep = File.pathSeparator
+    val sep = File.separator
     val fullPath = segments.joinToString(sep)
     return File(fullPath)
 }

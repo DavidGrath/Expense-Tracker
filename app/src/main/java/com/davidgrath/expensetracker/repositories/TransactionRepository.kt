@@ -13,6 +13,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -92,7 +93,7 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTransactions(): Observable<List<TransactionWithItemAndCategory>> {
+    fun getTransactions(): Flowable<List<TransactionWithItemAndCategory>> {
         return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(clock).toString())
             .subscribeOn(Schedulers.io())
             .timeInterval()

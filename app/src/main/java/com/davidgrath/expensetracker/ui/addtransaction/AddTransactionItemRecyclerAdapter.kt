@@ -105,8 +105,9 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.spinnerAddDetailedTransactionItemCategory.onItemSelectedListener = object : OnItemSelectedListener{
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, _position: Int, id: Long) {
                         currentItem = absPosition
-                        if(_item.category.id != _position.toLong()) {
-                            _item = _item.copy(category = categories[absPosition])
+                        val category = categories[_position]
+                        if(_item.category.id != category.id) {
+                            _item = _item.copy(category = category)
                             listener?.onItemChanged(absPosition, _item)
                         }
                     }

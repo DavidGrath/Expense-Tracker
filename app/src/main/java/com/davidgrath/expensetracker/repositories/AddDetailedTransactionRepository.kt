@@ -9,6 +9,7 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.db.dao.CategoryDao
+import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.entities.db.ImageDb
@@ -16,6 +17,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -33,7 +35,8 @@ constructor(
     private val transactionRepository: TransactionRepository,
     private val categoryDao: CategoryDao,
     private val itemImagesDao: TransactionItemImagesDao,
-    private val clock: Clock
+    private val clock: Clock,
+    private val evidenceDao: EvidenceDao
 ) {
 
     //TODO Relying on this variable is probably a terrible way to work with a file
@@ -107,14 +110,35 @@ constructor(
         }
     }
 
-    fun hashInDb(sha256: String): Single<Boolean> {
+    fun imageHashInDb(sha256: String): Single<Boolean> {
         return imageDao.doesHashExist(sha256)
     }
 
-    fun hashInDraft(sha256: String): Boolean {
+    fun imageHashInDraft(sha256: String): Boolean {
         val draft = fileHandler.getDraftValue()
         val draftImageHashes = draft.imageHashes.values
         return (sha256 in draftImageHashes)
+    }
+
+    fun evidenceHashInDb(sha256: String): Single<Boolean> {
+        return evidenceDao.doesHashExist(sha256)
+    }
+
+    fun evidenceHashInDraft(sha256: String): Boolean {
+        val draft = fileHandler.getDraftValue()
+        val draftEvidenceHashes = draft.evidenceHashes.values
+        return (sha256 in draftEvidenceHashes)
+    }
+
+    fun getDbEvidenceUri(sha256: String): Uri {
+        return Uri.parse(evidenceDao.findBySha256(sha256).blockingGet()!!.uri)
+    }
+
+    fun getDraftEvidenceUri(sha256: String): Uri {
+        val draft = fileHandler.getDraftValue()
+        val draftEvidenceMap = draft.evidenceHashes
+        val key = draftEvidenceMap.keys.find { draftEvidenceMap[it] == sha256 }!!
+        return key
     }
 
     fun getDraftImageUri(sha256: String): Uri {
@@ -166,7 +190,31 @@ constructor(
         } else {
             draft.imageHashes
         }
-        fileHandler.saveDraft(AddDetailedTransactionDraft(newItems, newHashes))
+        fileHandler.saveDraft(draft.copy(items = newItems, imageHashes = newHashes))
+    }
+
+    fun addEvidence(localUri: Uri, sha256: String, mimeType: String) {
+        val draft = fileHandler.getDraftValue()
+        val currentList = draft.evidence
+        val uris = currentList.map { it.uri.toString() }
+        val uriString = localUri.toString()
+        if(uriString in uris) {
+            return
+        }
+        if(currentList.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
+            return
+        }
+
+        val newEvidence = currentList + AddTransactionEvidence(localUri, mimeType, sha256)
+        currentEvent = TransactionDetailEvent.None
+        currentPosition = -1
+        val existingHash = draft.evidenceHashes[localUri]
+        val newHashes =  if(existingHash == null) {
+            draft.imageHashes + (localUri to sha256)
+        } else {
+            draft.imageHashes
+        }
+        fileHandler.saveDraft(draft.copy(evidenceHashes = newHashes, evidence = newEvidence))
     }
 
     fun getDraft(): LiveData<Triple<AddDetailedTransactionDraft, TransactionDetailEvent, Int>> {

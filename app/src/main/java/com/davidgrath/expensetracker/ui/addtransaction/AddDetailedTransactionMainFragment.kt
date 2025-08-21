@@ -128,7 +128,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
 
     override fun onRequestAddImage(position: Int, itemId: Int) {
         viewModel.getImageItemId = itemId
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT) //TODO Rework Intents - needs Camera, needs internal images, possibly change to ACTION_GET_CONTENT
         intent.type = "*/*"
         intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
         requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)

@@ -10,12 +10,14 @@ import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
-import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.threeten.bp.Clock
+import org.threeten.bp.LocalDate
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -25,6 +27,7 @@ class AddDetailedTransactionViewModel(
     private val application: Application,
     private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val clock: Clock,
     private val initialAmount: BigDecimal?,
     private val initialDescription: String?,
     private val initialCategoryId: Long?
@@ -78,7 +81,7 @@ class AddDetailedTransactionViewModel(
         var inputStream = application.contentResolver.openInputStream(returnedUri)!!
         val checksumSingle = getSha256(inputStream).doOnSuccess { inputStream.close() }
         return checksumSingle.concatMap { checksum ->
-            addDetailedTransactionRepository.hashInDb(checksum).map { hashInDb ->
+            addDetailedTransactionRepository.imageHashInDb(checksum).map { hashInDb ->
                 if (hashInDb) {
                     val existingDraftImage =
                         addDetailedTransactionRepository.getDbImageUri(checksum)
@@ -87,7 +90,7 @@ class AddDetailedTransactionViewModel(
                         existingDraftImage,
                         checksum
                     )
-                } else if (addDetailedTransactionRepository.hashInDraft(checksum)) {
+                } else if (addDetailedTransactionRepository.imageHashInDraft(checksum)) {
                     val existingDraftImage =
                         addDetailedTransactionRepository.getDraftImageUri(checksum)
                     addDetailedTransactionRepository.addImageToItem(
@@ -115,6 +118,62 @@ class AddDetailedTransactionViewModel(
                         getImageItemId,
                         file.toUri(),
                         checksum
+                    )
+                }
+            }.subscribeOn(Schedulers.io())
+        }.subscribeOn(Schedulers.io()).map {
+            getImageItemId = -1
+        }.subscribeOn(Schedulers.io()).toFlowable().toLiveData()
+    }
+
+    fun addEvidence(returnedUri: Uri): LiveData<Unit> {
+        val mimeType = application.contentResolver.getType(returnedUri) ?: ""
+        var inputStream = application.contentResolver.openInputStream(returnedUri)!!
+        val checksumSingle = getSha256(inputStream).doOnSuccess { inputStream.close() }
+        return checksumSingle.concatMap { checksum ->
+            addDetailedTransactionRepository.evidenceHashInDb(checksum).map { hashInDb ->
+                if (hashInDb) {
+                    val existingDraftEvidence =
+                        addDetailedTransactionRepository.getDbEvidenceUri(checksum)
+                    addDetailedTransactionRepository.addEvidence(
+                        existingDraftEvidence,
+                        checksum,
+                        mimeType
+                    )
+                } else if (addDetailedTransactionRepository.evidenceHashInDraft(checksum)) {
+                    val existingDraftEvidence =
+                        addDetailedTransactionRepository.getDraftEvidenceUri(checksum)
+                    addDetailedTransactionRepository.addEvidence(
+                        existingDraftEvidence,
+                        checksum,
+                        mimeType
+                    )
+                } else {
+                    val imagesFolder = file(application.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS)
+                    imagesFolder.mkdirs()
+                    val filename = UUID.randomUUID().toString()
+                    val extension = when (mimeType) {
+                        "image/jpeg" -> ".jpg"
+                        "image/png" -> ".png"
+                        "application/pdf" -> ".pdf"
+                        else -> ""
+                    }
+                    inputStream = application.contentResolver.openInputStream(returnedUri)!!
+                    val localDate = LocalDate.now(clock)
+                    val year = String.format("%04d", localDate.year)
+                    val month = String.format("%02d", localDate.monthValue)
+                    val day = String.format("%02d", localDate.dayOfMonth)
+                    val folder = file(imagesFolder.absolutePath, year, month, day)
+                    folder.mkdirs()
+                    val file = File(folder,  "$filename$extension")
+                    val outputStream = file.outputStream()
+                    inputStream.copyTo(outputStream)
+                    inputStream.close()
+                    outputStream.close()
+                    addDetailedTransactionRepository.addEvidence(
+                        file.toUri(),
+                        checksum,
+                        mimeType
                     )
                 }
             }.subscribeOn(Schedulers.io())
