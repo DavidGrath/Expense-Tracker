@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui
+package com.davidgrath.expensetracker.ui.main.statistics
 
 import android.view.View
 import androidx.test.espresso.Espresso

@@ -66,6 +66,10 @@ class TestData {
                     "05c30323cc6442736cc7c6f06e78195e6aa198e8149979e792b54c3bd9e1d177",
                     "simple_receipt.jpg"
                 )
+
+                /**
+                 * Note: PdfRenderer.pageCount returns 0 in Robolectric/Unit tests for some reason
+                 */
                 val EVIDENCE_PDF = Resource(
                     "3321b272185036b1a813b8ba50eab5610638d8d9761b78c03f14162032ef4f28",
                     "simple_receipt.pdf"
@@ -77,6 +81,10 @@ class TestData {
                 val EVIDENCE_PDF_PASSWORD_PROTECTED = Resource(
                     "d8330b5b1bc2114bb5b00a6d42b06b456ca33703bb4841b79cfd50d8264d9ef6",
                     "simple_receipt_protected.pdf"
+                )
+                val EVIDENCE_PDF_EMPTY = Resource(
+                    "e95c2836f84a0b404fce20b5304ba6cece92567fc321998b6a5005c895aee668",
+                    "empty_evidence.pdf"
                 )
             }
         }

@@ -41,7 +41,7 @@ constructor(
 
     //TODO Relying on this variable is probably a terrible way to work with a file
     private var currentEvent = TransactionDetailEvent.All
-    private var currentPosition = -1
+    private var currentItemPosition = -1
     private var incrementId = 0
     private val liveData = fileHandler.getDraft()
 
@@ -86,7 +86,7 @@ constructor(
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
             currentEvent = TransactionDetailEvent.Insert
-            currentPosition = currentList.size + 1
+            currentItemPosition = currentList.size + 1
             val category = categoryDao.findByStringId("miscellaneous")
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
@@ -102,7 +102,7 @@ constructor(
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
             currentEvent = TransactionDetailEvent.Delete
-            currentPosition = currentList.size + 1
+            currentItemPosition = currentList.size + 1
             val newItems = currentList.toMutableList().apply {
                 removeAt(position)
             }
@@ -156,7 +156,7 @@ constructor(
         val draft = fileHandler.getDraftValue()
         val currentList = draft.items
         currentEvent = TransactionDetailEvent.Change
-        currentPosition = position
+        currentItemPosition = position
         val newItems = currentList.toMutableList().also {
             it[position] = item
         }
@@ -183,7 +183,7 @@ constructor(
             it[index] = newItem
         }
         currentEvent = TransactionDetailEvent.ChangeInvalidate
-        currentPosition = index
+        currentItemPosition = index
         val existingHash = draft.imageHashes[localUri]
         val newHashes =  if(existingHash == null) {
             draft.imageHashes + (localUri to sha256)
@@ -193,21 +193,22 @@ constructor(
         fileHandler.saveDraft(draft.copy(items = newItems, imageHashes = newHashes))
     }
 
-    fun addEvidence(localUri: Uri, sha256: String, mimeType: String) {
+    fun addEvidence(localUri: Uri, sha256: String, mimeType: String): Int {
         val draft = fileHandler.getDraftValue()
         val currentList = draft.evidence
-        val uris = currentList.map { it.uri.toString() }
-        val uriString = localUri.toString()
-        if(uriString in uris) {
-            return
+        val uris = currentList.map { it.uri }
+
+        if(localUri in uris) {
+            return uris.indexOf(localUri)
         }
-        if(currentList.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
-            return
+        if(currentList.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE) {
+            return -1
         }
 
         val newEvidence = currentList + AddTransactionEvidence(localUri, mimeType, sha256)
+        val position = newEvidence.size - 1
         currentEvent = TransactionDetailEvent.None
-        currentPosition = -1
+        currentItemPosition = -1
         val existingHash = draft.evidenceHashes[localUri]
         val newHashes =  if(existingHash == null) {
             draft.imageHashes + (localUri to sha256)
@@ -215,11 +216,12 @@ constructor(
             draft.imageHashes
         }
         fileHandler.saveDraft(draft.copy(evidenceHashes = newHashes, evidence = newEvidence))
+        return position
     }
 
     fun getDraft(): LiveData<Triple<AddDetailedTransactionDraft, TransactionDetailEvent, Int>> {
         return fileHandler.getDraft().map {
-            Triple(it, currentEvent, currentPosition)
+            Triple(it, currentEvent, currentItemPosition)
         }
     }
 

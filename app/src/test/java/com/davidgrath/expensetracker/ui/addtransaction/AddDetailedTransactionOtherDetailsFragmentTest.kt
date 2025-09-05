@@ -110,7 +110,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     fun givenEvidenceAlreadyInMainStorageWhenSelectSameEvidenceThenEvidenceNotCopiedToDraftStorage() {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val classLoader = AddDetailedTransactionOtherDetailsFragment::class.java.classLoader
-        val resource = TestData.Resource.Documents.EVIDENCE_PDF
+        val resource = TestData.Resource.Documents.SIMPLE_EVIDENCE
         addContentProviderResources(context, classLoader, resource)
         //Copy Document to DB
         val draftDocumentFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
@@ -144,7 +144,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
 
     @Test
     fun givenExternalEvidenceWasModifiedAndOriginalEvidenceAddedToDraftWhenAddEvidenceThenNewEvidenceExistsInDraftStorage() {
-        val resource = TestData.Resource.Documents.EVIDENCE_PDF
+        val resource = TestData.Resource.Documents.SIMPLE_EVIDENCE
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val classLoader = AddDetailedTransactionOtherDetailsFragment::class.java.classLoader
         addContentProviderResources(context, classLoader, resource)
@@ -160,7 +160,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
 
-        val modifiedResource = resource.copy(resourceName = TestData.Resource.Documents.EVIDENCE_PDF_MULTIPAGE.resourceName)
+        val modifiedResource = resource.copy(resourceName = TestData.Resource.Documents.EVIDENCE_IMAGE.resourceName)
         addContentProviderResources(context, classLoader, modifiedResource)
         val modifiedResourceIntent = Intent().also {
             it.data = modifiedResource.uri
@@ -184,8 +184,8 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
 
     @Test
     fun givenUserSelectsSameDocumentThatSomehowHasDifferentUrisThenEvidenceOnlyAddedOnce() {
-        val evidence = TestData.Resource.Documents.EVIDENCE_PDF
-        val duplicateEvidence = TestData.Resource.Documents.EVIDENCE_PDF.fileName("simple_evidence_duplicate.pdf")
+        val evidence = TestData.Resource.Documents.EVIDENCE_IMAGE
+        val duplicateEvidence = TestData.Resource.Documents.EVIDENCE_IMAGE.fileName("simple_evidence_duplicate.jpg")
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         addContentProviderResources(context, AddDetailedTransactionOtherDetailsFragment::class.java.classLoader, evidence, duplicateEvidence)
         val returnIntent = Intent().also {

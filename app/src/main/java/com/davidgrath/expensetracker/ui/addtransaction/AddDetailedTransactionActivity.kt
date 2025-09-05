@@ -14,6 +14,7 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
 import com.google.android.material.tabs.TabLayoutMediator
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -22,7 +23,7 @@ import java.math.BigDecimal
 import javax.inject.Inject
 
 class AddDetailedTransactionActivity : FragmentActivity(),
-    AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener {
+    AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener, GenericDialogFragment.GenericDialogListener {
 
     lateinit var binding: ActivityAddDetailedTransactionBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
@@ -32,6 +33,8 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var categoryRepository: CategoryRepository
     @Inject
     lateinit var clock: Clock
+    var noPagesDialogFragment: GenericDialogFragment? = null
+    var passwordDialogFragment: GenericDialogFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,9 +85,42 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                     REQUEST_CODE_OPEN_DOCUMENT -> {
                         val uri = data!!.data!!
                         val liveData = viewModel.addEvidence(uri)
-                        liveData.observe(this, object: Observer<Unit> {
-                            override fun onChanged(value: Unit) {
-                                Log.i("AddDetailTransActivity", "Add evidence done")
+                        liveData.observe(this, object: Observer<AddDetailedTransactionViewModel.PdfState> {
+                            override fun onChanged(value: AddDetailedTransactionViewModel.PdfState) {
+                                when(value) {
+                                    AddDetailedTransactionViewModel.PdfState.NOT_PDF -> {
+                                        Log.i("AddDetailTransActivity", "Add evidence done")
+                                    }
+                                    AddDetailedTransactionViewModel.PdfState.ALL_GOOD -> {
+                                        Log.i("AddDetailTransActivity", "Add evidence done")
+                                    }
+                                    AddDetailedTransactionViewModel.PdfState.PASSWORD_PROTECTED -> {
+                                        if(passwordDialogFragment == null) {
+                                            passwordDialogFragment = GenericDialogFragment.newInstance(
+                                                "Password Protected",
+                                                "This PDF is password protected", "Ok", null, null, null, DIALOG_TAG_PASSWORD_PROTECTED
+                                                )
+                                            passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_PASSWORD_PROTECTED)
+                                        } else {
+                                            if(!passwordDialogFragment!!.dialog!!.isShowing) {
+                                                passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_PASSWORD_PROTECTED)
+                                            }
+                                        }
+                                    }
+                                    AddDetailedTransactionViewModel.PdfState.ZERO_PAGES -> {
+                                        if(passwordDialogFragment == null) {
+                                            passwordDialogFragment = GenericDialogFragment.newInstance(
+                                                "Zero pages",
+                                                "Somehow, this PDF has zero pages", ":-)", null, null, null, DIALOG_TAG_NO_PAGES
+                                            )
+                                            passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                        } else {
+                                            if(!passwordDialogFragment!!.dialog!!.isShowing) {
+                                                passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                            }
+                                        }
+                                    }
+                                }
                                 liveData.removeObserver(this)
                             }
                         })
@@ -96,6 +132,25 @@ class AddDetailedTransactionActivity : FragmentActivity(),
 
     override fun onFinished() {
         finish()
+    }
+
+    override fun onPositiveButton(disambiguationTag: String, data: String?) {
+        when(disambiguationTag) {
+            DIALOG_TAG_NO_PAGES -> {
+
+            }
+            DIALOG_TAG_PASSWORD_PROTECTED -> {
+
+            }
+        }
+    }
+
+    override fun onNegativeButton(disambiguationTag: String, data: String?) {
+
+    }
+
+    override fun onNeutralButton(disambiguationTag: String, data: String?) {
+
     }
 
     class AddDetailedTransactionFragmentStateAdapter(addDetailedTransactionActivity: AddDetailedTransactionActivity): FragmentStateAdapter(addDetailedTransactionActivity) {
@@ -114,11 +169,13 @@ class AddDetailedTransactionActivity : FragmentActivity(),
 
     companion object {
 
-        val ARG_INITIAL_AMOUNT = "initialAmount"
-        val ARG_INITIAL_DESCRIPTION = "initialDescription"
-        val ARG_INITIAL_CATEGORY_ID = "initialCategoryId"
-        val REQUEST_CODE_ITEM_OPEN_IMAGE = 100
-        val REQUEST_CODE_OPEN_DOCUMENT = 101
+        const val ARG_INITIAL_AMOUNT = "initialAmount"
+        const val ARG_INITIAL_DESCRIPTION = "initialDescription"
+        const val ARG_INITIAL_CATEGORY_ID = "initialCategoryId"
+        const val REQUEST_CODE_ITEM_OPEN_IMAGE = 100
+        const val REQUEST_CODE_OPEN_DOCUMENT = 101
+        const val DIALOG_TAG_NO_PAGES = "noPages"
+        const val DIALOG_TAG_PASSWORD_PROTECTED = "passwordProtected"
 
         fun createBundle(
             initialAmount: String?,

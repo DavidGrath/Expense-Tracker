@@ -1,19 +1,26 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
-import android.net.Uri
-import android.view.LayoutInflater
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
+import android.graphics.pdf.PdfRenderer.Page
+import android.os.ParcelFileDescriptor
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
 
-class AddTransactionEvidenceRecyclerAdapter(private var uris: List<String>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddTransactionEvidence>, var pdfRenderers: Map<Int, PdfRenderer>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+
+    private var pageZeroMaps = hashMapOf<PdfRenderer, Page>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionEvidenceViewHolder {
-        val size = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_item_image_size)
-        val layoutParams = ViewGroup.LayoutParams(size, size)
+        val height = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_evidence_height)
+        val layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
         val imageView = ImageView(parent.context)
         imageView.layoutParams = layoutParams
         return AddTransactionEvidenceViewHolder(imageView)
@@ -21,19 +28,51 @@ class AddTransactionEvidenceRecyclerAdapter(private var uris: List<String>): Rec
 
     override fun onBindViewHolder(holder: AddTransactionEvidenceViewHolder, position: Int) {
         val image = holder.imageView
-        val uri = uris[position]
-        Glide.with(image.context)
-            .load(Uri.parse(uri))
-            .centerCrop()
-            .into(image)
+        val evidence = evidenceList[position]
+        val uri = evidence.uri
+        val mimeType = evidence.mimeType
+        when(mimeType) {
+            "image/jpeg", "image/png" -> {
+                Glide.with(image.context)
+                    .load(uri)
+                    .centerCrop()
+                    .into(image)
+            }
+            "application/pdf" -> {
+
+                val renderer = pdfRenderers[position]
+                if(renderer == null) {
+                    Glide.with(image.context)
+                        .load(R.drawable.baseline_add_24)
+                        .into(image)
+                } else {
+
+
+                    val mapPage = pageZeroMaps[renderer]
+                    val page = if(mapPage == null){
+                        val p = renderer.openPage(0)
+                        pageZeroMaps[renderer] = p
+                        p
+                    } else {
+                        mapPage
+                    }
+                    val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                    page.render(bitmap, null, null, Page.RENDER_MODE_FOR_DISPLAY)
+                    Glide.with(image.context)
+                        .load(bitmap)
+                        .into(image)
+                }
+            }
+        }
     }
 
     override fun getItemCount(): Int {
-        return uris.size
+        return evidenceList.size
     }
 
-    fun setItems(uris: List<String>) {
-        this.uris = uris
+    fun setItems(evidenceList: List<AddTransactionEvidence>, pdfRenderers: Map<Int, PdfRenderer>) {
+        this.evidenceList = evidenceList
+        this.pdfRenderers = pdfRenderers
         notifyDataSetChanged()
     }
 

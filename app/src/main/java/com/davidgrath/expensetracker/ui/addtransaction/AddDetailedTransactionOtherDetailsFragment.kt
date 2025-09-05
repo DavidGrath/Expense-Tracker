@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Intent
+import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +9,9 @@ import android.view.View.OnClickListener
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
+import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
 
@@ -21,9 +24,23 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
         return binding.root
     }
 
+    var items = emptyList<AddTransactionEvidence>()
+    var renderers = emptyMap<Int, PdfRenderer>()
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.textViewAddDetailedTransactionAddEvidence.setOnClickListener(this)
+        val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap())
+        binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
+        binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
+        viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
+            items = draft.evidence
+            adapter.setItems(items, renderers)
+        }
+        viewModel.rendererLiveData.observe(viewLifecycleOwner) { map ->
+            renderers = map
+            adapter.setItems(items, renderers)
+        }
     }
 
     override fun onClick(v: View?) {

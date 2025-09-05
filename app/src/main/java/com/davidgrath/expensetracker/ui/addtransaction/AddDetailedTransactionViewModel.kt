@@ -1,10 +1,15 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Application
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
+import android.util.Log
+import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.map
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
@@ -35,6 +40,9 @@ class AddDetailedTransactionViewModel(
 
 
     var getImageItemId = -1
+    private var rendererHashMap = emptyMap<Int, PdfRenderer>()
+    private val _rendererLiveData = MutableLiveData<Map<Int, PdfRenderer>>(rendererHashMap)
+    var rendererLiveData: LiveData<Map<Int, PdfRenderer>> = _rendererLiveData
 
     init {
         if (!addDetailedTransactionRepository.draftExists()) {
@@ -126,30 +134,57 @@ class AddDetailedTransactionViewModel(
         }.subscribeOn(Schedulers.io()).toFlowable().toLiveData()
     }
 
-    fun addEvidence(returnedUri: Uri): LiveData<Unit> {
+    fun addEvidence(returnedUri: Uri): LiveData<PdfState> {
         val mimeType = application.contentResolver.getType(returnedUri) ?: ""
+
         var inputStream = application.contentResolver.openInputStream(returnedUri)!!
         val checksumSingle = getSha256(inputStream).doOnSuccess { inputStream.close() }
         return checksumSingle.concatMap { checksum ->
             addDetailedTransactionRepository.evidenceHashInDb(checksum).map { hashInDb ->
-                if (hashInDb) {
+                val ret = if (hashInDb) {
                     val existingDraftEvidence =
                         addDetailedTransactionRepository.getDbEvidenceUri(checksum)
-                    addDetailedTransactionRepository.addEvidence(
+                    val pos = addDetailedTransactionRepository.addEvidence(
                         existingDraftEvidence,
                         checksum,
                         mimeType
                     )
+                    if (mimeType != "application/pdf") {
+                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        return@map PdfState.NOT_PDF
+                    }
+                    val validate = validatePdf(existingDraftEvidence).blockingGet()
+                    if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
+                        return@map validate.first
+                    }
+                    rendererHashMap += (pos to validate.second!!)
+                    _rendererLiveData.postValue(rendererHashMap)
+                    return@map validate.first
                 } else if (addDetailedTransactionRepository.evidenceHashInDraft(checksum)) {
                     val existingDraftEvidence =
                         addDetailedTransactionRepository.getDraftEvidenceUri(checksum)
-                    addDetailedTransactionRepository.addEvidence(
+                    val pos = addDetailedTransactionRepository.addEvidence(
                         existingDraftEvidence,
                         checksum,
                         mimeType
                     )
+                    if (mimeType != "application/pdf") {
+                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        return@map PdfState.NOT_PDF
+                    }
+                    val validate = validatePdf(existingDraftEvidence).blockingGet()
+                    if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
+                        return@map validate.first
+                    }
+                    rendererHashMap += (pos to validate.second!!)
+                    _rendererLiveData.postValue(rendererHashMap)
+                    return@map validate.first
                 } else {
-                    val imagesFolder = file(application.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS)
+                    val imagesFolder = file(
+                        application.filesDir.absolutePath,
+                        Constants.FOLDER_NAME_DRAFT,
+                        Constants.SUBFOLDER_NAME_DOCUMENTS
+                    )
                     imagesFolder.mkdirs()
                     val filename = UUID.randomUUID().toString()
                     val extension = when (mimeType) {
@@ -165,21 +200,36 @@ class AddDetailedTransactionViewModel(
                     val day = String.format("%02d", localDate.dayOfMonth)
                     val folder = file(imagesFolder.absolutePath, year, month, day)
                     folder.mkdirs()
-                    val file = File(folder,  "$filename$extension")
+                    val file = File(folder, "$filename$extension")
                     val outputStream = file.outputStream()
                     inputStream.copyTo(outputStream)
                     inputStream.close()
                     outputStream.close()
-                    addDetailedTransactionRepository.addEvidence(
+                    val pos = addDetailedTransactionRepository.addEvidence(
                         file.toUri(),
                         checksum,
                         mimeType
                     )
+                    if (mimeType != "application/pdf") {
+                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        return@map PdfState.NOT_PDF
+                    }
+                    val validate = validatePdf(file.toUri()).blockingGet()
+                    if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
+                        return@map validate.first
+                    }
+                    rendererHashMap += (pos to validate.second!!)
+                    _rendererLiveData.postValue(rendererHashMap)
+                    validate.first
                 }
+                return@map ret
             }.subscribeOn(Schedulers.io())
+
         }.subscribeOn(Schedulers.io()).map {
             getImageItemId = -1
+            it
         }.subscribeOn(Schedulers.io()).toFlowable().toLiveData()
+
     }
 
     fun onItemDeleted(position: Int) {
@@ -217,5 +267,33 @@ class AddDetailedTransactionViewModel(
             }
         }
         return valid
+    }
+
+    fun validatePdf(uri: Uri): Single<Pair<PdfState, PdfRenderer?>> {
+        return Single.fromCallable {
+            val file = uri.toFile()
+            val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val pdfRenderer: PdfRenderer? = try {
+                PdfRenderer(fd)
+            } catch (e: SecurityException) {
+                null
+            }
+            if (pdfRenderer == null) {
+                return@fromCallable PdfState.PASSWORD_PROTECTED to null
+            }
+            if (pdfRenderer.pageCount == 0) {
+                return@fromCallable PdfState.ZERO_PAGES to null
+            }
+            PdfState.ALL_GOOD to pdfRenderer
+        }.subscribeOn(Schedulers.io())
+
+    }
+
+
+    enum class PdfState {
+        NOT_PDF,
+        ALL_GOOD,
+        PASSWORD_PROTECTED,
+        ZERO_PAGES
     }
 }

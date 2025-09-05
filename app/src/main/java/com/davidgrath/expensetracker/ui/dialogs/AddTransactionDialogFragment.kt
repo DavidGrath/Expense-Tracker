@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui.main
+package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog

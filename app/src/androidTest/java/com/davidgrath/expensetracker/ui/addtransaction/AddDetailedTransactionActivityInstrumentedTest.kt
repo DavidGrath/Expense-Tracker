@@ -324,11 +324,6 @@ class AddDetailedTransactionActivityInstrumentedTest {
 
     }
 
-    @Test
-    @Ignore("Next commit")
-    fun givenEvidenceIsPdfAndPdfIsPasswordProtectedWhenSelectThenErrorDialog() {
-    }
-
     class TagMatcher(private val tag: Long): TypeSafeMatcher<View>() {
         override fun describeTo(description: Description?) {
             description?.appendText("Has tag $tag")

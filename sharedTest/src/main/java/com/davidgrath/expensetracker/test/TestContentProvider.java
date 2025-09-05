@@ -46,7 +46,20 @@ public class TestContentProvider extends ContentProvider {
 
     @Override
     public String getType(@NonNull Uri uri) {
-        return "image/jpeg";
+        String path = uri.getPath();
+        int periodLocation = path.indexOf('.');
+        String extension = path.substring(periodLocation + 1);
+        switch (extension) {
+            case "jpg":
+            case "jpeg":
+                return "image/jpeg";
+            case "pdf":
+                return "application/pdf";
+            case "png":
+                return "image/png";
+            default:
+                return "";
+        }
     }
 
     @Override public Uri insert(Uri uri, ContentValues contentValues) {

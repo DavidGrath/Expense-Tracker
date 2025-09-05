@@ -15,6 +15,7 @@ import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import io.reactivex.rxjava3.schedulers.Schedulers
