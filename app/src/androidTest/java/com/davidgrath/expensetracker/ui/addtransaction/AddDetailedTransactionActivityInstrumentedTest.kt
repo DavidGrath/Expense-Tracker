@@ -7,6 +7,7 @@ import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
@@ -39,7 +40,10 @@ import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import com.davidgrath.expensetracker.inputNumberRecyclerViewItemInstrumented
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
+import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import org.hamcrest.CoreMatchers.allOf
@@ -71,6 +75,8 @@ class AddDetailedTransactionActivityInstrumentedTest {
     lateinit var imageDao: ImageDao
     @Inject
     lateinit var transactionRepository: TransactionRepository
+    @Inject
+    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
 
     @Before
     fun setUp() {
@@ -83,7 +89,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
         imageDao.deleteAll().blockingSubscribe()
         transactionItemDao.deleteAll().blockingSubscribe()
         transactionDao.deleteAll().blockingSubscribe()
-        ApplicationProvider.getApplicationContext<ExpenseTracker>().deleteDraft()
+        addDetailedTransactionRepository.deleteDraft()
     }
 
     @Test
@@ -103,7 +109,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             0,
             R.id.edit_text_add_detailed_transaction_item_amount
         )
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItemInstrumented<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
@@ -240,6 +246,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
 
+//        inputNumberRecyclerViewItemInstrumented<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
@@ -252,6 +259,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             R.id.edit_text_add_detailed_transaction_item_description,
             "Bread"
         )
+        closeSoftKeyboard()
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
@@ -263,6 +271,12 @@ class AddDetailedTransactionActivityInstrumentedTest {
             .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(1,
                 scrollTo()
             ))
+//        inputNumberRecyclerViewItemInstrumented<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        scrollRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+        )
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,
@@ -275,6 +289,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             R.id.edit_text_add_detailed_transaction_item_description,
             "Bus Fare"
         )
+        closeSoftKeyboard()
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,
@@ -286,11 +301,23 @@ class AddDetailedTransactionActivityInstrumentedTest {
             .perform(RecyclerViewActions.actionOnItemAtPosition<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(2,
                 scrollTo()
             ))
+//        inputNumberRecyclerViewItemInstrumented<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        scrollRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            2,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+        )
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             2,
             R.id.edit_text_add_detailed_transaction_item_amount,
             "300.00"
+        )
+        closeSoftKeyboard()
+        scrollRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            2,
+            R.id.edit_text_add_detailed_transaction_item_description,
         )
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -298,6 +325,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             R.id.edit_text_add_detailed_transaction_item_description,
             "Movie Night"
         )
+        closeSoftKeyboard()
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             2,

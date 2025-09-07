@@ -8,17 +8,11 @@ data class EvidenceDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
     val transactionId: Long,
-    val type: Type,
     val sizeBytes: Long?,
     val sha256: String?,
-    val mimeType: String?,
+    val mimeType: String,
     val uri: String,
     val createdAt: String,
     val createdAtOffset: String,
     val createdAtTimezone: String
-) {
-    enum class Type {
-        LINK,
-        DOCUMENT
-    }
-}
+)

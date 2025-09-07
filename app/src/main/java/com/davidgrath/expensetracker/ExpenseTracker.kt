@@ -19,12 +19,9 @@ import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 
-open class ExpenseTracker : Application(), DraftFileHandler{
+open class ExpenseTracker : Application(), DraftFileHandler {
 
     open lateinit var appComponent: MainComponent
-    private var draft = AddDetailedTransactionDraft(emptyList())
-    private val _draftLiveData = MutableLiveData<AddDetailedTransactionDraft>()
-    private val draftLiveData: LiveData<AddDetailedTransactionDraft> = _draftLiveData
     private val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
 
 
@@ -37,9 +34,8 @@ open class ExpenseTracker : Application(), DraftFileHandler{
 
 
     override fun saveDraft(draft: AddDetailedTransactionDraft) {
-        saveFile(draft).subscribeOn(Schedulers.io()).blockingSubscribe()
-        this.draft = draft
-        _draftLiveData.postValue(draft)
+        //TODO Debounce
+        saveFile(draft).subscribeOn(Schedulers.io()).subscribe()
     }
 
     private fun saveFile(draft: AddDetailedTransactionDraft): Single<Unit> {
@@ -59,35 +55,38 @@ open class ExpenseTracker : Application(), DraftFileHandler{
         return exists
     }
 
-    override fun createDraft(): Boolean {
-        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-        root.mkdirs()
-        val file = File(root, Constants.DRAFT_FILE_NAME)
-        val ret = file.createNewFile()
-        if (ret) {
-            val emptyDraft = AddDetailedTransactionDraft(emptyList())
-            val string = gson.toJson(emptyDraft)
-            file.writeText(string)
-            this.draft = emptyDraft
-            _draftLiveData.postValue(emptyDraft)
+    override fun createDraft(): Single<Boolean> {
+        return Single.fromCallable {
+            val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+            root.mkdirs()
+            val file = File(root, Constants.DRAFT_FILE_NAME)
+            val ret = file.createNewFile()
+            if (ret) {
+                val emptyDraft = AddDetailedTransactionDraft(emptyList())
+                val string = gson.toJson(emptyDraft)
+                file.writeText(string)
+            }
+            ret
         }
-        return ret
     }
 
-    override fun deleteDraft(): Boolean {
-        val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
-        val file = File(root, Constants.DRAFT_FILE_NAME)
-        this.draft = AddDetailedTransactionDraft(emptyList())
-        _draftLiveData.postValue(this.draft)
-        return file.delete()
+    override fun deleteDraft(): Single<Boolean> {
+        return Single.fromCallable {
+            val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+            val file = File(root, Constants.DRAFT_FILE_NAME)
+            file.delete()
+        }
     }
 
-    override fun getDraft(): LiveData<AddDetailedTransactionDraft> {
-        return draftLiveData
-    }
-
-    override fun getDraftValue(): AddDetailedTransactionDraft {
-        return draft
+    override fun getDraft(): Single<AddDetailedTransactionDraft> {
+        return Single.fromCallable {
+            val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
+            val file = File(root, Constants.DRAFT_FILE_NAME)
+            val reader = file.bufferedReader()
+            val draft = gson.fromJson(reader, AddDetailedTransactionDraft::class.java)
+            reader.close()
+            draft
+        }.subscribeOn(Schedulers.io())
     }
 
     override fun moveFileToMain(file: File): Single<File> {

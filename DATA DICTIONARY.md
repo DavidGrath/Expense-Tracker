@@ -54,6 +54,9 @@
 * CurrencyCode: String
 * ReferenceNumber: String?
 * DebitOrCredit: Boolean
+* Note: String? - Maximum 300 NFC Normalized code points
+* SellerID: Long?
+* SellerLocationId: Long?
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
@@ -100,10 +103,9 @@
 **Evidence**
 * ID: Long
 * TransactionID: Long
-* Type: String ["link", "document"]
 * SizeBytes: Long?
 * SHA256: String?
-* MimeType: String?
+* MimeType: String
 * URI: String
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
@@ -113,6 +115,7 @@
 * ID: Long
 * SizeBytes: Long
 * SHA256: String
+* MimeType: String
 * URI: String
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset

@@ -78,11 +78,12 @@ class TransactionDaoTest {
         val fourthTransactionDate = LocalDate.parse("2025-01-04")
         val fifthTransactionDate = LocalDate.parse("2025-01-05")
 
-        transactionDao.insertTransaction(TransactionDb(null, 0, BigDecimal(110.00), "USD", false, "2025-06-18T08:00:00", "+00:00", "America/New_York", 0, firstTransactionDate.toString(), transactionTime, transactionOffset, transactionTimezone)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(TransactionDb(null, 0, BigDecimal(300.00), "USD", false, "2025-06-18T08:01:00", "+00:00", "America/New_York", 0, secondTransactionDate.toString(), transactionTime, transactionOffset, transactionTimezone)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(TransactionDb(null, 0, BigDecimal(450.00), "USD", false, "2025-06-18T08:02:00", "+00:00", "America/New_York", 0, thirdTransactionDate.toString(), transactionTime, transactionOffset, transactionTimezone)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(TransactionDb(null, 0, BigDecimal(750.00), "USD", false, "2025-06-18T08:02:00", "+00:00", "America/New_York", 0, fourthTransactionDate.toString(), transactionTime, transactionOffset, transactionTimezone)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(TransactionDb(null, 0, BigDecimal(1000.00), "USD", false, "2025-06-18T08:02:00", "+00:00", "America/New_York", 0, fifthTransactionDate.toString(), transactionTime, transactionOffset, transactionTimezone)).subscribeOn(Schedulers.io()).blockingSubscribe()
+        val builder = TestBuilder.defaultTransactionBuilder().currencyCode("USD").createdAtTimezone("America/New_York").datedAtTime(transactionTime).datedAtOffset(transactionOffset).datedAtTimezone(transactionTimezone)
+        transactionDao.insertTransaction(builder.amount(BigDecimal(110.00)).createdAt("2025-06-18T08:00:00").createdAtOffset("+00:00").datedAt(firstTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(builder.amount(BigDecimal(300.00)).createdAt("2025-06-18T08:01:00").createdAtOffset("+00:00").datedAt(secondTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(builder.amount(BigDecimal(450.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(thirdTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fourthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fifthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
         val sums = transactionDao.getTransactionSumByDateFrom(firstTransactionDate.toString()).blockingFirst()
         val firstSum = sums.find { it.aggregateDate == firstTransactionDate }!!

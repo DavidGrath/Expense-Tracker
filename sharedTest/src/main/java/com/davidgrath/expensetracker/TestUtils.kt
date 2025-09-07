@@ -12,7 +12,10 @@ import androidx.test.espresso.Espresso
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
 import androidx.test.espresso.action.ReplaceTextAction
+import androidx.test.espresso.action.ScrollToAction
 import androidx.test.espresso.action.TypeTextAction
+import androidx.test.espresso.action.ViewActions
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
@@ -118,11 +121,58 @@ class TabLayoutItemClick(val position: Int): ViewAction {
     }
 }
 
+class RecyclerScrollItemAction(private val id: Int): ViewAction {
+    override fun getConstraints(): Matcher<View> {
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
+    }
+
+    override fun getDescription(): String {
+        return "Clicking item"
+    }
+
+    override fun perform(uiController: UiController?, view: View?) {
+        val subView = view!!.findViewById<View>(id)
+        ScrollToAction().perform(uiController, subView)
+//        ViewActions.click().perform(uiController, subView) //Doesn't work with local tests for some reason
+    }
+}
+
+val cursorEndViewAction = object : ViewAction {
+    override fun getConstraints(): Matcher<View> {
+        return Matchers.allOf(ViewMatchers.isDisplayed())
+    }
+
+    override fun getDescription(): String {
+        return "Placing cursor at end"
+    }
+
+    override fun perform(uiController: UiController?, view: View?) {
+        val editText = view as EditText
+        editText.setSelection(editText.length())
+    }
+}
+
 fun <VH : RecyclerView.ViewHolder> typeTextRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
-    Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputTextItemAction(editTextId, text)))
+    Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(
+        RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(editTextId)),
+        RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputTextItemAction(editTextId, text))
+    )
 }
 fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputNumberItemAction(editTextId, text)))
+}
+
+fun <VH : RecyclerView.ViewHolder> inputNumberRecyclerViewItemInstrumented(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int, text: String) {
+    Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(
+        RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(editTextId)),
+        RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerInputTextItemAction(editTextId, text))
+    )
+}
+
+fun <VH : RecyclerView.ViewHolder> scrollRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes itemId: Int) {
+    Espresso.onView(ViewMatchers.withId(recyclerViewId)).perform(
+        RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerScrollItemAction(itemId))
+    )
 }
 
 fun <VH : RecyclerView.ViewHolder> clearTextRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes editTextId: Int) {

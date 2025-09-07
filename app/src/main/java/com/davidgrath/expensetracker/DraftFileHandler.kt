@@ -8,9 +8,8 @@ import java.io.File
 interface DraftFileHandler {
     fun saveDraft(draft: AddDetailedTransactionDraft)
     fun draftExists(): Boolean
-    fun createDraft(): Boolean
-    fun deleteDraft(): Boolean
-    fun getDraft(): LiveData<AddDetailedTransactionDraft>
-    fun getDraftValue(): AddDetailedTransactionDraft
+    fun createDraft(): Single<Boolean>
+    fun deleteDraft(): Single<Boolean>
+    fun getDraft(): Single<AddDetailedTransactionDraft>
     fun moveFileToMain(file: File): Single<File>
 }

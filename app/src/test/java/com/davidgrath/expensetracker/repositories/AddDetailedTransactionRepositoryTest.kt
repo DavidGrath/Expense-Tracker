@@ -87,8 +87,9 @@ class AddDetailedTransactionRepositoryTest {
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
         val draft = AddDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), imageHashes = map)
-        fileHandler.createDraft()
+        fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft)
+        repository.restoreDraft().blockingSubscribe()
         addContentProviderResources(context, classLoader, TestData.Resource.Images.BREAD)
         repository.finishTransaction().blockingSubscribe()
         assertEquals(0, getHashCount(TestData.Resource.Images.BREAD.sha256, draftImagesFolder).blockingGet())

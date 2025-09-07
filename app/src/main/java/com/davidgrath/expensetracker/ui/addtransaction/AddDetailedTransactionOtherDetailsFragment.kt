@@ -3,6 +3,8 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.content.Intent
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
@@ -10,8 +12,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
+import com.ibm.icu.text.BreakIterator
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
 
@@ -41,6 +45,44 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
             renderers = map
             adapter.setItems(items, renderers)
         }
+        val textWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                val text = s!!.toString()
+                val length = text.length
+                val codePointCount = text.codePointCount(0, length)
+                binding.textViewAddDetailedTransactionNoteLengthIndicator.text = codePointCount.toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
+                if(codePointCount > Constants.MAX_NOTE_CODEPOINT_LENGTH) {
+                    val breakIterator = BreakIterator.getCharacterInstance()
+                    breakIterator.setText(text)
+                    val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))) {
+                        text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH)
+                    } else {
+                        breakIterator.preceding(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))
+                    }
+                    if(lastGraphemePosition != BreakIterator.DONE) {
+                        binding.editTextAddDetailedTransactionNote.removeTextChangedListener(this)
+                        val substring = text.substring(0, lastGraphemePosition)
+                        binding.editTextAddDetailedTransactionNote.setText(
+                            substring
+                        )
+                        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = substring.codePointCount(0, substring.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
+                        binding.editTextAddDetailedTransactionNote.setSelection(lastGraphemePosition)
+                        binding.editTextAddDetailedTransactionNote.addTextChangedListener(this)
+                    }
+                }
+            }
+        }
+        val noteText = binding.editTextAddDetailedTransactionNote.text.toString()
+        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = noteText.codePointCount(0, noteText.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
+        binding.editTextAddDetailedTransactionNote.addTextChangedListener(textWatcher)
     }
 
     override fun onClick(v: View?) {

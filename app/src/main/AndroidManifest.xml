@@ -25,6 +25,7 @@
             </intent-filter>
         </activity>
         <activity android:name="com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity" />
+        <activity android:name="com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity" />
     </application>
 
 </manifest>

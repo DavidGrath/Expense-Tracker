@@ -6,7 +6,9 @@ import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionVie
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
 import dagger.Component
 import org.threeten.bp.Clock
+import javax.inject.Singleton
 
+@Singleton
 @Component(modules = [MainModule::class])
 interface MainComponent {
     fun categoryDao(): CategoryDao

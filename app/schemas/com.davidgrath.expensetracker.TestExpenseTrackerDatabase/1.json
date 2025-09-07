@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "c3e6dd03591307a862e53bf948066997",
+    "identityHash": "f054aa7266c834b7d57953baeb94ebbe",
     "entities": [
       {
         "tableName": "CategoryDb",
@@ -190,7 +190,7 @@
       },
       {
         "tableName": "TransactionDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER, `amount` REAL, `currencyCode` TEXT, `cashOrCredit` INTEGER, `createdAt` TEXT, `createdAtOffset` TEXT, `createdAtTimezone` TEXT, `ordinal` INTEGER, `datedAt` TEXT, `datedAtTime` TEXT, `datedAtOffset` TEXT, `datedAtTimezone` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER, `amount` REAL, `currencyCode` TEXT, `referenceNumber` TEXT, `cashOrCredit` INTEGER, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT, `createdAtOffset` TEXT, `createdAtTimezone` TEXT, `ordinal` INTEGER, `datedAt` TEXT, `datedAtTime` TEXT, `datedAtOffset` TEXT, `datedAtTimezone` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -217,8 +217,32 @@
             "notNull": false
           },
           {
+            "fieldPath": "referenceNumber",
+            "columnName": "referenceNumber",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
             "fieldPath": "cashOrCredit",
             "columnName": "cashOrCredit",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sellerID",
+            "columnName": "sellerID",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sellerLocationId",
+            "columnName": "sellerLocationId",
             "affinity": "INTEGER",
             "notNull": false
           },
@@ -428,7 +452,7 @@
       },
       {
         "tableName": "EvidenceDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `transactionId` INTEGER NOT NULL, `type` TEXT NOT NULL, `sizeBytes` INTEGER, `sha256` TEXT, `mimeType` TEXT, `uri` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `transactionId` INTEGER NOT NULL, `sizeBytes` INTEGER, `sha256` TEXT, `mimeType` TEXT NOT NULL, `uri` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -440,12 +464,6 @@
             "fieldPath": "transactionId",
             "columnName": "transactionId",
             "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "type",
-            "columnName": "type",
-            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -464,7 +482,7 @@
             "fieldPath": "mimeType",
             "columnName": "mimeType",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "uri",
@@ -504,7 +522,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c3e6dd03591307a862e53bf948066997')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f054aa7266c834b7d57953baeb94ebbe')"
     ]
   }
 }

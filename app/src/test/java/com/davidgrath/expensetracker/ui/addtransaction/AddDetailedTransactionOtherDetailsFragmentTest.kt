@@ -3,10 +3,13 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.widget.EditText
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.replaceText
+import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
@@ -20,8 +23,8 @@ import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
-import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
+import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
@@ -119,7 +122,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         mainDocumentFolder.mkdirs()
         val existingDocument = File(mainDocumentFolder, "45402cd3-2452-4804-981a-7ea5515dec74.pdf")
         copyResourceToFile(classLoader, resource.resourceName, existingDocument)
-        evidenceDao.insertEvidence(EvidenceDb(null, 0, EvidenceDb.Type.DOCUMENT, 0L, resource.sha256, "application/pdf", existingDocument.toUri().toString(), "2025-06-30T08:00:00", "-04:00", "America/New_York"))
+        evidenceDao.insertEvidence(EvidenceDb(null, 0, 0L, resource.sha256, "application/pdf", existingDocument.toUri().toString(), "2025-06-30T08:00:00", "-04:00", "America/New_York"))
             .subscribeOn(Schedulers.io())
             .blockingGet()
 
@@ -217,5 +220,26 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         val evidenceFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
         assertEquals(1, evidenceList.size)
         assertEquals(1, getHashCount(evidence.sha256, evidenceFolder).blockingGet())
+    }
+
+    /**
+     * Might delete in favour of TextInputLayout and TextInputEditText maxLength
+     */
+    @Test
+    fun whenUserTypesTextAndTotalLengthOverCharacterLimitThenTextTruncated() {
+        val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 9) {
+            'a'
+        }) + "bcdefghij"
+        val additionalText = "bb"
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(
+            click(), replaceText(text), cursorEndViewAction, typeTextIntoFocusedView(additionalText)
+        )
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).check { view, noViewFoundException ->
+            val v = view as EditText
+            val text = v.text.toString()
+            val count = text.codePointCount(0, text.length)
+            assertEquals("abcdefghij", text.substring(Constants.MAX_NOTE_CODEPOINT_LENGTH - 10))
+            assertEquals(Constants.MAX_NOTE_CODEPOINT_LENGTH, count)
+        }
     }
 }

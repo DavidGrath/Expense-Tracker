@@ -3,20 +3,30 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.view.View
+import android.widget.EditText
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
+import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import com.davidgrath.expensetracker.CategoryStringIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.ExpenseTracker
@@ -46,6 +56,9 @@ import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.squareup.rx3.idler.Rx3Idler
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.hamcrest.CoreMatchers
+import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.Matcher
 import javax.inject.Inject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -53,6 +66,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -65,8 +79,8 @@ import java.math.BigDecimal
 @RunWith(RobolectricTestRunner::class)
 class AddDetailedTransactionActivityTest {
 
-//    @get:Rule
-//    val intentsRule = IntentsRule() // Exception: #init was called twice in a row. Make sure to call #release after every #init
+    @get:Rule
+    val intentsRule = IntentsRule()
     @Inject
     lateinit var categoryRepository: CategoryRepository
     @Inject
@@ -89,7 +103,6 @@ class AddDetailedTransactionActivityTest {
 
     @Before
     fun setUp() {
-        Intents.init()
         val app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
@@ -97,7 +110,6 @@ class AddDetailedTransactionActivityTest {
 
     @After
     fun tearDown() {
-        Intents.release()
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         draftFolder.deleteRecursively()
@@ -151,7 +163,7 @@ class AddDetailedTransactionActivityTest {
         val category = categoryRepository.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
         val draft = buildDraft(BigDecimal.TEN, "Candy", categoryDbToCategoryUi(category))
         val fileHandler: DraftFileHandler = context
-        fileHandler.createDraft()
+        addDetailedTransactionRepository.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft)
         //Start on MainActivity
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
@@ -221,7 +233,7 @@ class AddDetailedTransactionActivityTest {
             0,
             R.id.edit_text_add_detailed_transaction_item_amount
         )
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
@@ -239,7 +251,7 @@ class AddDetailedTransactionActivityTest {
             1,
             R.id.edit_text_add_detailed_transaction_item_amount
         )
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,
             R.id.edit_text_add_detailed_transaction_item_amount,
@@ -285,7 +297,7 @@ class AddDetailedTransactionActivityTest {
             0,
             R.id.edit_text_add_detailed_transaction_item_amount
         )
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
@@ -303,7 +315,7 @@ class AddDetailedTransactionActivityTest {
             1,
             R.id.edit_text_add_detailed_transaction_item_amount
         )
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,
             R.id.edit_text_add_detailed_transaction_item_amount,
@@ -363,13 +375,63 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    @Ignore("Not ready yet")
     fun givenDetailedTransactionInDraftWhenStartActivityThenTransactionEditRestored() {
+
+        val basicAmount = "100.00"
+        val basicDescription = "Description"
+
         //Open Add Detailed Transaction Screen
-        //Add An Item with all details
+        var addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        //Add an Item with all details
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            basicAmount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            basicDescription
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.spinner_add_detailed_transaction_item_category
+        )
+        onData(allOf(CategoryStringIdMatcher("fitness"))).perform(click())
         //Close App
         //Open App
+
+        addDetailedTransactionActivityScenario.onActivity { it.viewModelStore.clear() }
+        addDetailedTransactionActivityScenario.moveToState(Lifecycle.State.DESTROYED)
+        addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
         //Assert Screen is present with same details
+
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount, basicAmount
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description, basicDescription
+        )
+        assertRecyclerViewItemSpinnerText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.spinner_add_detailed_transaction_item_category, "Fitness"
+        )
         //This might end up becoming a toggleable preference like: "restoreDraftTransactionWhenReopenApplication"
     }
 

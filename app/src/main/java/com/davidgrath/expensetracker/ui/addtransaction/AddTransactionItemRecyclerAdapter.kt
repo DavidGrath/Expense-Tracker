@@ -67,7 +67,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 binding.editTextAddDetailedTransactionItemAmount.setText(if(_item.amount == null) "" else String.format(Locale.getDefault(), "%.2f", _item.amount))
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
-                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) {
+//                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
                     currentItem = absPosition
                         val amount = try {
                             BigDecimal(text.toString()).setScale(2, RoundingMode.HALF_UP)
@@ -78,7 +78,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                             _item = _item.copy(amount = amount)
                             listener?.onItemChanged(absPosition, _item)
                         }
-                    }
+//                    }
                 }
                 textWatcherAmountMap[binding.editTextAddDetailedTransactionItemAmount.hashCode()] = newAmountWatcher
 

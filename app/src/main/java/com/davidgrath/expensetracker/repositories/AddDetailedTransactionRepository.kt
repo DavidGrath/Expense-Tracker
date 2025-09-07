@@ -1,9 +1,11 @@
 package com.davidgrath.expensetracker.repositories
 
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.map
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
@@ -27,7 +29,9 @@ import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.math.BigDecimal
+import javax.inject.Singleton
 
+@Singleton
 class AddDetailedTransactionRepository
 @Inject
 constructor(
@@ -39,11 +43,10 @@ constructor(
     private val evidenceDao: EvidenceDao
 ) {
 
-    //TODO Relying on this variable is probably a terrible way to work with a file
-    private var currentEvent = TransactionDetailEvent.All
-    private var currentItemPosition = -1
     private var incrementId = 0
-    private val liveData = fileHandler.getDraft()
+    private var draft = AddDetailedTransactionDraft(emptyList())
+    private val _draftLiveData = MutableLiveData<Triple<AddDetailedTransactionDraft, TransactionDetailEvent, Int>>(Triple(draft, TransactionDetailEvent.None, -1))
+    private val draftLiveData: LiveData<Triple<AddDetailedTransactionDraft, TransactionDetailEvent, Int>> = _draftLiveData
 
     fun initializeDraft(initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
         val category = if(initialCategoryId != null) {
@@ -56,6 +59,7 @@ constructor(
                 .blockingGet()!!
         }
         val draft = AddDetailedTransactionDraft(listOf(AddTransactionItem(++incrementId, categoryDbToCategoryUi(category), initialAmount, initialDescription)))
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
         fileHandler.saveDraft(draft)
     }
 
@@ -69,44 +73,46 @@ constructor(
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         }
-        val draft = fileHandler.getDraftValue()
-        val items = draft.items
-        val maxId = items.map { it.id }.maxOrNull()
-        if(maxId != null) {
-            incrementId = maxId + 1
-            val item = AddTransactionItem(incrementId, categoryDbToCategoryUi(category), initialAmount, initialDescription)
-            val newItems = listOf(item) + items
-            val newDraft = draft.copy(items = newItems)
-            fileHandler.saveDraft(newDraft)
-        }
+        fileHandler.getDraft().map { draft ->
+            val items = draft.items
+            val maxId = items.map { it.id }.maxOrNull()
+            if(maxId != null) {
+                incrementId = maxId + 1
+                val item = AddTransactionItem(incrementId, categoryDbToCategoryUi(category), initialAmount, initialDescription)
+                val newItems = listOf(item) + items
+                val newDraft = draft.copy(items = newItems)
+                _draftLiveData.postValue(Triple(newDraft, TransactionDetailEvent.Insert, 0))
+                fileHandler.saveDraft(newDraft)
+            }
+            Log.i("AddDetTransRepo", "Moved initial details to top of existing draft")
+        }.blockingGet()
+
     }
 
     fun addItem(): Boolean {
-        val draft = fileHandler.getDraftValue()
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
-            currentEvent = TransactionDetailEvent.Insert
-            currentItemPosition = currentList.size + 1
             val category = categoryDao.findByStringId("miscellaneous")
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
             val newItems = currentList + AddTransactionItem(++incrementId, categoryDbToCategoryUi(category))
-            fileHandler.saveDraft(draft.copy(items = newItems))
+            draft = draft.copy(items = newItems)
+            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Insert, currentList.size))
+            fileHandler.saveDraft(draft)
             return true
         }
         return false
     }
 
     fun deleteItem(position: Int) {
-        val draft = fileHandler.getDraftValue()
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
-            currentEvent = TransactionDetailEvent.Delete
-            currentItemPosition = currentList.size + 1
             val newItems = currentList.toMutableList().apply {
                 removeAt(position)
             }
-            fileHandler.saveDraft(draft.copy(items = newItems))
+            draft = draft.copy(items = newItems)
+            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Delete, position))
+            fileHandler.saveDraft(draft)
         }
     }
 
@@ -115,7 +121,6 @@ constructor(
     }
 
     fun imageHashInDraft(sha256: String): Boolean {
-        val draft = fileHandler.getDraftValue()
         val draftImageHashes = draft.imageHashes.values
         return (sha256 in draftImageHashes)
     }
@@ -125,7 +130,6 @@ constructor(
     }
 
     fun evidenceHashInDraft(sha256: String): Boolean {
-        val draft = fileHandler.getDraftValue()
         val draftEvidenceHashes = draft.evidenceHashes.values
         return (sha256 in draftEvidenceHashes)
     }
@@ -135,14 +139,12 @@ constructor(
     }
 
     fun getDraftEvidenceUri(sha256: String): Uri {
-        val draft = fileHandler.getDraftValue()
         val draftEvidenceMap = draft.evidenceHashes
         val key = draftEvidenceMap.keys.find { draftEvidenceMap[it] == sha256 }!!
         return key
     }
 
     fun getDraftImageUri(sha256: String): Uri {
-        val draft = fileHandler.getDraftValue()
         val draftImageMap = draft.imageHashes
         val key = draftImageMap.keys.find { draftImageMap[it] == sha256 }!!
         return key
@@ -153,18 +155,16 @@ constructor(
     }
 
     fun changeItem(position: Int, item: AddTransactionItem) {
-        val draft = fileHandler.getDraftValue()
         val currentList = draft.items
-        currentEvent = TransactionDetailEvent.Change
-        currentItemPosition = position
         val newItems = currentList.toMutableList().also {
             it[position] = item
         }
-        fileHandler.saveDraft(draft.copy(items = newItems))
+        draft = draft.copy(items = newItems)
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Change, position))
+        fileHandler.saveDraft(draft)
     }
 
     fun addImageToItem(itemId: Int, localUri: Uri, sha256: String) {
-        val draft = fileHandler.getDraftValue()
         val currentList = draft.items
         val item = currentList.find { it.id == itemId }
         if(item == null) {
@@ -182,19 +182,18 @@ constructor(
         val newItems = currentList.toMutableList().also {
             it[index] = newItem
         }
-        currentEvent = TransactionDetailEvent.ChangeInvalidate
-        currentItemPosition = index
         val existingHash = draft.imageHashes[localUri]
         val newHashes =  if(existingHash == null) {
             draft.imageHashes + (localUri to sha256)
         } else {
             draft.imageHashes
         }
-        fileHandler.saveDraft(draft.copy(items = newItems, imageHashes = newHashes))
+        draft = draft.copy(items = newItems, imageHashes = newHashes)
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.ChangeInvalidate, index))
+        fileHandler.saveDraft(draft)
     }
 
     fun addEvidence(localUri: Uri, sha256: String, mimeType: String): Int {
-        val draft = fileHandler.getDraftValue()
         val currentList = draft.evidence
         val uris = currentList.map { it.uri }
 
@@ -207,38 +206,50 @@ constructor(
 
         val newEvidence = currentList + AddTransactionEvidence(localUri, mimeType, sha256)
         val position = newEvidence.size - 1
-        currentEvent = TransactionDetailEvent.None
-        currentItemPosition = -1
         val existingHash = draft.evidenceHashes[localUri]
         val newHashes =  if(existingHash == null) {
             draft.imageHashes + (localUri to sha256)
         } else {
             draft.imageHashes
         }
-        fileHandler.saveDraft(draft.copy(evidenceHashes = newHashes, evidence = newEvidence))
+        draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+        fileHandler.saveDraft(draft)
         return position
     }
 
     fun getDraft(): LiveData<Triple<AddDetailedTransactionDraft, TransactionDetailEvent, Int>> {
-        return fileHandler.getDraft().map {
-            Triple(it, currentEvent, currentItemPosition)
-        }
+        return draftLiveData
     }
 
     fun draftExists(): Boolean {
         return fileHandler.draftExists()
     }
-    fun createDraft(): Boolean {
+    fun createDraft(): Single<Boolean> {
         return fileHandler.createDraft()
+            .flatMap {  bool ->
+                fileHandler.getDraft().map { draft ->
+                    this.draft = draft
+                    _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                    bool
+                }
+            }
+    }
+
+    fun restoreDraft(): Single<Unit> {
+        return fileHandler.getDraft()
+            .map { draft ->
+                this.draft = draft
+                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+            }
     }
 
     fun getDraftValue(): AddDetailedTransactionDraft {
-        return fileHandler.getDraftValue()
+        return draft
     }
 
     fun finishTransaction(): Single<Unit> {
         return Single.fromCallable {
-            val draft = fileHandler.getDraftValue()
             val total = draft.items.map { it.amount!! }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
             //TODO Dates, Times, and Ordinals
             val date = ZonedDateTime.now(clock)
@@ -264,7 +275,7 @@ constructor(
                 val imageId = imageDao.insertImage(image).blockingGet()
                 imagesMap[k] = imageId
             }
-            val transaction = TransactionDb(null, 0, total, "USD", false, dateTimeString, offset, zone, 0, dateString, timeString, offset, zone)
+            val transaction = TransactionDb(null, 0, total, "USD", null, false, null, null, null, dateTimeString, offset, zone, 0, dateString, timeString, offset, zone)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
                 val singles = draft.items.map { draftItem ->
@@ -281,10 +292,19 @@ constructor(
                         }
                 }
                 Single.mergeDelayError(singles).toList()
+            }.flatMap {
+                draft = AddDetailedTransactionDraft(emptyList())
+                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                fileHandler.deleteDraft()
             }.blockingGet()
-            fileHandler.deleteDraft()
             Unit
         }.subscribeOn(Schedulers.io())
+    }
+
+    fun deleteDraft() {
+        draft = AddDetailedTransactionDraft(emptyList())
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+        fileHandler.deleteDraft().blockingGet()
     }
 
     enum class TransactionDetailEvent {

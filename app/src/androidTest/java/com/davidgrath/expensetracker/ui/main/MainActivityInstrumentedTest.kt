@@ -19,6 +19,7 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import org.junit.After
 import org.junit.Before
@@ -37,6 +38,8 @@ class MainActivityInstrumentedTest {
     lateinit var transactionItemDao: TransactionItemDao
     @Inject
     lateinit var transactionDao: TransactionDao
+    @Inject
+    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
 
     @Before
     fun setUp() {
@@ -47,7 +50,7 @@ class MainActivityInstrumentedTest {
     fun tearDown() {
         transactionItemDao.deleteAll().blockingSubscribe()
         transactionDao.deleteAll().blockingSubscribe()
-        ApplicationProvider.getApplicationContext<ExpenseTracker>().deleteDraft()
+        addDetailedTransactionRepository.deleteDraft()
     }
 
     @Test

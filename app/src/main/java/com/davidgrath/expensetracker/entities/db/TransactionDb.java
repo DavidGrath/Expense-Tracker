@@ -26,7 +26,18 @@ public class TransactionDb implements Comparable<TransactionDb> {
     private final Long accountId;
     private final BigDecimal amount;
     private final String currencyCode;
+    @Nullable
+    private final String referenceNumber;
     private final Boolean cashOrCredit; //TODO Possibly revise to enum Mode {Cash,Transfer,POS,etc}
+    /**
+     * Maximum 300 NFC Normalized code points
+     */
+    @Nullable
+    private final String note;
+    @Nullable
+    private final Long sellerID;
+    @Nullable
+    private final Long sellerLocationId;
     private final String createdAt;
     private final String createdAtOffset;
     private final String createdAtTimezone;
@@ -42,12 +53,16 @@ public class TransactionDb implements Comparable<TransactionDb> {
     @Nullable
     private final String datedAtTimezone;
 
-    public TransactionDb(@Nullable Long id, Long accountId, BigDecimal amount, String currencyCode, Boolean cashOrCredit, String createdAt, String createdAtOffset, String createdAtTimezone, Integer ordinal, String datedAt, @Nullable String datedAtTime, @Nullable String datedAtOffset, @Nullable String datedAtTimezone) {
+    public TransactionDb(@Nullable Long id, Long accountId, BigDecimal amount, String currencyCode, @Nullable String referenceNumber, Boolean cashOrCredit, @Nullable String note, @Nullable Long sellerID, @Nullable Long sellerLocationId, String createdAt, String createdAtOffset, String createdAtTimezone, Integer ordinal, String datedAt, @Nullable String datedAtTime, @Nullable String datedAtOffset, @Nullable String datedAtTimezone) {
         this.id = id;
         this.accountId = accountId;
         this.amount = amount;
         this.currencyCode = currencyCode;
+        this.referenceNumber = referenceNumber;
         this.cashOrCredit = cashOrCredit;
+        this.note = note;
+        this.sellerID = sellerID;
+        this.sellerLocationId = sellerLocationId;
         this.createdAt = createdAt;
         this.createdAtOffset = createdAtOffset;
         this.createdAtTimezone = createdAtTimezone;
@@ -58,7 +73,6 @@ public class TransactionDb implements Comparable<TransactionDb> {
         this.datedAtTimezone = datedAtTimezone;
     }
 
-    @Nullable
     public Long getId() {
         return id;
     }
@@ -79,8 +93,24 @@ public class TransactionDb implements Comparable<TransactionDb> {
         return currencyCode;
     }
 
+    public String getReferenceNumber() {
+        return referenceNumber;
+    }
+
     public Boolean getCashOrCredit() {
         return cashOrCredit;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public Long getSellerID() {
+        return sellerID;
+    }
+
+    public Long getSellerLocationId() {
+        return sellerLocationId;
     }
 
     public String getCreatedAt() {

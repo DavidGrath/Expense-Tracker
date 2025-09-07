@@ -2,12 +2,20 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.view.KeyEvent
+import android.widget.EditText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.EspressoKey
 import androidx.test.espresso.action.ViewActions
+import androidx.test.espresso.action.ViewActions.clearText
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers
@@ -22,16 +30,15 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
-import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
-import com.davidgrath.expensetracker.test.TestContentProvider
 import org.hamcrest.Matchers
 import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,8 +87,11 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
             )
         )
 
-        onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(scrollTo(),  click())
         onView(withId(android.R.id.message)).check(matches(allOf(isDisplayed(), withText(Matchers.matchesRegex(".*password.*"))))) //probably change to resourceId
+
+        //"Clean up"
+        onView(withId(android.R.id.button1)).perform(click())
     }
 
     @Test
@@ -102,8 +112,89 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
         onView(withId(android.R.id.message)).check(matches(allOf(isDisplayed(), withText(Matchers.matchesRegex(".*zero.*"))))) //probably change to resourceId
+
+        //"Clean up"
+        onView(withId(android.R.id.button1)).perform(click())
     }
 
+    /**
+     * If the user somehow finds a way to stack 301+ combining characters into 1, then I think this test fails, but ignore that
+     */
+    @Test
+    fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncatedByGrapheme() {
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 1) {
+            'a'
+        })
+        val manRunning = "\uD83C\uDFC3\u200D\u2642\uFE0F" //4 codepoints - 1 surrogate pair + 3 regular
+        val manRunningCount = 4
+        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+            it.runOnUiThread {
+                val clipBoardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                var clipData = ClipData.newPlainText("simple text", text + manRunning)
+                clipBoardManager.setPrimaryClip(clipData)
+            }
+        }
+
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(
+            click(), ViewActions.pressKey(
+            EspressoKey.Builder().withCtrlPressed(true).withKeyCode(KeyEvent.KEYCODE_V).build()))
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).check { view, noViewFoundException ->
+            val v = view as EditText
+            val text = v.text.toString()
+            val count = text.codePointCount(0, text.length)
+            assertEquals(Constants.MAX_NOTE_CODEPOINT_LENGTH - 1, count)
+        }
+        onView(withId(R.id.text_view_add_detailed_transaction_note_length_indicator)).check(matches(withText("${Constants.MAX_NOTE_CODEPOINT_LENGTH - 1}/${Constants.MAX_NOTE_CODEPOINT_LENGTH}")))
+
+        val menRunning = manRunning.repeat(Math.floorDiv(Constants.MAX_NOTE_CODEPOINT_LENGTH, manRunningCount)+1) //4 x 76 = 304
+        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+            it.runOnUiThread {
+                val clipBoardManager =
+                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                var clipData = ClipData.newPlainText("simple text", menRunning)
+                clipBoardManager.setPrimaryClip(clipData)
+            }
+        }
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(
+            clearText(), ViewActions.pressKey(
+                EspressoKey.Builder().withCtrlPressed(true).withKeyCode(KeyEvent.KEYCODE_V).build()))
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).check { view, noViewFoundException ->
+            val v = view as EditText
+            val text = v.text.toString()
+            val count = text.codePointCount(0, text.length)
+            assertEquals(Constants.MAX_NOTE_CODEPOINT_LENGTH, count)
+        }
+        onView(withId(R.id.text_view_add_detailed_transaction_note_length_indicator)).check(matches(withText("${Constants.MAX_NOTE_CODEPOINT_LENGTH}/${Constants.MAX_NOTE_CODEPOINT_LENGTH}")))
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(clearText())
+    }
+
+    @Test
+    fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncated() {
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 9) {
+            'a'
+        }) + "bcdefghij" + "klmnopqrst"
+        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+            it.runOnUiThread {
+                val clipBoardManager =
+                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipData = ClipData.newPlainText("simple text", text)
+                clipBoardManager.setPrimaryClip(clipData)
+            }
+        }
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(
+            click(), ViewActions.pressKey(
+            EspressoKey.Builder().withCtrlPressed(true).withKeyCode(KeyEvent.KEYCODE_V).build()))
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).check { view, noViewFoundException ->
+            val v = view as EditText
+            val text = v.text.toString()
+            val count = text.codePointCount(0, text.length)
+            assertEquals(Constants.MAX_NOTE_CODEPOINT_LENGTH, count)
+            assertEquals("abcdefghij", text.substring(Constants.MAX_NOTE_CODEPOINT_LENGTH - 10))
+        }
+        onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(clearText())
+    }
     /*@Test
     fun givenEvidenceIsPdfAndPdfOkayWhenSelectThenImageDisplayed() {
     }*/

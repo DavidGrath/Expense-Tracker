@@ -47,14 +47,14 @@ class AddDetailedTransactionViewModel(
     init {
         if (!addDetailedTransactionRepository.draftExists()) {
             if (initialAmount != null || initialDescription != null || initialCategoryId != null) {
-                addDetailedTransactionRepository.createDraft()
+                addDetailedTransactionRepository.createDraft().blockingGet()
                 addDetailedTransactionRepository.initializeDraft(
                     initialAmount,
                     initialDescription,
                     initialCategoryId
                 )
             } else {
-                addDetailedTransactionRepository.createDraft()
+                addDetailedTransactionRepository.createDraft().blockingGet()
                 addDetailedTransactionRepository.addItem()
             }
         } else {
@@ -64,6 +64,9 @@ class AddDetailedTransactionViewModel(
                     initialDescription,
                     initialCategoryId
                 )
+            }
+            addDetailedTransactionRepository.restoreDraft().blockingSubscribe {
+                Log.i(LOG_TAG, "Restored existing draft")
             }
         }
     }
@@ -150,7 +153,7 @@ class AddDetailedTransactionViewModel(
                         mimeType
                     )
                     if (mimeType != "application/pdf") {
-                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        Log.i(LOG_TAG, "Document not a PDF")
                         return@map PdfState.NOT_PDF
                     }
                     val validate = validatePdf(existingDraftEvidence).blockingGet()
@@ -169,7 +172,7 @@ class AddDetailedTransactionViewModel(
                         mimeType
                     )
                     if (mimeType != "application/pdf") {
-                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        Log.i(LOG_TAG, "Document not a PDF")
                         return@map PdfState.NOT_PDF
                     }
                     val validate = validatePdf(existingDraftEvidence).blockingGet()
@@ -211,7 +214,7 @@ class AddDetailedTransactionViewModel(
                         mimeType
                     )
                     if (mimeType != "application/pdf") {
-                        Log.i("AddDetailTransViewModel", "Document not a PDF")
+                        Log.i(LOG_TAG, "Document not a PDF")
                         return@map PdfState.NOT_PDF
                     }
                     val validate = validatePdf(file.toUri()).blockingGet()
@@ -295,5 +298,9 @@ class AddDetailedTransactionViewModel(
         ALL_GOOD,
         PASSWORD_PROTECTED,
         ZERO_PAGES
+    }
+
+    companion object {
+        private const val LOG_TAG = "AddDetailTransViewModel"
     }
 }
