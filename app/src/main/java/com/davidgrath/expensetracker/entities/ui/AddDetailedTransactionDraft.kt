@@ -9,5 +9,6 @@ data class AddDetailedTransactionDraft(
      */
     val imageHashes: Map<Uri, String> = emptyMap(),
     val evidence: List<AddTransactionEvidence> = emptyList(),
-    val evidenceHashes: Map<Uri, String> = emptyMap()
+    val evidenceHashes: Map<Uri, String> = emptyMap(),
+    val note: String? = null
 )

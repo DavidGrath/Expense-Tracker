@@ -24,4 +24,12 @@ class CategoryRepository
     fun findByStringId(stringId: String): Maybe<CategoryDb> {
         return categoryDao.findByStringId(stringId)
     }
+
+    fun getById(id: Long): Single<CategoryDb> {
+        return categoryDao.findById(id).toSingle()
+    }
+
+    fun getOtherItemCategories(transactionItemId: Long): Single<List<CategoryDb>> {
+        return categoryDao.getOthersByTransactionItemId(transactionItemId)
+    }
 }

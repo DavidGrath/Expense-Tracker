@@ -14,16 +14,20 @@ import androidx.lifecycle.map
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import java.io.File
+import java.io.IOException
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
@@ -40,9 +44,9 @@ class AddDetailedTransactionViewModel(
 
 
     var getImageItemId = -1
-    private var rendererHashMap = emptyMap<Int, PdfRenderer>()
-    private val _rendererLiveData = MutableLiveData<Map<Int, PdfRenderer>>(rendererHashMap)
-    var rendererLiveData: LiveData<Map<Int, PdfRenderer>> = _rendererLiveData
+    private var rendererHashMap = emptyMap<Uri, PdfRenderer>()
+    private val _rendererLiveData = MutableLiveData<Map<Uri, PdfRenderer>>(rendererHashMap)
+    var rendererLiveData: LiveData<Map<Uri, PdfRenderer>> = _rendererLiveData
 
     init {
         if (!addDetailedTransactionRepository.draftExists()) {
@@ -67,6 +71,21 @@ class AddDetailedTransactionViewModel(
             }
             addDetailedTransactionRepository.restoreDraft().blockingSubscribe {
                 Log.i(LOG_TAG, "Restored existing draft")
+            }
+            var hasPDFs = false
+            for(evidence in addDetailedTransactionRepository.getDraftValue().evidence) {
+                if(evidence.mimeType != "application/pdf") {
+                    continue
+                }
+                hasPDFs = true
+                val renderer = loadRenderer(evidence).blockingGet()
+                if(renderer != null) {
+                    rendererHashMap += evidence.uri to renderer
+                }
+            }
+            _rendererLiveData.postValue(rendererHashMap)
+            if(!hasPDFs) {
+                Log.i(LOG_TAG, "Loaded renderers for existing draft PDFs")
             }
         }
     }
@@ -160,7 +179,7 @@ class AddDetailedTransactionViewModel(
                     if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
                         return@map validate.first
                     }
-                    rendererHashMap += (pos to validate.second!!)
+                    rendererHashMap += (existingDraftEvidence to validate.second!!)
                     _rendererLiveData.postValue(rendererHashMap)
                     return@map validate.first
                 } else if (addDetailedTransactionRepository.evidenceHashInDraft(checksum)) {
@@ -179,7 +198,7 @@ class AddDetailedTransactionViewModel(
                     if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
                         return@map validate.first
                     }
-                    rendererHashMap += (pos to validate.second!!)
+                    rendererHashMap += (existingDraftEvidence to validate.second!!)
                     _rendererLiveData.postValue(rendererHashMap)
                     return@map validate.first
                 } else {
@@ -221,7 +240,7 @@ class AddDetailedTransactionViewModel(
                     if (validate.first == PdfState.PASSWORD_PROTECTED || validate.first == PdfState.ZERO_PAGES) {
                         return@map validate.first
                     }
-                    rendererHashMap += (pos to validate.second!!)
+                    rendererHashMap += (file.toUri() to validate.second!!)
                     _rendererLiveData.postValue(rendererHashMap)
                     validate.first
                 }
@@ -278,6 +297,7 @@ class AddDetailedTransactionViewModel(
             val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             val pdfRenderer: PdfRenderer? = try {
                 PdfRenderer(fd)
+                //TODO Handle IO Exception
             } catch (e: SecurityException) {
                 null
             }
@@ -290,6 +310,25 @@ class AddDetailedTransactionViewModel(
             PdfState.ALL_GOOD to pdfRenderer
         }.subscribeOn(Schedulers.io())
 
+    }
+
+    fun setNote(note: String) {
+        addDetailedTransactionRepository.setNote(note)
+    }
+
+    fun loadRenderer(evidence: AddTransactionEvidence): Maybe<PdfRenderer> {
+        return Maybe.fromCallable {
+            val file = evidence.uri.toFile()
+            val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val pdfRenderer: PdfRenderer? = try {
+                PdfRenderer(fd)
+            } catch (e: SecurityException) {
+                null
+            } catch (e: IOException) {
+                null
+            }
+            return@fromCallable pdfRenderer
+        }
     }
 
 

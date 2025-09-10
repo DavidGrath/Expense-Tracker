@@ -16,12 +16,13 @@ import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
+import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.math.BigDecimal
 
-class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener {
+class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
 
     lateinit var binding: FragmentTransactionsBinding
     lateinit var viewModel: MainViewModel
@@ -33,7 +34,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         binding = FragmentTransactionsBinding.inflate(inflater, null, false)
         viewModel = ViewModelProvider.create(requireActivity()).get(MainViewModel::class.java)
         addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
-        adapter = TransactionItemsAdapter(emptyList())
+        adapter = TransactionItemsAdapter(emptyList(), this)
         return binding.root
     }
 
@@ -110,6 +111,12 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
 
     override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
         viewModel.saveTransaction(amount, description, categoryId)
+    }
+
+    override fun onTransactionClicked(transactionId: Long) {
+        val intent = Intent(requireActivity(), TransactionDetailsActivity::class.java)
+        intent.putExtra(TransactionDetailsActivity.ARG_TRANSACTION_ID, transactionId)
+        startActivity(intent)
     }
 
     companion object {

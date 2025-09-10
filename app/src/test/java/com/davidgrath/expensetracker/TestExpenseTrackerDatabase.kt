@@ -6,17 +6,20 @@ import androidx.room.Room
 import androidx.room.TypeConverters
 import com.davidgrath.expensetracker.db.Converters
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
+import com.davidgrath.expensetracker.db.dao.AccountDao
+import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.ProfileDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
+import com.davidgrath.expensetracker.entities.db.TransactionItemCategoriesDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 
 @Database(version = 1, entities = [
     CategoryDb::class, ImageDb::class, ProfileDb::class, TransactionDb::class, TransactionItemDb::class, TransactionItemImagesDb::class,
-    EvidenceDb::class
+    EvidenceDb::class, AccountDb::class, TransactionItemCategoriesDb::class
 ])
 @TypeConverters(Converters::class)
 abstract class TestExpenseTrackerDatabase: ExpenseTrackerDatabase() {

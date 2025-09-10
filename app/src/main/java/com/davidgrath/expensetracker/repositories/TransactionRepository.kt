@@ -27,14 +27,15 @@ import java.math.BigDecimal
 import java.util.SortedMap
 import java.util.TreeMap
 import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
 
+@Singleton
 class TransactionRepository
 @Inject
 constructor(
     private val transactionDao: TransactionDao,
     private val transactionItemDao: TransactionItemDao,
     private val transactionItemImagesDao: TransactionItemImagesDao,
-    private val imageDao: ImageDao,
     private val categoryDao: CategoryDao,
     private val clock: Clock
 ) {
@@ -55,6 +56,7 @@ constructor(
             "USD",
             null,
             false,
+            true,
             null,
             null,
             null,
@@ -107,34 +109,9 @@ constructor(
                 it.value()
             }
     }
-    /*fun getTransactions(): Observable<SortedMap<TransactionDb, List<TransactionItemDb>>> {
-        return Observable.just(TreeMap())
-        //TODO Terrible solution
-        return Observable.combineLatest(
-            tempTransactionDao.getTransactions(),
-            tempTransactionItemDao.getTransactionItems(),
-            tempTransactionItemImagesDao.getTransactionItemImages().startWithItem(emptyList())
-        ) { transactions, items, itemImages ->
-            transactions
-        }.map { transactions ->
-            val map = TreeMap<TransactionDb, List<TransactionItemDb>>()
-            for(t in transactions) {
-                val items = tempTransactionItemDao.getTransactionItemsSingle(t.id!!).subscribeOn(Schedulers.io()).blockingGet()
-                map.put(t, items)
-            }
-            map
-        }
-    }*/
 
-
-    fun getTotalSpentByCategory(): Observable<List<ItemSumByCategory>> {
-        return transactionItemDao.getSumByCategoryFrom(LocalDate.now(clock).toString())
-            .subscribeOn(Schedulers.io())
-    }
-
-    fun getTransactionItemImages(itemId: Long): Single<List<ImageDb>> {
-        return imageDao.getAllByItemSingle(itemId)
-            .subscribeOn(Schedulers.io())
+    fun getTransactionById(id: Long): Observable<TransactionDb> {
+        return transactionDao.getById(id)
     }
 
     fun getTotalSpent(): Observable<BigDecimal> {
@@ -171,41 +148,6 @@ constructor(
                 }
                 currentDate = currentDate.plusDays(1)
             }
-            /*for(index in list.indices) {
-                val dateAmountSummary = list[index]
-                if(currentDate == dateAmountSummary.aggregateDate) {
-                    newList.add(dateAmountSummary)
-                } else {
-                    newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                    val nextDate = currentDate.plusDays(1)
-                    val nextDateInList = if(index + 1  >= listSize) null else list[index + 1].aggregateDate
-                    if(nextDate == nextDateInList) {
-                        continue
-                    } else {
-                        if(nextDateInList == null) {
-                            while (currentDate <= now) {
-                                newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                                currentDate = currentDate.plusDays(1)
-                            }
-                        } else {
-                            while (currentDate < nextDateInList) {
-                                newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                                currentDate = currentDate.plusDays(1)
-                            }
-                        }
-                    }
-                }
-            }*/
-            /*while (currentDate <= now) {
-                //TODO Rewrite such that I only have to loop once instead of relying on multiple `find` calls
-                val summary = list.find { it.aggregateDate  == currentDate}
-                if(summary != null) {
-                    newList.add(summary)
-                } else {
-                    newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                }
-                currentDate = currentDate.plusDays(1)
-            }*/
             newList.toList()
         }
         return filledSummary

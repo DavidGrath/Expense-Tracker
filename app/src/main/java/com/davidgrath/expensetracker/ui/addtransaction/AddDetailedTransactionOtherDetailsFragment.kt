@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Intent
 import android.graphics.pdf.PdfRenderer
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -29,7 +30,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
     }
 
     var items = emptyList<AddTransactionEvidence>()
-    var renderers = emptyMap<Int, PdfRenderer>()
+    var renderers = emptyMap<Uri, PdfRenderer>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,10 +74,14 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
                         binding.editTextAddDetailedTransactionNote.setText(
                             substring
                         )
+                        //TODO 2-way binding
+                        viewModel.setNote(text)
                         binding.textViewAddDetailedTransactionNoteLengthIndicator.text = substring.codePointCount(0, substring.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
                         binding.editTextAddDetailedTransactionNote.setSelection(lastGraphemePosition)
                         binding.editTextAddDetailedTransactionNote.addTextChangedListener(this)
                     }
+                } else {
+                    viewModel.setNote(text)
                 }
             }
         }

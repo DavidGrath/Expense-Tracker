@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.di
 
+import com.davidgrath.expensetracker.ExpenseTrackerTest
 import com.davidgrath.expensetracker.db.dao.TransactionDaoTest
 import com.davidgrath.expensetracker.db.dao.TransactionItemDaoTest
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepositoryTest
@@ -12,6 +13,9 @@ import javax.inject.Singleton
 @Singleton
 @Component(modules = [TestModule::class])
 interface TestComponent: MainComponent {
+
+    fun inject(expenseTrackerTest: ExpenseTrackerTest)
+
     fun inject(addDetailedTransactionActivityTest: AddDetailedTransactionActivityTest)
     fun inject(addDetailedTransactionOtherDetailsFragmentTest: AddDetailedTransactionOtherDetailsFragmentTest)
 

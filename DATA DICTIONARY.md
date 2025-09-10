@@ -40,6 +40,7 @@
 **Account**
 * ID: Long
 * ProfileID: Long
+* CurrencyCode: String
 * FinancialInstitutionID: Long?
 * ReferenceNumber: String
 * Name: String
@@ -54,7 +55,8 @@
 * CurrencyCode: String
 * ReferenceNumber: String?
 * DebitOrCredit: Boolean
-* Note: String? - Maximum 300 NFC Normalized code points
+* IsCashless: Boolean
+* Note: String? - Maximum 500 code points
 * SellerID: Long?
 * SellerLocationId: Long?
 * CreatedAt: String
@@ -72,7 +74,6 @@
 * Amount: Double
 * Brand: String?
 * Quantity: Int = 1
-* CurrencyCode: String
 * Description: String
 * Variation: String
 * ReferenceNumber: String?
@@ -103,8 +104,8 @@
 **Evidence**
 * ID: Long
 * TransactionID: Long
-* SizeBytes: Long?
-* SHA256: String?
+* SizeBytes: Long
+* SHA256: String
 * MimeType: String
 * URI: String
 * CreatedAt: String

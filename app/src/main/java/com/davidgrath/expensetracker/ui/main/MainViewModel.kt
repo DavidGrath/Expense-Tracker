@@ -7,36 +7,37 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.toLiveData
-import com.davidgrath.expensetracker.categoryDbToCategoryUi
+import com.davidgrath.expensetracker.itemSumToCategoryUi
+import com.davidgrath.expensetracker.transactionWithCategoryToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
-import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
-import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.ImageRepository
+import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionsToTransactionItems
 import com.github.mikephil.charting.data.BarEntry
 import io.reactivex.rxjava3.core.BackpressureStrategy
-import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
-import org.jspecify.annotations.Nullable
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
 import org.threeten.bp.ZoneOffset
 import java.math.BigDecimal
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class MainViewModel
 @Inject
 constructor(
-    private val application: Application, private val transactionRepository: TransactionRepository,
+    private val application: Application,
+    private val transactionRepository: TransactionRepository,
+    private val transactionItemRepository: TransactionItemRepository,
+    private val imageRepository: ImageRepository,
     private val categoryRepository: CategoryRepository, private val clock: Clock
 ) : AndroidViewModel(application) {
 
@@ -64,21 +65,21 @@ constructor(
                 val createdDateTime = getCreatedLocalDateTime(item)
                 val datedDate = LocalDate.parse(item.transactionDatedAt)
                 val datedDateTime = getLocalDateTime(item)
-                val category = categoryDbToCategoryUi(item)
+                val category = transactionWithCategoryToCategoryUi(item)
                 val images =
-                    transactionRepository.getTransactionItemImages(item.itemId).blockingGet()
-                        .map {
-                            Uri.parse(it.uri)
+                    imageRepository.getTransactionItemImages(item.itemId).blockingGet()
+                        .map { image ->
+                            Uri.parse(image.uri)
                         }
-                val view = TransactionWithItemAndCategoryUi(item.transactionId, item.itemId, item.accountId, item.transactionTotal, item.itemAmount, item.currencyCode, item.cashOrCredit,
+                val view = TransactionWithItemAndCategoryUi(item.transactionId, item.itemId, item.accountId, item.transactionTotal, item.itemAmount, item.currencyCode, item.isCashless,
                     item.description, createdDateTime, datedDate, datedDateTime?.toLocalTime(), category, images)
                 list.add(view)
             }
             transactionsToTransactionItems(list)
         }.toLiveData()
-        statsPastXByCategory = transactionRepository.getTotalSpentByCategory().map { list ->
+        statsPastXByCategory = transactionItemRepository.getTotalSpentByCategory().map { list ->
             val mapped = list.mapIndexed { i, it ->
-                val cat = categoryDbToCategoryUi(it)
+                val cat = itemSumToCategoryUi(it)
 //                BarEntry(i.toFloat(), it.second.toFloat(), ResourcesCompat.getDrawable(application.resources, cat.iconId, null))
                 BarEntry(
                     i.toFloat(),

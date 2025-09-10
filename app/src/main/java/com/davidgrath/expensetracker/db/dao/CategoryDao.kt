@@ -27,5 +27,10 @@ interface CategoryDao {
 
     @Query("SELECT * FROM CategoryDb WHERE stringID = :stringId")
     fun findByStringId(stringId: String): Maybe<CategoryDb>
+
+    @Query("SELECT c.* FROM CategoryDb c " +
+            "INNER JOIN TransactionItemCategoriesDb t on t.categoryId=c.id " +
+            "WHERE t.transactionItemId=:transactionItemId")
+    fun getOthersByTransactionItemId(transactionItemId: Long): Single<List<CategoryDb>>
     //endregion
 }

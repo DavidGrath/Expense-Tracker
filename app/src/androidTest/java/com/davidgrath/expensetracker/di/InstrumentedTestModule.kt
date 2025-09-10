@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.InstrumentedTestExpenseTrackerDatabase
+import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
@@ -74,6 +75,11 @@ class InstrumentedTestModule(private val application: Application, private val f
     @Provides
     fun evidenceDao(): EvidenceDao {
         return appDatabase().evidenceDao()
+    }
+
+    @Provides
+    fun accountDao(): AccountDao {
+        return appDatabase().accountDao()
     }
 
     @Provides

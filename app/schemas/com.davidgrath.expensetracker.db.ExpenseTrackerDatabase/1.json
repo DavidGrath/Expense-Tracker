@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "f054aa7266c834b7d57953baeb94ebbe",
+    "identityHash": "cf085215acee4736305a7991b01c4b8b",
     "entities": [
       {
         "tableName": "CategoryDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `profileID` INTEGER NOT NULL, `stringID` TEXT, `isCustom` INTEGER NOT NULL, `name` TEXT, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `profileID` INTEGER, `stringID` TEXT, `isCustom` INTEGER NOT NULL, `name` TEXT, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -18,7 +18,7 @@
             "fieldPath": "profileID",
             "columnName": "profileID",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": false
           },
           {
             "fieldPath": "stringID",
@@ -190,7 +190,7 @@
       },
       {
         "tableName": "TransactionDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER, `amount` REAL, `currencyCode` TEXT, `referenceNumber` TEXT, `cashOrCredit` INTEGER, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT, `createdAtOffset` TEXT, `createdAtTimezone` TEXT, `ordinal` INTEGER, `datedAt` TEXT, `datedAtTime` TEXT, `datedAtOffset` TEXT, `datedAtTimezone` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `currencyCode` TEXT NOT NULL, `referenceNumber` TEXT, `debitOrCredit` INTEGER NOT NULL, `isCashless` INTEGER NOT NULL, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `datedAt` TEXT NOT NULL, `datedAtTime` TEXT, `datedAtOffset` TEXT, `datedAtTimezone` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -202,19 +202,19 @@
             "fieldPath": "accountId",
             "columnName": "accountId",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "amount",
             "columnName": "amount",
             "affinity": "REAL",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "currencyCode",
             "columnName": "currencyCode",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "referenceNumber",
@@ -223,10 +223,16 @@
             "notNull": false
           },
           {
-            "fieldPath": "cashOrCredit",
-            "columnName": "cashOrCredit",
+            "fieldPath": "debitOrCredit",
+            "columnName": "debitOrCredit",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCashless",
+            "columnName": "isCashless",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "note",
@@ -250,31 +256,31 @@
             "fieldPath": "createdAt",
             "columnName": "createdAt",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "createdAtOffset",
             "columnName": "createdAtOffset",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "createdAtTimezone",
             "columnName": "createdAtTimezone",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "ordinal",
             "columnName": "ordinal",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "datedAt",
             "columnName": "datedAt",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "datedAtTime",
@@ -452,7 +458,7 @@
       },
       {
         "tableName": "EvidenceDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `transactionId` INTEGER NOT NULL, `sizeBytes` INTEGER, `sha256` TEXT, `mimeType` TEXT NOT NULL, `uri` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `transactionId` INTEGER NOT NULL, `sizeBytes` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `uri` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -470,13 +476,13 @@
             "fieldPath": "sizeBytes",
             "columnName": "sizeBytes",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "sha256",
             "columnName": "sha256",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "mimeType",
@@ -517,12 +523,136 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "AccountDb",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `profileId` INTEGER NOT NULL, `currencyCode` TEXT NOT NULL, `financialInstitutionId` INTEGER, `referenceNumber` TEXT NOT NULL, `isCashless` INTEGER NOT NULL, `name` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyCode",
+            "columnName": "currencyCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "financialInstitutionId",
+            "columnName": "financialInstitutionId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "referenceNumber",
+            "columnName": "referenceNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCashless",
+            "columnName": "isCashless",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtOffset",
+            "columnName": "createdAtOffset",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtTimezone",
+            "columnName": "createdAtTimezone",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "TransactionItemCategoriesDb",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `transactionItemId` INTEGER NOT NULL, `categoryId` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "transactionItemId",
+            "columnName": "transactionItemId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoryId",
+            "columnName": "categoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtOffset",
+            "columnName": "createdAtOffset",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtTimezone",
+            "columnName": "createdAtTimezone",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f054aa7266c834b7d57953baeb94ebbe')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cf085215acee4736305a7991b01c4b8b')"
     ]
   }
 }

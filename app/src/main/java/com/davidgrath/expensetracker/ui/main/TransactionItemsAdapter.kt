@@ -16,7 +16,11 @@ import org.threeten.bp.format.FormatStyle
 import java.io.File
 import java.text.DecimalFormat
 
-class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
+class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>, var listener: TransactionClickListener? = null): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
+
+    fun interface TransactionClickListener {
+        fun onTransactionClicked(transactionId: Long)
+    }
 
     private val decimalFormat = DecimalFormat("0.00")
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
@@ -81,6 +85,9 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                         }
 //                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
                         binding.textViewTransactionAmount.text = ""
+                        binding.root.setOnClickListener {
+                            listener?.onTransactionClicked(transaction.id)
+                        }
                     }
                 }
             }

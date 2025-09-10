@@ -6,7 +6,6 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.map
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
@@ -14,6 +13,7 @@ import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
@@ -208,9 +208,9 @@ constructor(
         val position = newEvidence.size - 1
         val existingHash = draft.evidenceHashes[localUri]
         val newHashes =  if(existingHash == null) {
-            draft.imageHashes + (localUri to sha256)
+            draft.evidenceHashes + (localUri to sha256)
         } else {
-            draft.imageHashes
+            draft.evidenceHashes
         }
         draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
@@ -267,17 +267,32 @@ constructor(
                 val file = k.toFile()
                 val hash = v
                 val mimeType = "image/jpeg" //TODO Mime type fix
-                val mainFile = fileHandler.moveFileToMain(file).blockingGet()
-                val uri = mainFile.toUri()
+                val mainFile = fileHandler.moveFileToMain(file, Constants.SUBFOLDER_NAME_IMAGES).blockingGet()
+                val finalUri = mainFile.toUri()
 
                 val length = mainFile.length()
-                val image = ImageDb(null, length, hash, mimeType, uri.toString(), dateString, offset, zone)
+                val image = ImageDb(null, length, hash, mimeType, finalUri.toString(), dateTimeString, offset, zone)
                 val imageId = imageDao.insertImage(image).blockingGet()
                 imagesMap[k] = imageId
             }
-            val transaction = TransactionDb(null, 0, total, "USD", null, false, null, null, null, dateTimeString, offset, zone, 0, dateString, timeString, offset, zone)
+            val note = if(draft.note.isNullOrBlank()) {
+                null
+            } else {
+                draft.note
+            }
+            val transaction = TransactionDb(null, 1, total, "USD", null, false, true, note, null, null, dateTimeString, offset, zone, 0, dateString, timeString, offset, zone)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
+                draft.evidence.map { evidence ->
+                    val file = evidence.uri.toFile()
+                    val mainFile = fileHandler.moveFileToMain(file, Constants.SUBFOLDER_NAME_DOCUMENTS).blockingGet()
+                    val finalUri = mainFile.toUri()
+
+                    val length = mainFile.length()
+                    val evidence = EvidenceDb(null, id, length, evidence.sha256, evidence.mimeType, finalUri.toString(), dateTimeString, offset, zone)
+                    evidenceDao.insertEvidence(evidence).blockingGet()
+                }
+
                 val singles = draft.items.map { draftItem ->
                     val item = TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateTimeString, offset, zone)
                     transactionRepository.addTransactionItem(item)
@@ -305,6 +320,13 @@ constructor(
         draft = AddDetailedTransactionDraft(emptyList())
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
         fileHandler.deleteDraft().blockingGet()
+    }
+
+    fun setNote(note: String) {
+        draft = draft.copy(note = note)
+        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+        //TODO Debounce
+        fileHandler.saveDraft(draft)
     }
 
     enum class TransactionDetailEvent {

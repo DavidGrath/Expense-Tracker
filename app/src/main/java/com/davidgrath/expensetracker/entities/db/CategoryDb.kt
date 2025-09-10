@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class CategoryDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val profileID: Long,
+    val profileID: Long?,
     val stringID: String?,
     val isCustom: Boolean,
     val name: String?,

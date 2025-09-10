@@ -1,11 +1,18 @@
 package com.davidgrath.expensetracker
 
 import android.net.Uri
+import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.EvidenceDb
+import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
+import com.davidgrath.expensetracker.entities.ui.ImageUi
+import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
 import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
@@ -16,6 +23,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneOffset
 import java.io.File
 import java.io.InputStream
 import java.math.BigInteger
@@ -125,7 +133,7 @@ fun categoryDbToCategoryUi(categoryDb: CategoryDb): CategoryUi {
     return category
 }
 //TODO Context and string ids
-fun categoryDbToCategoryUi(transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
+fun transactionWithCategoryToCategoryUi(transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
     val category = if(transactionWithItemAndCategory.categoryIsCustom) {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(transactionWithItemAndCategory.primaryCategoryId, null, transactionWithItemAndCategory.categoryName!!, categoryIcon)
@@ -136,7 +144,7 @@ fun categoryDbToCategoryUi(transactionWithItemAndCategory: TransactionWithItemAn
     return category
 }
 //TODO Context and string ids
-fun categoryDbToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
+fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
     val category = if(itemSumByCategory.isCustom) {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(itemSumByCategory.categoryId, null, itemSumByCategory.name!!, categoryIcon)
@@ -147,6 +155,47 @@ fun categoryDbToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
     return category
 }
 
+fun transactionDbToTransactionUi(transactionDb: TransactionDb): TransactionUi {
+    val createdDateTime = getCreatedLocalDateTime(transactionDb)
+    val datedDate = LocalDate.parse(transactionDb.datedAt)
+    val datedDateTime = transactionDb.getDatedLocalDateTime()
+    val transactionUi = TransactionUi(transactionDb.id!!, transactionDb.amount, transactionDb.currencyCode, transactionDb.isCashless, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null, emptyList())
+    return transactionUi
+}
+
+fun transactionDbToTransactionDetailedUi(transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
+    val createdDateTime = getCreatedLocalDateTime(transactionDb)
+    val datedDate = LocalDate.parse(transactionDb.datedAt)
+    val datedDateTime = transactionDb.getDatedLocalDateTime()
+    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.isCashless, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null)
+    return transactionUi
+}
+
+fun getCreatedLocalDateTime(transactionDb: TransactionDb): LocalDateTime {
+    val utcDateTime = LocalDateTime.parse(transactionDb.createdAt)
+    val offset = ZoneOffset.of(transactionDb.createdAtOffset)
+    val offsetDateTime = utcDateTime.atOffset(offset)
+    val localDateTime = offsetDateTime.toLocalDateTime()
+    return localDateTime
+}
+
+fun imageDbToImageUi(image: ImageDb): ImageUi {
+    val utcDateTime = LocalDateTime.parse(image.createdAt)
+    val offset = ZoneOffset.of(image.createdAtOffset)
+    val offsetDateTime = utcDateTime.atOffset(offset)
+    val localDateTime = offsetDateTime.toLocalDateTime()
+    val uri = Uri.parse(image.uri)
+    return ImageUi(image.id!!, image.sizeBytes, image.sha256, image.mimeType, uri, localDateTime)
+}
+
+fun evidenceDbToEvidenceUi(evidence: EvidenceDb): EvidenceUi {
+    val utcDateTime = LocalDateTime.parse(evidence.createdAt)
+    val offset = ZoneOffset.of(evidence.createdAtOffset)
+    val offsetDateTime = utcDateTime.atOffset(offset)
+    val localDateTime = offsetDateTime.toLocalDateTime()
+    val uri = Uri.parse(evidence.uri)
+    return EvidenceUi(evidence.id!!, evidence.transactionId, evidence.sizeBytes, evidence.sha256, evidence.mimeType, uri, localDateTime)
+}
 fun getSha256(inputStream: InputStream): Single<String> {
     return Single.fromCallable {
         val bufSize = DEFAULT_BUFFER_SIZE

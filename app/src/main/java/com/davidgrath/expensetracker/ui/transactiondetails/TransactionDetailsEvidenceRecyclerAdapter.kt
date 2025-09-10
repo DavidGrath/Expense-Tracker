@@ -1,4 +1,4 @@
-package com.davidgrath.expensetracker.ui.addtransaction
+package com.davidgrath.expensetracker.ui.transactiondetails
 
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
@@ -14,21 +14,21 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
+import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 
-class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddTransactionEvidence>, var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+class TransactionDetailsEvidenceRecyclerAdapter(private var evidenceList: List<EvidenceUi>, private var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<TransactionDetailsEvidenceRecyclerAdapter.TransactionDetailsEvidenceViewHolder>() {
 
-    //TODO Cache bitmaps, too
     private var pageZeroMaps = hashMapOf<PdfRenderer, Page>()
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionEvidenceViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TransactionDetailsEvidenceViewHolder {
         val height = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_evidence_height)
         val layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
         val imageView = ImageView(parent.context)
         imageView.layoutParams = layoutParams
-        return AddTransactionEvidenceViewHolder(imageView)
+        return TransactionDetailsEvidenceViewHolder(imageView)
     }
 
-    override fun onBindViewHolder(holder: AddTransactionEvidenceViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: TransactionDetailsEvidenceViewHolder, position: Int) {
         val image = holder.imageView
         val evidence = evidenceList[position]
         val uri = evidence.uri
@@ -72,13 +72,17 @@ class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddTr
         return evidenceList.size
     }
 
-    fun setItems(evidenceList: List<AddTransactionEvidence>, pdfRenderers: Map<Uri, PdfRenderer>) {
+    fun changeItems(evidenceList: List<EvidenceUi>) {
         this.evidenceList = evidenceList
+        notifyDataSetChanged()
+    }
+
+    fun changeRenderers(pdfRenderers: Map<Uri, PdfRenderer>) {
         this.pdfRenderers = pdfRenderers
         notifyDataSetChanged()
     }
 
-    class AddTransactionEvidenceViewHolder(val imageView: ImageView): ViewHolder(imageView) {
+    class TransactionDetailsEvidenceViewHolder(val imageView: ImageView): ViewHolder(imageView) {
 
     }
 }

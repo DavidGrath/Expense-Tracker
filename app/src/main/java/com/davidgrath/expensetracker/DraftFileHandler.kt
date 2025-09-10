@@ -11,5 +11,5 @@ interface DraftFileHandler {
     fun createDraft(): Single<Boolean>
     fun deleteDraft(): Single<Boolean>
     fun getDraft(): Single<AddDetailedTransactionDraft>
-    fun moveFileToMain(file: File): Single<File>
+    fun moveFileToMain(file: File, subfolder: String): Single<File>
 }

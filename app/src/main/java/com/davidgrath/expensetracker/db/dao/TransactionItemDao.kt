@@ -42,7 +42,7 @@ interface TransactionItemDao {
     fun getSumByCategoryFromTo(fromDate: String, toDate: String): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
-            "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.cashOrCredit, " +
+            "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.isCashless, " +
             "ti.description, t.createdAt AS transactionCreatedAt, t.createdAtOffset AS transactionCreatedAtOffset, " +
             "t.createdAtTimezone AS transactionCreatedAtTimezone, t.datedAt AS transactionDatedAt, " +
             "t.datedAtTime AS transactionDatedAtTime, " +
@@ -55,7 +55,7 @@ interface TransactionItemDao {
     fun getItemsWithTransactionsAndCategoryFrom(fromDate: String): Flowable<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
-            "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.cashOrCredit, " +
+            "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.isCashless, " +
             "ti.description, t.createdAt AS transactionCreatedAt, t.createdAtOffset AS transactionCreatedAtOffset, " +
             "t.createdAtTimezone AS transactionCreatedAtTimezone, " +
             "t.datedAt AS transactionDatedAt, t.datedAtTime AS transactionDatedAtTime, " +

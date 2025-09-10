@@ -33,6 +33,9 @@ interface ImageDao {
     @Query("SELECT im.* FROM ImageDb im INNER JOIN TransactionItemImagesDb tii ON tii.imageID = im.id " +
             "WHERE tii.transactionItemID = :itemId")
     fun getAllByItemSingle(itemId: Long): Single<List<ImageDb>>
+
+    @Query("SELECT sum(sizeBytes) FROM ImageDb")
+    fun storageSum(): Single<Long>
     //endregion
 
     //region Delete
