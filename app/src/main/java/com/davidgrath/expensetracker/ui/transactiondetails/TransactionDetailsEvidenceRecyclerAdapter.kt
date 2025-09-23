@@ -4,16 +4,12 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.graphics.pdf.PdfRenderer.Page
 import android.net.Uri
-import android.os.ParcelFileDescriptor
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 
 class TransactionDetailsEvidenceRecyclerAdapter(private var evidenceList: List<EvidenceUi>, private var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<TransactionDetailsEvidenceRecyclerAdapter.TransactionDetailsEvidenceViewHolder>() {

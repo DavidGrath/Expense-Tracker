@@ -15,7 +15,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
-import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
+import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.ibm.icu.text.BreakIterator
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
@@ -29,7 +29,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
         return binding.root
     }
 
-    var items = emptyList<AddTransactionEvidence>()
+    var items = emptyList<AddEditTransactionFile>()
     var renderers = emptyMap<Uri, PdfRenderer>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -94,6 +94,9 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
         v?.let { view ->
             when(view) {
                 binding.textViewAddDetailedTransactionAddEvidence -> {
+                    if(items.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE) {
+                        return
+                    }
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
                     intent.type = "*/*"
                     intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "application/pdf"))

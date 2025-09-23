@@ -4,23 +4,26 @@ import android.app.Application
 import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import com.davidgrath.expensetracker.di.DaggerMainComponent
 import com.davidgrath.expensetracker.di.MainComponent
 import com.davidgrath.expensetracker.di.MainModule
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.ProfileDb
-import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 import java.util.Currency
 import java.util.Locale
+import java.util.UUID
 
 open class ExpenseTracker : Application(), DraftFileHandler {
 
@@ -37,17 +40,16 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
 
 
-    override fun saveDraft(draft: AddDetailedTransactionDraft) {
+    override fun saveDraft(draft: AddEditDetailedTransactionDraft): Single<Unit> {
         //TODO Debounce
-        saveFile(draft).subscribeOn(Schedulers.io()).subscribe()
-    }
 
-    private fun saveFile(draft: AddDetailedTransactionDraft): Single<Unit> {
         return Single.fromCallable {
             val string = gson.toJson(draft)
             val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
             val file = File(root, Constants.DRAFT_FILE_NAME)
-            file.writeText(string)
+            if(file.exists()) {
+                file.writeText(string)
+            }
         }.subscribeOn(Schedulers.io())
     }
 
@@ -66,7 +68,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val file = File(root, Constants.DRAFT_FILE_NAME)
             val ret = file.createNewFile()
             if (ret) {
-                val emptyDraft = AddDetailedTransactionDraft(emptyList())
+                val emptyDraft = AddEditDetailedTransactionDraft(emptyList())
                 val string = gson.toJson(emptyDraft)
                 file.writeText(string)
             }
@@ -74,42 +76,101 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         }
     }
 
-    override fun deleteDraft(): Single<Boolean> {
+    override fun deleteDraftFiles(): Single<Boolean> {
         return Single.fromCallable {
             val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
             val file = File(root, Constants.DRAFT_FILE_NAME)
-            file.delete()
+            val d = file.delete()
+            Log.i("ExpenseTracker", "Deleted draft file: $d")
+            val documents = File(root, Constants.SUBFOLDER_NAME_DOCUMENTS)
+            if(documents.exists()) {
+                val children = documents.listFiles()
+                val size = children.size
+                if(size > 0) {
+                    documents.deleteRecursively()
+                    Log.i("ExpenseTracker", "Deleted $size unused files in ${documents}")
+                } else {
+                    Log.i("ExpenseTracker", "Deleted empty directory ${documents}")
+                }
+            }
+            val images = File(root, Constants.SUBFOLDER_NAME_IMAGES)
+            if(images.exists()) {
+                val children = images.listFiles()
+                val size = children.size
+                if(size > 0) {
+                    images.deleteRecursively()
+                    Log.i("ExpenseTracker", "Deleted $size unused files in ${images}")
+                } else {
+                    images.delete()
+                    Log.i("ExpenseTracker", "Deleted empty directory ${images}")
+                }
+            }
+
+            true
         }
     }
 
-    override fun getDraft(): Single<AddDetailedTransactionDraft> {
-        return Single.fromCallable {
+    override fun getDraft(): Maybe<AddEditDetailedTransactionDraft> {
+        return Maybe.fromCallable {
             val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
             val file = File(root, Constants.DRAFT_FILE_NAME)
+            if(!file.exists()) {
+                return@fromCallable null
+            }
             val reader = file.bufferedReader()
-            val draft = gson.fromJson(reader, AddDetailedTransactionDraft::class.java)
+            val draft = gson.fromJson(reader, AddEditDetailedTransactionDraft::class.java)
             reader.close()
             draft
         }.subscribeOn(Schedulers.io())
     }
 
-    override fun moveFileToMain(file: File, subfolder: String): Single<File> {
+    override fun moveFileToMain(sourceFile: File, subfolder: String): Single<File> {
+        
         return Single.fromCallable<File> {
             val mainFolder = File(filesDir, Constants.FOLDER_NAME_DATA)
             val folder = File(mainFolder, subfolder)
-            val f = File(folder, file.name)
+            val f = File(folder, sourceFile.name)
             if(f.exists()) {
                 return@fromCallable f
             }
-            file.copyTo(f)
+            sourceFile.copyTo(f)
             Log.i("ExpenseTracker", "Created ${f.path}")
-            val b = file.delete()
-            Log.i("ExpenseTracker", "Deleted ${file.path}: $b")
+            
+            val b = sourceFile.delete()
+            Log.i("ExpenseTracker", "Deleted ${sourceFile.path}: $b")
+            
             f
         }.subscribeOn(Schedulers.io())
 
     }
 
+    override fun getFileHash(uri: Uri): Single<String> {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        return getSha256(inputStream).doOnSuccess { inputStream.close() }
+    }
+
+    override fun copyUriToDraft(uri: Uri, mimeType: String, subfolder: String): Single<Uri> {
+        val folder = file(filesDir.absolutePath,
+            Constants.FOLDER_NAME_DRAFT, subfolder
+        )
+        folder.mkdirs()
+        val filename = UUID.randomUUID().toString()
+        val extension = when (mimeType) {
+            "image/jpeg" -> ".jpg"
+            "image/png" -> ".png"
+            "application/pdf" -> ".pdf"
+            else -> ""
+        }
+        return Single.fromCallable {
+            val inputStream = contentResolver.openInputStream(uri)!!
+            val file = File(folder, "$filename$extension")
+            val outputStream = file.outputStream()
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            file.toUri()
+        }
+    }
 
     fun tempInit(): Single<Unit> {
         val profileDao = appComponent.profileDao()

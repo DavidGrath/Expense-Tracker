@@ -17,17 +17,27 @@ interface EvidenceDao {
     //endregion
 
     //region Read
-    @Query("SELECT * FROM EvidenceDb")
-    fun tempGetAllSingle(): Single<List<EvidenceDb>>
+    @Query("SELECT * FROM EvidenceDb WHERE transactionId=:transactionId")
+    fun getAllByTransactionIdSingle(transactionId: Long): Single<List<EvidenceDb>>
+
     @Query("SELECT * FROM EvidenceDb WHERE transactionId=:transactionId")
     fun getAllByTransactionId(transactionId: Long): Observable<List<EvidenceDb>>
+
     @Query("SELECT count(id) > 0 FROM EvidenceDb WHERE sha256 = :sha256")
     fun doesHashExist(sha256: String): Single<Boolean>
 
-    @Query("SELECT * FROM EvidenceDb WHERE sha256 = :sha256")
-    fun findBySha256(sha256: String): Maybe<EvidenceDb>
+    @Query("SELECT * FROM EvidenceDb WHERE transactionId = :transactionId AND sha256 = :sha256")
+    fun findByTransactionIdAndSha256(transactionId: Long, sha256: String): Maybe<EvidenceDb>
 
     @Query("SELECT sum(sizeBytes) FROM EvidenceDb")
     fun storageSum(): Single<Long>
+    //endregion
+
+    //region Delete
+
+    @Query("DELETE FROM EvidenceDb " +
+            "WHERE id = :id")
+    fun deleteByIdSingle(id: Long): Single<Int>
+
     //endregion
 }

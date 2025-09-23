@@ -120,6 +120,10 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         viewModel.onItemChanged(position, item)
     }
 
+    override fun onItemChangedInvalidate(position: Int, item: AddTransactionItem) {
+        viewModel.onItemChangedInvalidate(position, item)
+    }
+
     override fun onItemDeleted(position: Int) {
         viewModel.onItemDeleted(position)
     }

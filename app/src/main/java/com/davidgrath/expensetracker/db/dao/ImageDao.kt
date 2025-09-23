@@ -41,5 +41,9 @@ interface ImageDao {
     //region Delete
     @Query("DELETE FROM ImageDb WHERE 1")
     fun deleteAll(): Single<Int>
+
+    @Query("DELETE FROM ImageDb " +
+            "WHERE id = :id")
+    fun deleteByIdSingle(id: Long): Single<Int>
     //endregion
 }

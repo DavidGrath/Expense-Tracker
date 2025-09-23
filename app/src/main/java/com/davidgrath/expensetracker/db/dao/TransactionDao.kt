@@ -19,6 +19,8 @@ interface TransactionDao {
     //region Read
     @Query("SELECT * FROM TransactionDb WHERE id = :id")
     fun getById(id: Long): Observable<TransactionDb>
+    @Query("SELECT * FROM TransactionDb WHERE id = :id")
+    fun getByIdSingle(id: Long): Single<TransactionDb>
     @Query("SELECT * FROM TransactionDb WHERE date(datedAt) >= :fromDate")
     fun getAllFrom(fromDate: String): Observable<List<TransactionDb>>
 

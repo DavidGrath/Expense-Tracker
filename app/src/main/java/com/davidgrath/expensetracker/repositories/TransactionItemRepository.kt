@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
@@ -25,5 +26,14 @@ class TransactionItemRepository
 
     fun getTransactionItems(transactionId: Long): Observable<List<TransactionItemDb>> {
         return transactionItemDao.getAllByTransactionId(transactionId)
+    }
+
+    fun getTransactionItemsSingle(transactionId: Long): Single<List<TransactionItemDb>> {
+        return transactionItemDao.getAllByTransactionIdSingle(transactionId)
+    }
+
+    fun addTransactionItem(item: TransactionItemDb): Single<Long> {
+        return transactionItemDao.insertTransactionItem(item)
+            .subscribeOn(Schedulers.io())
     }
 }

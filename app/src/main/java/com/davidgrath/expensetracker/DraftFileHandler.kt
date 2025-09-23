@@ -1,15 +1,22 @@
 package com.davidgrath.expensetracker
 
-import androidx.lifecycle.LiveData
-import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import android.net.Uri
+import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import java.io.File
 
 interface DraftFileHandler {
-    fun saveDraft(draft: AddDetailedTransactionDraft)
+    fun saveDraft(draft: AddEditDetailedTransactionDraft): Single<Unit>
     fun draftExists(): Boolean
     fun createDraft(): Single<Boolean>
-    fun deleteDraft(): Single<Boolean>
-    fun getDraft(): Single<AddDetailedTransactionDraft>
-    fun moveFileToMain(file: File, subfolder: String): Single<File>
+    fun deleteDraftFiles(): Single<Boolean>
+    fun getDraft(): Maybe<AddEditDetailedTransactionDraft>
+    fun moveFileToMain(sourceFile: File, subfolder: String): Single<File>
+    fun getFileHash(uri: Uri): Single<String>
+
+    /**
+     * @return The Uri of the created local file
+     */
+    fun copyUriToDraft(uri: Uri, mimeType: String, subfolder: String): Single<Uri>
 }

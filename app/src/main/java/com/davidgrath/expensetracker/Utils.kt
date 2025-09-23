@@ -21,9 +21,13 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
+import org.threeten.bp.ZonedDateTime
+import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 import java.io.InputStream
 import java.math.BigInteger
@@ -228,4 +232,19 @@ fun file(vararg segments: String): File {
     val sep = File.separator
     val fullPath = segments.joinToString(sep)
     return File(fullPath)
+}
+
+fun file(file: File, vararg segments: String): File {
+    val sep = File.separator
+    val fullPath = segments.joinToString(sep)
+    return File(file, fullPath)
+}
+
+fun dateTimeOffsetZone(clock: Clock): Triple<String, String, String> {
+    val date = ZonedDateTime.now(clock)
+    val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
+    val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+    val offset = date.offset.id
+    val zone = date.zone.id
+    return Triple(dateTimeString, offset, zone)
 }

@@ -5,14 +5,17 @@ import android.app.Instrumentation
 import android.content.Intent
 import android.widget.EditText
 import androidx.core.net.toUri
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
+import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.Constants
@@ -23,11 +26,13 @@ import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
+import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
+import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
@@ -58,10 +63,11 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
     lateinit var evidenceDao: EvidenceDao
+    lateinit var app: TestExpenseTracker
 
     @Before
     fun setUp() {
-        val app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
 
@@ -104,7 +110,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
         val draft = addDetailedTransactionRepository.getDraftValue()
         val evidence = draft.evidence
-        val folder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        val folder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS)
         assertEquals(1, evidence.size)
         assertEquals(1, getHashCount(evidenceResource.sha256, folder).blockingGet())
     }
@@ -179,7 +185,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         val draft = addDetailedTransactionRepository.getDraftValue()
         val evidence = draft.evidence
         assertEquals(2, evidence.size)
-        val evidenceFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        val evidenceFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS)
 
         assertEquals(1, getHashCount(resource.sha256, evidenceFolder).blockingGet())
         assertEquals(1, getHashCount(modifiedResource.sha256, evidenceFolder).blockingGet())
@@ -217,7 +223,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
 
         val draft = addDetailedTransactionRepository.getDraftValue()
         val evidenceList = draft.evidence
-        val evidenceFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        val evidenceFolder = file(context.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_DOCUMENTS)
         assertEquals(1, evidenceList.size)
         assertEquals(1, getHashCount(evidence.sha256, evidenceFolder).blockingGet())
     }
@@ -241,5 +247,62 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             assertEquals("abcdefghij", text.substring(Constants.MAX_NOTE_CODEPOINT_LENGTH - 10))
             assertEquals(Constants.MAX_NOTE_CODEPOINT_LENGTH, count)
         }
+    }
+
+    @Test //TODO Disable button here and enforce max constraint at repository with test
+    fun givenEvidenceThresholdLimitReachedWhenAddMoreThenFail() {
+        val resources = arrayOf(TestData.Resource.Images.BREAD,
+            TestData.Resource.Images.DUMBBELLS_1,
+            TestData.Resource.Images.DUMBBELLS_2,
+            TestData.Resource.Images.DUMBBELLS_3,
+            TestData.Resource.Images.TOOTHBRUSH,
+            TestData.Resource.Images.WALL_CLOCK,
+            TestData.Resource.Images.SHIRT,
+            TestData.Resource.Images.TRAMPOLINE,
+            TestData.Resource.Images.LOTION,
+            TestData.Resource.Images.HAMMER)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            TestData.Resource.Images.BREAD,
+            TestData.Resource.Images.DUMBBELLS_1,
+            TestData.Resource.Images.DUMBBELLS_2,
+            TestData.Resource.Images.DUMBBELLS_3,
+            TestData.Resource.Images.TOOTHBRUSH,
+            TestData.Resource.Images.WALL_CLOCK,
+            TestData.Resource.Images.SHIRT,
+            TestData.Resource.Images.TRAMPOLINE,
+            TestData.Resource.Images.LOTION,
+            TestData.Resource.Images.HAMMER,
+            TestData.Resource.Documents.EVIDENCE_IMAGE,
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        val draftImages = resources.map { r ->
+            val f = File(draftFolder, r.fileName)
+            copyResourceToFile(classLoader, r.resourceName, f)
+            AddEditTransactionFile(null, f.toUri(), "image/jpeg", r.sha256, 0L)
+        }
+        var draft = addDetailedTransactionRepository.getDraftValue()
+        draft = draft.copy(evidence = draftImages)
+        app.saveDraft(draft).subscribeOn(Schedulers.io()).blockingSubscribe()
+        addDetailedTransactionRepository.restoreDraft().subscribeOn(Schedulers.io()).blockingSubscribe()
+
+
+        val returnIntent = Intent().also {
+            it.data = TestData.Resource.Documents.EVIDENCE_IMAGE.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
+        val newDraft = addDetailedTransactionRepository.getDraftValue()
+        assertEquals(Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE, newDraft.evidence.size)
+
     }
 }

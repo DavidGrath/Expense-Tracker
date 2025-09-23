@@ -77,25 +77,8 @@ constructor(
         }.subscribeOn(Schedulers.io())
     }
 
-    fun addTransaction(
-        transactionDb: TransactionDb,
-        items: List<TransactionItemDb>
-    ): Single<List<Long>> {
-        return Single.just(emptyList())
-        /*return tempTransactionDao.addTransaction(transactionDb).flatMap { id ->
-            val idItems = items.map { it.copy(transactionId = id) }
-            tempTransactionItemDao.addTransactionItems(idItems)
-
-        }*/
-    }
-
     fun addTransaction(transactionDb: TransactionDb): Single<Long> {
         return transactionDao.insertTransaction(transactionDb)
-            .subscribeOn(Schedulers.io())
-    }
-
-    fun addTransactionItem(item: TransactionItemDb): Single<Long> {
-        return transactionItemDao.insertTransactionItem(item)
             .subscribeOn(Schedulers.io())
     }
 
@@ -112,6 +95,10 @@ constructor(
 
     fun getTransactionById(id: Long): Observable<TransactionDb> {
         return transactionDao.getById(id)
+    }
+
+    fun getTransactionByIdSingle(id: Long): Single<TransactionDb> {
+        return transactionDao.getByIdSingle(id)
     }
 
     fun getTotalSpent(): Observable<BigDecimal> {

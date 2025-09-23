@@ -4,18 +4,15 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.graphics.pdf.PdfRenderer.Page
 import android.net.Uri
-import android.os.ParcelFileDescriptor
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.entities.ui.AddTransactionEvidence
+import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 
-class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddTransactionEvidence>, var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddEditTransactionFile>, var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
 
     //TODO Cache bitmaps, too
     private var pageZeroMaps = hashMapOf<PdfRenderer, Page>()
@@ -72,7 +69,7 @@ class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddTr
         return evidenceList.size
     }
 
-    fun setItems(evidenceList: List<AddTransactionEvidence>, pdfRenderers: Map<Uri, PdfRenderer>) {
+    fun setItems(evidenceList: List<AddEditTransactionFile>, pdfRenderers: Map<Uri, PdfRenderer>) {
         this.evidenceList = evidenceList
         this.pdfRenderers = pdfRenderers
         notifyDataSetChanged()

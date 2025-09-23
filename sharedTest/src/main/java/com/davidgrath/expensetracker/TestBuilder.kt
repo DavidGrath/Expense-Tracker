@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionDbBuilder
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
+import com.davidgrath.expensetracker.entities.db.TransactionItemDbBuilder
 import java.math.BigDecimal
 
 class TestBuilder {
@@ -19,6 +20,7 @@ class TestBuilder {
                 .createdAtOffset("+05:00")
                 .createdAtTimezone("America/New_York")
                 .ordinal(0)
+                .datedAt("2025-08-18")
                 .datedAtTime("03:00:00")
                 .datedAtOffset("+05:00")
                 .datedAtTimezone("America/New_York")
@@ -29,6 +31,18 @@ class TestBuilder {
             return defaultTransactionBuilder(amount).build()
         }
 
+        fun defaultTransactionItemBuilder(transactionId: Long, price: BigDecimal, primaryCategoryId: Long): TransactionItemDbBuilder {
+            val builder = TransactionItemDbBuilder()
+                .transactionId(transactionId)
+                .amount(price)
+                .description("Description")
+                .variation("")
+                .primaryCategoryId(primaryCategoryId)
+                .createdAt("2025-08-18T03:00:00")
+                .createdAtOffset("+05:00")
+                .createdAtTimezone("America/New_York")
+            return builder
+        }
 
     }
 }

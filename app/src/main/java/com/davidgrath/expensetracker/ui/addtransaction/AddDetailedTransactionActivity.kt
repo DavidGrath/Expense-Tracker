@@ -45,15 +45,22 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         var amount: BigDecimal? = null
         var description: String? = null
         var categoryId: Long? = null
+        var mode = "add"
+        var transactionId: Long? = null
         if (extras != null) {
-            val amountString = extras.getString(ARG_INITIAL_AMOUNT)
-            amount = if (amountString != null) BigDecimal(amountString) else null
-            description = extras.getString(ARG_INITIAL_DESCRIPTION)
-            categoryId = extras.getLong(ARG_INITIAL_CATEGORY_ID)
+            mode = extras.getString(ARG_MODE)?: "add"
+            if(mode == "edit") {
+                transactionId = extras.getLong(ARG_EDIT_TRANSACTION_ID)
+            } else if(mode == "add"){
+                val amountString = extras.getString(ARG_INITIAL_AMOUNT)
+                amount = if (amountString != null) BigDecimal(amountString) else null
+                description = extras.getString(ARG_INITIAL_DESCRIPTION)
+                categoryId = extras.getLong(ARG_INITIAL_CATEGORY_ID)
+            }
         }
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, addDetailedTransactionRepository, categoryRepository, clock, amount, description, categoryId)
+            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, clock, transactionId, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
 
@@ -108,15 +115,15 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                                         }
                                     }
                                     AddDetailedTransactionViewModel.PdfState.ZERO_PAGES -> {
-                                        if(passwordDialogFragment == null) {
-                                            passwordDialogFragment = GenericDialogFragment.newInstance(
+                                        if(noPagesDialogFragment == null) {
+                                            noPagesDialogFragment = GenericDialogFragment.newInstance(
                                                 "Zero pages",
                                                 "Somehow, this PDF has zero pages", ":-)", null, null, null, DIALOG_TAG_NO_PAGES
                                             )
-                                            passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                            noPagesDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
                                         } else {
-                                            if(!passwordDialogFragment!!.dialog!!.isShowing) {
-                                                passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                            if(!noPagesDialogFragment!!.dialog!!.isShowing) {
+                                                noPagesDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
                                             }
                                         }
                                     }
@@ -172,6 +179,8 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         const val ARG_INITIAL_AMOUNT = "initialAmount"
         const val ARG_INITIAL_DESCRIPTION = "initialDescription"
         const val ARG_INITIAL_CATEGORY_ID = "initialCategoryId"
+        const val ARG_MODE = "mode"
+        const val ARG_EDIT_TRANSACTION_ID = "editTransactionId"
         const val REQUEST_CODE_ITEM_OPEN_IMAGE = 100
         const val REQUEST_CODE_OPEN_DOCUMENT = 101
         const val DIALOG_TAG_NO_PAGES = "noPages"

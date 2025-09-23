@@ -13,9 +13,11 @@ fun getHashCount(sha256: String, folder: File): Single<Int> {
         for(f in folder.listFiles()) {
             println("F: ${f.absolutePath}")
             val inputStream = f.inputStream()
-            if(getSha256(inputStream).blockingGet() == sha256) {
+            val h = getSha256(inputStream).blockingGet()
+            if(h == sha256) {
                 hashCount++
             }
+            inputStream.close()
         }
         hashCount
     }

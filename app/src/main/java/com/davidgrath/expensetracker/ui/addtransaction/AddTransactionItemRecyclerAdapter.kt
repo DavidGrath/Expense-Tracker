@@ -11,6 +11,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
@@ -32,6 +33,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
     interface AddTransactionItemRecyclerListener {
         fun onItemChanged(position: Int, item: AddTransactionItem)
+        fun onItemChangedInvalidate(position: Int, item: AddTransactionItem)
         fun onItemDeleted(position: Int)
         fun onRequestAddImage(position: Int, itemId: Int)
     }
@@ -49,8 +51,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
             val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, categories.toTypedArray())
             val absPosition = position
 //            val absPosition = holder.absoluteAdapterPosition
-            _items[absPosition].let { item ->
-                var _item = item.copy()
+            _items[absPosition].let { cachedItem ->
                 if(absPosition != 0) {
                     binding.imageViewAddDetailedTransactionItemDelete.visibility = View.VISIBLE
                     binding.imageViewAddDetailedTransactionItemDelete.setOnClickListener {
@@ -65,18 +66,18 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldAmountWatcher != null) {
                     binding.editTextAddDetailedTransactionItemAmount.removeTextChangedListener(oldAmountWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemAmount.setText(if(_item.amount == null) "" else String.format(Locale.getDefault(), "%.2f", _item.amount))
+                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(Locale.getDefault(), "%.2f", cachedItem.amount))
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
 //                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
+                    var latestItem = _items[absPosition]
                     currentItem = absPosition
                         val amount = try {
                             BigDecimal(text.toString()).setScale(2, RoundingMode.HALF_UP)
                         } catch (e: NumberFormatException) {
                             null
                         }
-                        if (_item.amount != amount) {
-                            _item = _item.copy(amount = amount)
-                            listener?.onItemChanged(absPosition, _item)
+                        if (latestItem.amount != amount) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(amount = amount))
                         }
 //                    }
                 }
@@ -86,29 +87,30 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldDescriptionWatcher != null) {
                     binding.editTextAddDetailedTransactionItemDescription.removeTextChangedListener(oldDescriptionWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemDescription.setText(_item.description?:"")
+                binding.editTextAddDetailedTransactionItemDescription.setText(cachedItem.description?:"")
                 val newDescriptionWatcher = binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener { text: Editable? ->
                     currentItem = absPosition
+                    var latestItem = _items[absPosition]
                     if(binding.editTextAddDetailedTransactionItemDescription.hasFocus()) {
-                        if (_item.description != text.toString()) {
-                            _item = _item.copy(description = text.toString())
-                            listener?.onItemChanged(absPosition, _item)
+                        if (latestItem.description != text.toString()) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(description = text.toString()))
                         }
                     }
                 }
                 textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()] = newDescriptionWatcher
 
-                var categoryPosition = categories.indexOf(_item.category)
+                var categoryPosition = categories.indexOf(cachedItem.category)
                 if(categoryPosition == -1) categoryPosition = 0
                 binding.spinnerAddDetailedTransactionItemCategory.adapter = spinnerAdapter
                 binding.spinnerAddDetailedTransactionItemCategory.setSelection(categoryPosition)
                 binding.spinnerAddDetailedTransactionItemCategory.onItemSelectedListener = object : OnItemSelectedListener{
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, _position: Int, id: Long) {
                         currentItem = absPosition
+                        var latestItem = _items[absPosition]
                         val category = categories[_position]
-                        if(_item.category.id != category.id) {
-                            _item = _item.copy(category = category)
-                            listener?.onItemChanged(absPosition, _item)
+                        if(latestItem.category.id != category.id) {
+                            latestItem = latestItem.copy(category = category)
+                            listener?.onItemChangedInvalidate(absPosition, latestItem)
                         }
                     }
 
@@ -116,12 +118,13 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
                     }
                 }
-                binding.linearLayoutAddDetailedTransactionDetails.visibility = if(_item.showDetails) View.VISIBLE else View.GONE
+                binding.linearLayoutAddDetailedTransactionDetails.visibility = if(cachedItem.showDetails) View.VISIBLE else View.GONE
                 binding.textViewAddDetailedTransactionShowDetails.setOnClickListener {
                     currentItem = absPosition
-                    binding.linearLayoutAddDetailedTransactionDetails.visibility = if(!_item.showDetails) View.VISIBLE else View.GONE
-                    _item = _item.copy(showDetails = !_item.showDetails)
-                    listener?.onItemChanged(absPosition, _item)
+                    var latestItem = _items[position]
+                    binding.linearLayoutAddDetailedTransactionDetails.visibility = if(!latestItem.showDetails) View.VISIBLE else View.GONE
+                    latestItem = latestItem.copy(showDetails = !latestItem.showDetails)
+                    listener?.onItemChangedInvalidate(absPosition, latestItem)
                 }
 
 
@@ -129,24 +132,31 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldBrandWatcher != null) {
                     binding.editTextAddDetailedTransactionItemBrand.removeTextChangedListener(oldBrandWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemBrand.setText(_item.brand?:"")
+                binding.editTextAddDetailedTransactionItemBrand.setText(cachedItem.brand?:"")
                 binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener { text: Editable? ->
                     if(binding.editTextAddDetailedTransactionItemBrand.hasFocus()) {
                         currentItem = absPosition
-                        if (_item.brand != text.toString()) {
-                            _item = _item.copy(brand = text.toString())
-                            listener?.onItemChanged(absPosition, _item)
+                        var latestItem = _items[absPosition]
+                        if (latestItem.brand != text.toString()) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(brand = text.toString()))
                         }
                     }
                 }
                 textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newDescriptionWatcher
-                val adapter = AddTransactionItemImagesRecyclerAdapter(_item.images)
+                val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images)
                 val layoutManager = LinearLayoutManager(binding.root.context)
                 layoutManager.orientation = LinearLayoutManager.HORIZONTAL
                 binding.recyclerviewAddDetailedTransactionItemImages.adapter = adapter
                 binding.recyclerviewAddDetailedTransactionItemImages.layoutManager = layoutManager
-                binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
-                    listener?.onRequestAddImage(absPosition, _item.id)
+                if(cachedItem.images.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
+                    binding.imageViewAddDetailedTransactionItemAddImage.isEnabled = false
+                    binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener(null)
+                } else {
+                    binding.imageViewAddDetailedTransactionItemAddImage.isEnabled = true
+                    binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
+                        val latestItem = _items[absPosition]
+                        listener?.onRequestAddImage(absPosition, latestItem.id)
+                    }
                 }
 
             }

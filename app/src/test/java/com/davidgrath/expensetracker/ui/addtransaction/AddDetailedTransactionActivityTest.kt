@@ -3,11 +3,11 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -16,14 +16,15 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
-import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.test.TestContentProvider
 import com.davidgrath.expensetracker.TestData
@@ -32,18 +33,22 @@ import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.assertRecyclerViewItemSpinnerText
 import com.davidgrath.expensetracker.assertRecyclerViewItemText
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
+import com.davidgrath.expensetracker.clearTextRecyclerViewItem
 import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.ImageDb
-import com.davidgrath.expensetracker.entities.ui.AddDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
+import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
-import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.TransactionItemRepository
+import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.squareup.rx3.idler.Rx3Idler
@@ -53,6 +58,8 @@ import org.hamcrest.CoreMatchers.allOf
 import javax.inject.Inject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -64,6 +71,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
 import java.math.BigDecimal
+import java.util.Locale
 
 
 @RunWith(RobolectricTestRunner::class)
@@ -77,6 +85,11 @@ class AddDetailedTransactionActivityTest {
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
     lateinit var imageDao: ImageDao
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
+    @Inject
+    lateinit var transactionItemRepository: TransactionItemRepository
+    lateinit var app: TestExpenseTracker
 
     companion object {
         @JvmStatic
@@ -93,20 +106,19 @@ class AddDetailedTransactionActivityTest {
 
     @Before
     fun setUp() {
-        val app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
     }
 
     @After
     fun tearDown() {
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
         draftFolder.deleteRecursively()
         //TODO Make equivalent version using delete function
-        val contentFolder = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
+        val contentFolder = File(app.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
         contentFolder.deleteRecursively()
-        val mainFolder = File(context.filesDir, Constants.FOLDER_NAME_DATA)
+        val mainFolder = File(app.filesDir, Constants.FOLDER_NAME_DATA)
         mainFolder.deleteRecursively()
     }
 
@@ -149,12 +161,10 @@ class AddDetailedTransactionActivityTest {
 
     @Test
     fun givenIntentHasArgsAndDraftExistsWhenStartActivityThenArgsMovedToTopOfList() {
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        val category = categoryRepository.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val draft = buildDraft(BigDecimal.TEN, "Candy", categoryDbToCategoryUi(category))
-        val fileHandler: DraftFileHandler = context
+        val draft = buildDraft(BigDecimal.TEN, "Candy", "food")
+        val fileHandler: DraftFileHandler = app
         addDetailedTransactionRepository.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft)
+        fileHandler.saveDraft(draft).subscribe()
         //Start on MainActivity
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
         val dumbbellCategory = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
@@ -334,35 +344,114 @@ class AddDetailedTransactionActivityTest {
 
     }
 
-    @Test
-    @Ignore("Next commit")
-    fun givenEvidenceThresholdLimitReachedWhenAddMoreThenFail() {
-    }
-
-    @Test
-    @Ignore("Not ready yet")
+    @Test //TODO I could also possibly test this at the repository level, but we ignore that for now
     fun givenImageThresholdReachedWhenAddMoreThenFail() {
-        //TODO get at least 10 free stock images for this
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        val resources = arrayOf(TestData.Resource.Images.BREAD,
+            TestData.Resource.Images.DUMBBELLS_1,
+            TestData.Resource.Images.DUMBBELLS_2,
+            TestData.Resource.Images.DUMBBELLS_3,
+            TestData.Resource.Images.TOOTHBRUSH,
+            TestData.Resource.Images.WALL_CLOCK,
+            TestData.Resource.Images.SHIRT,
+            TestData.Resource.Images.TRAMPOLINE,
+            TestData.Resource.Images.LOTION,
+            TestData.Resource.Images.HAMMER)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            TestData.Resource.Images.BREAD,
+            TestData.Resource.Images.DUMBBELLS_1,
+            TestData.Resource.Images.DUMBBELLS_2,
+            TestData.Resource.Images.DUMBBELLS_3,
+            TestData.Resource.Images.TOOTHBRUSH,
+            TestData.Resource.Images.WALL_CLOCK,
+            TestData.Resource.Images.SHIRT,
+            TestData.Resource.Images.TRAMPOLINE,
+            TestData.Resource.Images.LOTION,
+            TestData.Resource.Images.HAMMER
+            )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        val draftImages = resources.slice(0..8) .map { r ->
+            val f = File(draftFolder, r.fileName)
+            copyResourceToFile(classLoader, r.resourceName, f)
+            AddEditTransactionFile(null, f.toUri(), "image/jpeg", r.sha256, 0L)
+        }
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        val item = draft.items[0].copy(images = draftImages)
+        addDetailedTransactionRepository.changeItemInvalidate(0, item)
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = TestData.Resource.Images.HAMMER.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        Thread.sleep(SLEEP_DURATION)
+
+
+        onView(withId(R.id.image_view_add_detailed_transaction_item_add_image)).check(matches(ViewMatchers.isNotEnabled()))
     }
 
     @Test
     @Ignore("When I get to general number formatting")
-    fun twoDecimalPlacesTest() {
+    fun numberFormatTest() {
         //TODO Locale,DecimalFormat/NumberFormat, probably inject
+        //TODO Maybe make a superclass TextWatcher so that it's guaranteed to be consistent across all
+        // EditTexts in the app
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
-            "100.006"
+            "1000.000"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, "100.01"
+            R.id.edit_text_add_detailed_transaction_item_amount, "1,000.00"
         )
+        clearTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+
+        //There is a wide variety of locales, so just testing for one that will be different from the current
+        RuntimeEnvironment.setQualifiers("de-DE")
+        addDetailedTransactionActivityScenario.recreate()
+
+
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "1000,000"
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount, "1.000,00"
+        )
+
     }
+
+
+
 
     @Test
     fun givenDetailedTransactionInDraftWhenStartActivityThenTransactionEditRestored() {
@@ -397,11 +486,14 @@ class AddDetailedTransactionActivityTest {
             R.id.spinner_add_detailed_transaction_item_category
         )
         onData(allOf(CategoryStringIdMatcher("fitness"))).perform(click())
-        //Close App
-        //Open App
+        
 
+        //TODO Add Image and Evidence
+        //Close App
         addDetailedTransactionActivityScenario.onActivity { it.viewModelStore.clear() }
         addDetailedTransactionActivityScenario.moveToState(Lifecycle.State.DESTROYED)
+
+        //Open App
         addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
@@ -426,15 +518,15 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    fun givenUserSelectsSameImageMultipleTimesForSameItemThenImageOnlyAddedOnce() {
+    fun givenUserSelectsSameImageMultipleTimesForSameItemThenImageOnlyAddedOnce() { //TODO Copied over to Repository test. Delete from here
 
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         val returnIntent = Intent().also {
             it.data = TestData.Resource.Images.BREAD.uri
         }
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        addContentProviderResources(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
+
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
 
         //Open Image from system
 
@@ -475,14 +567,13 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    fun givenUserSelectsSameImageThatSomehowHasDifferentUrisThenImageOnlyAddedOnce() {
+    fun givenUserSelectsSameImageThatSomehowHasDifferentUrisThenImageOnlyAddedOnce() { //TODO Copied over to Repository test. Delete from here
 
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
         val duplicateBread = TestData.Resource.Images.BREAD.fileName("bread_duplicate.jpg")
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        addContentProviderResources(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD, duplicateBread)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD, duplicateBread)
         val returnIntent = Intent().also {
             it.data = TestData.Resource.Images.BREAD.uri
         }
@@ -526,13 +617,12 @@ class AddDetailedTransactionActivityTest {
 
 
     @Test
-    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToDraftStorage() {
+    fun givenUserSelectsSameImageMultipleTimesAcrossMultipleItemsThenImageOnlyCopiedOnceToDraftStorage() { //TODO Copied over to Repository test. Delete from here
 
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        addContentProviderResources(context, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
         val returnIntent = Intent().also {
             it.data = TestData.Resource.Images.BREAD.uri
         }
@@ -559,26 +649,24 @@ class AddDetailedTransactionActivityTest {
             R.id.image_view_add_detailed_transaction_item_add_image
         )
         Thread.sleep(SLEEP_DURATION)
-        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
-        val imagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        val imagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGES)
 
         assertEquals(1, getHashCount(TestData.Resource.Images.BREAD.sha256, imagesFolder).blockingGet())
     }
 
 
     @Test
-    fun givenUserSelectsImageThatHasBeenSavedToMainStorageWhenSelectImageThenImageNotCopiedToDraftStorage() {
+    fun givenUserSelectsImageThatHasBeenSavedToMainStorageWhenSelectImageThenImageNotCopiedToDraftStorage() { //TODO Copied over to Repository test. Delete from here
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
-        addContentProviderResources(context, classLoader, TestData.Resource.Images.BREAD)
+        addContentProviderResources(app, classLoader, TestData.Resource.Images.BREAD)
         //Copy Image to DB
-        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
         val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
         draftImagesFolder.mkdirs()
-        val mainFolder = File(context.filesDir, Constants.FOLDER_NAME_DATA)
+        val mainFolder = File(app.filesDir, Constants.FOLDER_NAME_DATA)
         val mainImagesFolder = File(mainFolder, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
         val existingImage = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
@@ -615,14 +703,14 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    fun givenExternalImageWasModifiedAndOriginalImageAddedToDraftWhenAddImageThenNewImageExistsInDraftStorage() {
+    fun givenExternalImageWasModifiedAndOriginalImageAddedToDraftWhenAddImageThenNewImageExistsInDraftStorage() { //TODO Copied over to Repository test. Delete from here
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
 
         val bread = TestData.Resource.Images.BREAD
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+
         val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
-        addContentProviderResources(context, classLoader, bread)
+        addContentProviderResources(app, classLoader, bread)
         val returnIntent = Intent().also {
             it.data = TestData.Resource.Images.BREAD.uri
         }
@@ -644,7 +732,7 @@ class AddDetailedTransactionActivityTest {
         Thread.sleep(SLEEP_DURATION)
 
         val modifiedBread = bread.copy(resourceName = TestData.Resource.Images.TOOTHBRUSH.resourceName)
-        addContentProviderResources(context, classLoader, modifiedBread)
+        addContentProviderResources(app, classLoader, modifiedBread)
         val modifiedBreadIntent = Intent().also {
             it.data = modifiedBread.uri
         }
@@ -663,25 +751,82 @@ class AddDetailedTransactionActivityTest {
         val draft = addDetailedTransactionRepository.getDraftValue()
         val images = draft.items[0].images
         assertEquals(2, images.size)
-        val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
         val imagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
         assertEquals(1, getHashCount(bread.sha256, imagesFolder).blockingGet())
         assertEquals(1, getHashCount(TestData.Resource.Images.TOOTHBRUSH.sha256, imagesFolder).blockingGet())
     }
 
     @Test
-    @Ignore("Not ready yet")
-    fun givenCustomCategoryModifiedWhenRestoreDraftThenDraftCategoryCorrect() {
+    fun givenDraftExistsWhenExistingTransactionOpenedForEditThenDraftNotLoaded() {
+        //Existing draft
+        val draft = buildDraft(BigDecimal(20), "Candy", "food")
+        val fileHandler: DraftFileHandler = app
+        addDetailedTransactionRepository.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).subscribe()
+        //Existing item
+        val transaction = TestBuilder.defaultTransaction(BigDecimal.TEN)
+        val id = transactionRepository.addTransaction(transaction).blockingGet()
+        val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
+        transactionItemRepository.addTransactionItem(transactionItem).blockingGet()
 
+        val intent = Intent(app, AddDetailedTransactionActivity::class.java).also {
+            it.putExtra(AddDetailedTransactionActivity.ARG_MODE, "edit")
+            it.putExtra(AddDetailedTransactionActivity.ARG_EDIT_TRANSACTION_ID, id)
+        }
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount, String.format(Locale.getDefault(), "%.2f", transactionItem.amount)
+        )
+        assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description, transactionItem.description
+        )
+        assertRecyclerViewItemSpinnerText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.spinner_add_detailed_transaction_item_category, "Fitness"
+        )
+    }
+
+    @Test
+    fun givenNoDraftExistsWhenExistingTransactionOpenedForEditThenDraftFileNotCreated() {
+        val transaction = TestBuilder.defaultTransaction(BigDecimal.TEN)
+        val id = transactionRepository.addTransaction(transaction).blockingGet()
+        val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
+        transactionItemRepository.addTransactionItem(transactionItem).blockingGet()
+
+        val intent = Intent(app, AddDetailedTransactionActivity::class.java).also {
+            it.putExtra(AddDetailedTransactionActivity.ARG_MODE, "edit")
+            it.putExtra(AddDetailedTransactionActivity.ARG_EDIT_TRANSACTION_ID, id)
+        }
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+
+        val draftFile = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.DRAFT_FILE_NAME)
+        assertFalse(draftFile.exists())
     }
 
     @Test
     @Ignore("Not ready yet")
-    fun givenCustomCategoryDeletedWhenRestoreDraftThenCategoryBecomesMisc() {
+    fun givenTransactionExistsWhenEditsMadeAndCancelClickedThenTransactionNotChanged() {
 
     }
 
-    fun buildDraft(amount: BigDecimal, description: String, category: CategoryUi): AddDetailedTransactionDraft {
-        return AddDetailedTransactionDraft(items = listOf(AddTransactionItem(0, category, amount, description)))
+    fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
+        val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val categoryUi = categoryDbToCategoryUi(category)
+        val evidenceMap = mutableMapOf<String, Uri>()
+        for(resource in evidence) {
+            evidenceMap[resource.sha256] = resource.uri
+        }
+        return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), evidence = evidence, evidenceHashes = evidenceMap)
     }
 }

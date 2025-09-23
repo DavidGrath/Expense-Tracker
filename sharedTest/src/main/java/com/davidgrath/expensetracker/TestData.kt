@@ -53,6 +53,26 @@ class TestData {
                     "cfdfde96f177a290da0c744019c038d7e62eb5a6056c8af3a23f3ee61bef4147",
                     "pexels-rrojasfoto-3588229.jpg"
                 )
+                val WALL_CLOCK = Resource(
+                    "0d3d32c6e7f4af4a05b26f97c704af63017e574627cf1363610408e9b961080b",
+                    "pexels-catscoming-707582.jpg"
+                )
+                val SHIRT = Resource(
+                    "5e257f2336002874e4518a8a47e237797be2ba8c4acb706f7144671a6f164e91",
+                    "pexels-anna-nekrashevich-8532616.jpg"
+                )
+                val TRAMPOLINE = Resource(
+                    "d965a05960893f9c2cbc30833530f7ede316d7ac2952d952ba63a3a9f2b43961",
+                    "pexels-karolina-grabowska-4964542.jpg"
+                )
+                val LOTION = Resource(
+                    "e5f404be7432984d6b728b4597866e35dcc0ace3ef2530c5a6f5b97748f3f3e9",
+                    "pexels-moose-photos-170195-1029896.jpg"
+                )
+                val HAMMER = Resource(
+                    "4d45351604064707849e8085b0cc06746f7cc00d0c99f9923269866a9b60b8da",
+                    "pexels-pixabay-209235.jpg"
+                )
             }
         }
 
