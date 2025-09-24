@@ -7,6 +7,7 @@ import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import javax.inject.Inject
@@ -21,6 +22,10 @@ class TransactionItemRepository
 
     fun getTotalSpentByCategory(): Observable<List<ItemSumByCategory>> {
         return transactionItemDao.getSumByCategoryFrom(LocalDate.now(clock).toString())
+            .map {
+                LOGGER.info("getTotalSpentByCategory: Item count: {} items", it.size)
+                it
+            }
             .subscribeOn(Schedulers.io())
     }
 
@@ -30,10 +35,17 @@ class TransactionItemRepository
 
     fun getTransactionItemsSingle(transactionId: Long): Single<List<TransactionItemDb>> {
         return transactionItemDao.getAllByTransactionIdSingle(transactionId)
+            .doOnSuccess {
+                LOGGER.info("getTransactionItemsSingle: ID: {}, {} items", transactionId, it.size)
+            }
     }
 
     fun addTransactionItem(item: TransactionItemDb): Single<Long> {
         return transactionItemDao.insertTransactionItem(item)
             .subscribeOn(Schedulers.io())
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(TransactionItemRepository::class.java)
     }
 }

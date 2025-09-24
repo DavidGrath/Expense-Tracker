@@ -23,6 +23,7 @@ import com.davidgrath.expensetracker.transactionsToTransactionItems
 import com.github.mikephil.charting.data.BarEntry
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Single
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
@@ -136,5 +137,9 @@ constructor(
         val offsetDateTime = utcDateTime.atOffset(offset)
         val localDateTime = offsetDateTime.toLocalDateTime()
         return localDateTime
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(MainViewModel::class.java)
     }
 }

@@ -18,6 +18,7 @@ import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
 import com.google.android.material.tabs.TabLayoutMediator
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -84,7 +85,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                         val liveData = viewModel.addItemFile(uri)
                         liveData.observe(this, object: Observer<Unit> {
                             override fun onChanged(value: Unit) {
-                                Log.i("AddDetailTransActivity", "File add done")
+                                LOGGER.info("onActivityResult: File add done")
                                 liveData.removeObserver(this)
                             }
                         })
@@ -96,10 +97,10 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                             override fun onChanged(value: AddDetailedTransactionViewModel.PdfState) {
                                 when(value) {
                                     AddDetailedTransactionViewModel.PdfState.NOT_PDF -> {
-                                        Log.i("AddDetailTransActivity", "Add evidence done")
+                                        LOGGER.info("Add evidence done")
                                     }
                                     AddDetailedTransactionViewModel.PdfState.ALL_GOOD -> {
-                                        Log.i("AddDetailTransActivity", "Add evidence done")
+                                        LOGGER.info("Add evidence done")
                                     }
                                     AddDetailedTransactionViewModel.PdfState.PASSWORD_PROTECTED -> {
                                         if(passwordDialogFragment == null) {
@@ -108,9 +109,11 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                                                 "This PDF is password protected", "Ok", null, null, null, DIALOG_TAG_PASSWORD_PROTECTED
                                                 )
                                             passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_PASSWORD_PROTECTED)
+                                            LOGGER.info("Showed PDF has password dialog")
                                         } else {
                                             if(!passwordDialogFragment!!.dialog!!.isShowing) {
                                                 passwordDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_PASSWORD_PROTECTED)
+                                                LOGGER.info("Showed PDF has password dialog")
                                             }
                                         }
                                     }
@@ -121,9 +124,11 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                                                 "Somehow, this PDF has zero pages", ":-)", null, null, null, DIALOG_TAG_NO_PAGES
                                             )
                                             noPagesDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                            LOGGER.info("Showed no pages dialog")
                                         } else {
                                             if(!noPagesDialogFragment!!.dialog!!.isShowing) {
                                                 noPagesDialogFragment!!.show(supportFragmentManager, DIALOG_TAG_NO_PAGES)
+                                                LOGGER.info("Showed no pages dialog")
                                             }
                                         }
                                     }
@@ -176,6 +181,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
 
     companion object {
 
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionActivity::class.java)
         const val ARG_INITIAL_AMOUNT = "initialAmount"
         const val ARG_INITIAL_DESCRIPTION = "initialDescription"
         const val ARG_INITIAL_CATEGORY_ID = "initialCategoryId"

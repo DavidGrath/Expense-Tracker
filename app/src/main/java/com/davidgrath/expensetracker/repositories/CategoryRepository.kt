@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.entities.db.CategoryDb
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import org.slf4j.LoggerFactory
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +20,9 @@ class CategoryRepository
 
     fun getCategoriesSingle(): Single<List<CategoryDb>> {
         return categoryDao.getAllSingle()
+            .doOnSuccess {
+                LOGGER.info("getCategories: {} items", it.size)
+            }
     }
 
     fun findByStringId(stringId: String): Maybe<CategoryDb> {
@@ -31,5 +35,9 @@ class CategoryRepository
 
     fun getOtherItemCategories(transactionItemId: Long): Single<List<CategoryDb>> {
         return categoryDao.getOthersByTransactionItemId(transactionItemId)
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(CategoryRepository::class.java)
     }
 }

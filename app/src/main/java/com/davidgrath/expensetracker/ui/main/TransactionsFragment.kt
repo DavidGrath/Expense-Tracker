@@ -20,6 +20,7 @@ import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsAct
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 
 class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
@@ -42,7 +43,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         binding.recyclerviewTransactions.adapter = adapter
         binding.recyclerviewTransactions.layoutManager = LinearLayoutManager(requireContext())
         viewModel.listLiveData.observe(viewLifecycleOwner) { list ->
-            Log.i("Transactions", "Item Count: ${list.size}")
+            LOGGER.info("Transactions Item Count: {}", list.size)
             adapter.setItems(list)
         }
         binding.barChartMain.legend.isEnabled = false
@@ -52,7 +53,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         binding.barChartMain.axisLeft.axisMinimum = 0f
         binding.barChartMain.axisRight.axisMinimum = 0f
         viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
-            Log.i("Summary", "Item Count: ${list.size}")
+            LOGGER.info("Summary Item Count: {}", list.size)
             val dataSet = BarDataSet(list, "Summary for past 7 days")
             dataSet.colors = MaterialColors.Palette.map { it.value }
             dataSet.setDrawIcons(true)
@@ -125,5 +126,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             return transactionsFragment
         }
         const val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
+
+        private val LOGGER = LoggerFactory.getLogger(TransactionsFragment::class.java)
     }
 }

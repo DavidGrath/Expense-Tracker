@@ -17,6 +17,7 @@ import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import java.util.Locale
 
 class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener {
@@ -30,7 +31,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     lateinit var binding: FragmentAddDetailedTransactionMainBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
     lateinit var adapter: AddTransactionItemRecyclerAdapter
-    var currencyCode = "USD"
+    var currencyCode = "USD" //TODO Use account currency code, better yet, add account switcher
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -55,7 +56,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
-            Log.i("AddDetailTransFragment", "Event: ${triple.second}, Position: ${triple.third}")
+            LOGGER.info("Event: ${triple.second}, Position: ${triple.third}")
             val list = triple.first.items
             val event = triple.second
             val position = triple.third
@@ -87,7 +88,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         }
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
         viewModel.transactionTotalLiveData.observe(viewLifecycleOwner) { total ->
-            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total)
+            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total) //TODO General number formatting, UCUM/UOM
         }
         binding.imageButtonAddDetailedTransactionDone.setOnClickListener(this)
     }
@@ -102,7 +103,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                     if(viewModel.validateDraft()) {
                         viewModel.finishDraft()
                             .observe(viewLifecycleOwner) {
-                                Log.i("AddDetailTransFragment", "Transaction Added. Draft discarded")
+                                LOGGER.info("Transaction Added. Draft discarded")
                                 listener?.onFinished() //TODO SimpleResult
                             }
                     } else {
@@ -142,5 +143,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             val fragment = AddDetailedTransactionMainFragment()
             return fragment
         }
+        
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionMainFragment::class.java)
     }
 }

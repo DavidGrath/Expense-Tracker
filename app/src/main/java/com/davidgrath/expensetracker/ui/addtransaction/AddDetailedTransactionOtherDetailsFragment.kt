@@ -17,6 +17,7 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.ibm.icu.text.BreakIterator
+import org.slf4j.LoggerFactory
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
 
@@ -61,6 +62,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
                 val codePointCount = text.codePointCount(0, length)
                 binding.textViewAddDetailedTransactionNoteLengthIndicator.text = codePointCount.toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
                 if(codePointCount > Constants.MAX_NOTE_CODEPOINT_LENGTH) {
+                    LOGGER.info("afterTextChanged: Reached max code point count")
                     val breakIterator = BreakIterator.getCharacterInstance()
                     breakIterator.setText(text)
                     val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))) {
@@ -95,12 +97,14 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
             when(view) {
                 binding.textViewAddDetailedTransactionAddEvidence -> {
                     if(items.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE) {
+                        LOGGER.info("Reached max evidence count")
                         return
                     }
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
                     intent.type = "*/*"
                     intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "application/pdf"))
                     requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_OPEN_DOCUMENT)
+                    LOGGER.info("startedActivityForResult called to get evidence")
                 }
             }
         }
@@ -112,5 +116,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
             val fragment = AddDetailedTransactionOtherDetailsFragment()
             return fragment
         }
+        
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionOtherDetailsFragment::class.java)
     }
 }

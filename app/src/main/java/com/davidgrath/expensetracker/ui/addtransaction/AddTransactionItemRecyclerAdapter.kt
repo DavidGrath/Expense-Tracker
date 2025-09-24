@@ -17,6 +17,7 @@ import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransact
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
@@ -169,6 +170,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
     }
 
     fun setItems(items: List<AddTransactionItem>) {
+        LOGGER.info("setItems: List size: {}", items.size)
         this._items = items
     }
 
@@ -179,5 +181,9 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
 
     class AddTransactionItemViewHolder(val binding: RecyclerviewAddDetailedTransactionItemBinding): ViewHolder(binding.root)
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(AddTransactionItemRecyclerAdapter::class.java)
+    }
 }
 

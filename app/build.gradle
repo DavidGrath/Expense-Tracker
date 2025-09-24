@@ -121,6 +121,10 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-reactivestreams-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-reactivestreams:$lifecycle_version"
 
+    //Logging
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+    implementation 'com.github.tony19:logback-android:3.0.0'
+    testImplementation 'ch.qos.logback:logback-classic:1.5.18'
 
     //Basic Tests
     testImplementation libs.junit
@@ -149,3 +153,8 @@ dependencies {
 //    debugImplementation libs.androidx.ui.test.manifest
 }
 
+configurations {
+    testImplementation {
+        exclude module: 'logback-android'
+    }
+}

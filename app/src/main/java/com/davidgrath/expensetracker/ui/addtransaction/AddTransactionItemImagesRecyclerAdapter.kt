@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
+import org.slf4j.LoggerFactory
 
 class AddTransactionItemImagesRecyclerAdapter(private var files: List<AddEditTransactionFile>): RecyclerView.Adapter<AddTransactionItemImagesRecyclerAdapter.AddTransactionItemImagesViewHolder>() {
 
@@ -33,11 +34,16 @@ class AddTransactionItemImagesRecyclerAdapter(private var files: List<AddEditTra
     }
 
     fun setItems(uris: List<AddEditTransactionFile>) {
+        LOGGER.info("setItems: List size {}", uris.size)
         this.files = uris
         notifyDataSetChanged()
     }
 
     class AddTransactionItemImagesViewHolder(val imageView: ImageView): ViewHolder(imageView) {
 
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(AddTransactionItemImagesRecyclerAdapter::class.java)
     }
 }

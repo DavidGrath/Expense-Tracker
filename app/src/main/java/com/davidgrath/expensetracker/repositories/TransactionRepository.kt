@@ -17,6 +17,7 @@ import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import javax.inject.Inject
@@ -87,8 +88,8 @@ constructor(
             .subscribeOn(Schedulers.io())
             .timeInterval()
             .map {
-                Log.i("TransactionRepository", "getItemsWithTransactionsAndCategoryFrom time: ${it.time(TimeUnit.MILLISECONDS)} ms")
-                Log.i("TransactionRepository", "getItemsWithTransactionsAndCategoryFrom size: ${it.value().size}")
+                LOGGER.info("getItemsWithTransactionsAndCategoryFrom time: {} ms", it.time(TimeUnit.MILLISECONDS))
+                LOGGER.info("getItemsWithTransactionsAndCategoryFrom size: {}", it.value().size)
                 it.value()
             }
     }
@@ -109,6 +110,7 @@ constructor(
     fun getTotalSpentByDate(fromDate: String): Observable<List<DateAmountSummary>> {
         val originalSummary = transactionDao.getTransactionSumByDateFrom(fromDate)
         val filledSummary = originalSummary.map { list ->
+            var zeroCount = 0
             val start = LocalDate.parse(fromDate)
             val now = LocalDate.now(clock)
             var currentDate = start
@@ -126,15 +128,22 @@ constructor(
                             existingDateIndex += 1
                         } else {
                             newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
+                            zeroCount++
                         }
                     } else {
                         newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
+                        zeroCount++
                     }
                 } else {
                     newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
+                    zeroCount++
                 }
                 currentDate = currentDate.plusDays(1)
             }
+            if(zeroCount > 0) {
+                LOGGER.info("getTotalSpentByDate: Filled {} empty dates with zeroes", zeroCount)
+            }
+            LOGGER.info("getTotalSpentByDate: Item Count: {}", newList.size)
             newList.toList()
         }
         return filledSummary
@@ -146,5 +155,9 @@ constructor(
     ): Observable<List<DateAmountSummary>> {
         //TODO Fill in missing/zero days for even spread
         return transactionDao.getTransactionSumByDateFromTo(fromDate, toDate)
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(TransactionRepository::class.java)
     }
 }

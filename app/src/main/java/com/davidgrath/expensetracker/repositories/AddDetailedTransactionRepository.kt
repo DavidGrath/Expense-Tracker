@@ -25,6 +25,7 @@ import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import javax.inject.Inject
@@ -33,6 +34,7 @@ import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 import java.math.BigDecimal
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Singleton
@@ -57,6 +59,7 @@ constructor(
 
     fun setMode(mode: String) {
         currentMode = mode
+        LOGGER.info("Current mode set to {}", mode)
     }
 
     fun initializeDraft(initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
@@ -70,6 +73,7 @@ constructor(
                 .blockingGet()!!
         }
         val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)))
+        LOGGER.info("Created draft with initial values")
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
         fileHandler.saveDraft(draft).subscribe()
     }
@@ -113,12 +117,14 @@ constructor(
                 //Set Seller
                 //Set Date
                 //Set Time
+                LOGGER.info("Initialized existing transaction {}", transactionId)
                 _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
             }.subscribeOn(Schedulers.io())
     }
 
     fun moveToTopOfDraft(initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
         if(currentMode != "add") {
+            LOGGER.info("moveToTopOfDraft: Mode not add. Doing nothing")
             return
         }
         val category = if(initialCategoryId != null) {
@@ -141,7 +147,7 @@ constructor(
                 _draftLiveData.postValue(Triple(newDraft, TransactionDetailEvent.Insert, 0))
                 fileHandler.saveDraft(newDraft).subscribe()
             }
-            Log.i(LOG_TAG, "Moved initial details to top of existing draft")
+            LOGGER.info("Moved initial details to top of existing draft")
         }.blockingGet()
 
     }
@@ -156,12 +162,14 @@ constructor(
             incrementId = maxId + 1
             val newItems = currentList + AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category))
             draft = draft.copy(items = newItems)
+            LOGGER.info("addItem: New list size: {}", newItems.size)
             _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Insert, currentList.size))
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
             }
             return true
         }
+        LOGGER.info("addItem: Items at max length. Doing nothing")
         return false
     }
 
@@ -173,6 +181,7 @@ constructor(
                 if(item.dbId != null) {
                     val existingDeleted = draft.deletedDbItems
                     draft = draft.copy(deletedDbItems = existingDeleted + item)
+                    LOGGER.info("deleteItem: Moved existing DB item to deleted list")
                 }
             }
             val newItems = currentList.toMutableList().apply {
@@ -180,6 +189,7 @@ constructor(
             }
             draft = draft.copy(items = newItems)
             _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Delete, position))
+            LOGGER.info("deleteItem: Deleted item at position {}", position)
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
             }
@@ -197,6 +207,7 @@ constructor(
                 if(currentDeletedImages.find { it.dbId == image.dbId } == null) {
                     currentDeletedImages += image
                     currentItem = currentItem.copy(deletedDbImages = currentDeletedImages)
+                    LOGGER.info("deleteItemImage: Moved existing DB image to deleted list")
                 }
             }
         }
@@ -204,13 +215,10 @@ constructor(
         items[position] = currentItem.copy(images = images)
         draft = draft.copy(items = items)
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Delete, position))
+        LOGGER.info("Removed image at position {} from item {}", imagePosition, position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }
-    }
-
-    private fun imageHashInDb(sha256: String): Single<Boolean> {
-        return imageDao.doesHashExist(sha256)
     }
 
     //TODO It should be okay to add the same evidence to the device for different transactions since
@@ -235,13 +243,14 @@ constructor(
         var xUri = uri
         if(xUri == null) {
             val file: AddEditTransactionFile
-            if(imageHashInDb(uriHash).blockingGet()) {
-                Log.i(LOG_TAG,"File already exists in DB for image")
+            if(imageDao.doesHashExist(uriHash).blockingGet()) {
+                LOGGER.info("createImageForItem: File already exists in DB for image")
                 val im = getDbImageByHash(uriHash).blockingGet()!!
                 xUri = Uri.parse(im.uri)
                 val size = xUri.toFile().length()
                 file = AddEditTransactionFile(im.id, xUri, mimeType, uriHash, size)
             } else {
+                LOGGER.info("createImageForItem: File does not exist for image")
                 xUri = fileHandler.copyUriToDraft(externalUri, mimeType, Constants.SUBFOLDER_NAME_IMAGES).blockingGet()
                 val size = xUri.toFile().length()
                 file = AddEditTransactionFile(null, xUri, mimeType, uriHash, size)
@@ -250,9 +259,11 @@ constructor(
         } else {
             val index = item.images.indexOfFirst { it.sha256 == uriHash}
             if(index == -1) {
+                LOGGER.info("createImageForItem: Image already exists in draft. Adding to item")
                 val size = xUri.toFile().length()
                 return (item.images + AddEditTransactionFile(null, xUri, mimeType, uriHash, size)) to item.images.size
             } else {
+                LOGGER.info("createImageForItem: Image already exists in draft and is attached to item")
                 return ArrayList(item.images) to index
             }
         }
@@ -265,6 +276,7 @@ constructor(
         }
         draft = draft.copy(items = newItems)
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Change, position))
+        LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }
@@ -276,6 +288,7 @@ constructor(
         }
         draft = draft.copy(items = newItems)
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.ChangeInvalidate, position))
+        LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }
@@ -287,12 +300,14 @@ constructor(
             
             val item = currentList.find { it.id == itemId }
             if (item == null) {
+                LOGGER.info("addImageToItem: Item {} not found", itemId)
                 return@fromCallable Unit
             }
 
             val uriHash = fileHandler.getFileHash(externalUri).blockingGet()
             val image = item.images.find { it.sha256 == uriHash }
             if (image != null) {
+                LOGGER.info("addImageToItem: Image already exists for item {}", itemId)
                 return@fromCallable Unit
             }
 //            if (item.images.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
@@ -311,17 +326,20 @@ constructor(
                         newItem =
                             item.copy(images = item.images + im, deletedDbImages = mutableList)
                         uri = im.uri
+                        LOGGER.info("addImageToItem: DB Image was in item {} deleted list. Restored", itemId)
                     } else {
                         var xUri = draft.imageHashes[uriHash]
                         val (list, idex) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
                         uri = list[idex].uri
                         newItem = item.copy(images = list)
+                        LOGGER.info("addImageToItem: DB Image added to item {} list", itemId)
                     }
                 } else {
                     var xUri = draft.imageHashes[uriHash]
                     val (list, idx) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
                     uri = list[idx].uri
                     newItem = item.copy(images = list)
+                    LOGGER.info("addImageToItem: New Image added to item {} list", itemId)
                 }
 
             } else {
@@ -329,19 +347,21 @@ constructor(
                 val (list, idx) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
                 uri = list[idx].uri
                 newItem = item.copy(images = list)
+                LOGGER.info("addImageToItem: Image added to list of item with ID {}", itemId)
             }
             val newItems = currentList.toMutableList().also {
                 it[index] = newItem
             }
             val existingUri = draft.imageHashes[uriHash]
             val newHashes = if (existingUri == null) {
+                LOGGER.info("Image Uri added to HashMap")
                 draft.imageHashes + (uriHash to uri)
             } else {
                 draft.imageHashes
             }
             draft = draft.copy(items = newItems, imageHashes = newHashes)
-            
             _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.ChangeInvalidate, index))
+            LOGGER.info("addImageToItem: {}: Done", itemId)
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
             }
@@ -354,7 +374,6 @@ constructor(
     fun addEvidence(externalUri: Uri, mimeType: String): Single<Uri> {
         return Single.fromCallable {
             val currentList = draft.evidence
-            val uris = currentList.map { it.uri }
             val newEvidence = currentList.toMutableList()
             val newHashes = draft.evidenceHashes.toMutableMap()
 
@@ -373,13 +392,14 @@ constructor(
                     if (xUri == null) {
                         val file: AddEditTransactionFile
                         if(evidenceHashInDb(transactionId!!, uriHash).blockingGet()) {
-                            Log.i(LOG_TAG,"File already exists in DB for evidence")
+                            LOGGER.info("addEvidence: Transaction {}: File already exists in DB for evidence", transactionId)
                             val evidence = getDbEvidenceByHash(transactionId!!, uriHash).blockingGet()!!
                             xUri = Uri.parse(evidence.uri)
                             val size = xUri.toFile().length()
                             file = AddEditTransactionFile(evidence.id, xUri, mimeType, uriHash, size, true)
                         } else {
                             // val subFolder = file(Constants.SUBFOLDER_NAME_DOCUMENTS, year, month, day) //On the chance that someone edits a draft across more than one day, this might cause problems
+                            LOGGER.info("addEvidence: Transaction {}: File does not exist in DB for evidence", transactionId)
                             xUri = fileHandler.copyUriToDraft(externalUri, mimeType, Constants.SUBFOLDER_NAME_DOCUMENTS).blockingGet()
                             val size = xUri.toFile().length()
                             file = AddEditTransactionFile(null, xUri, mimeType, uriHash, size)
@@ -391,6 +411,7 @@ constructor(
                 }
                 draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
                 _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+                LOGGER.info("addEvidence: Transaction {}: Done", transactionId)
                 if (currentMode == "add") {
                     fileHandler.saveDraft(draft).subscribe()
                 }
@@ -398,6 +419,7 @@ constructor(
             } else {
                 var uri = newHashes[uriHash]
                 if (uri == null) {
+                    LOGGER.info("addEvidence: File does not exist in draft for evidence")
                     // val subFolder = file(Constants.SUBFOLDER_NAME_DOCUMENTS, year, month, day) //On the chance that someone edits a draft across more than one day, this might cause problems
                     uri = fileHandler.copyUriToDraft(externalUri, mimeType, Constants.SUBFOLDER_NAME_DOCUMENTS).blockingGet()
                     val size = uri.toFile().length()
@@ -406,10 +428,11 @@ constructor(
                     newEvidence += file
                     newHashes += (uriHash to uri)
                 } else {
-                    Log.i(LOG_TAG, "File already exists in Draft for evidence")
+                    LOGGER.info("addEvidence: File already exists in draft for evidence")
                 }
                 draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
                 _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+                LOGGER.info("addEvidence: Done")
                 if (currentMode == "add") {
                     fileHandler.saveDraft(draft).subscribe()
                 }
@@ -425,10 +448,12 @@ constructor(
             return
         }
         val evidence = evidenceList.removeAt(position)
+        LOGGER.info("removeEvidence: Removed evidence at position {}", position)
         if(currentMode == "edit") {
             if(evidence.dbId != null) {
                 val currentDeletedEvidence = draft.deletedDbEvidence.toMutableList()
                 if(currentDeletedEvidence.find { it.dbId == evidence.dbId } == null) {
+                    LOGGER.info("removeEvidence: Evidence exists in DB for transaction {}. Marking as deleted", transactionId)
                     currentDeletedEvidence += evidence
                     draft = draft.copy(deletedDbEvidence = currentDeletedEvidence)
                 }
@@ -436,6 +461,7 @@ constructor(
         }
         draft = draft.copy(evidence = evidenceList)
         _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+        LOGGER.info("removeEvidence: Done")
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }
@@ -473,21 +499,32 @@ constructor(
                         idMap[hash] = image.id!!
                     }
                 }
+                val count = idMap.size
                 val newItems = draft.items.toMutableList()
-                draft.items.forEachIndexed { i, item ->
-                    val newImages = item.images.toMutableList()
-                    item.images.forEachIndexed { j, image ->
-                        val id = idMap[image.sha256]
-                        if(id != null) {
-                            newImages[j] = image.copy(dbId = id, uri = newImageHashes[image.sha256]!!)
+                if(count != 0) {
+                    LOGGER.info(
+                        "restoreDraft: Found {} existing images that have been moved to the DB. Updating draft",
+                        count
+                    )
+                    var total = 0
+                    draft.items.forEachIndexed { i, item ->
+                        val newImages = item.images.toMutableList()
+                        item.images.forEachIndexed { j, image ->
+                            val id = idMap[image.sha256]
+                            if (id != null) {
+                                total++
+                                newImages[j] =
+                                    image.copy(dbId = id, uri = newImageHashes[image.sha256]!!)
+                            }
                         }
+                        newItems[i] = item.copy(images = newImages)
                     }
-                    newItems[i] = item.copy(images = newImages)
+                    LOGGER.info("restoreDraft: Updated {} total item images", total)
                 }
-
                 val newDraft = draft.copy(items = newItems, imageHashes = newImageHashes)
                 this.draft = newDraft
                 _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                LOGGER.info("restoreDraft: Done")
             }
     }
 
@@ -497,7 +534,6 @@ constructor(
 
     fun finishTransaction(): Single<Unit> {
         if(!validateDraft()) {
-            
             return Single.just(Unit).doOnTerminate { setNote("add"); transactionId = null }
         }
         if(currentMode == "add") {
@@ -581,6 +617,10 @@ constructor(
                 fileHandler.deleteDraftFiles()
             }.blockingGet()
             Unit
+        }.timeInterval().map {
+            val time = it.time(TimeUnit.MILLISECONDS)
+            LOGGER.info("saveDraft: took {} ms", time)
+            it.value()
         }.subscribeOn(Schedulers.io())
     }
 
@@ -603,9 +643,6 @@ constructor(
                 }
             }
 
-
-
-            
             
             val (dateTime, offset, zone) = dateTimeOffsetZone(clock)
 
@@ -626,6 +663,7 @@ constructor(
                 val imageId = imageDao.insertImage(imageDb).blockingGet()
                 imagesMap[image.sha256] = imageId
             }
+            LOGGER.info("saveEdit: Saved {} new images", imagesMap.size)
 
             for(item in draft.items) {
                 val itemId = if(item.dbId != null) {
@@ -682,6 +720,7 @@ constructor(
                         imageToItemsMap[image.sha256] = set
                         itemImagesDao.deleteByItemAndImageId(item.dbId!!, image.dbId!!)
                             .blockingSubscribe()
+                        LOGGER.info("Unlinked image {} from transaction item {}", image.dbId, item.dbId)
                     }
                         
                         val imageAttachedToOtherImagesInSameTransaction = set.isNotEmpty()
@@ -693,19 +732,13 @@ constructor(
                             //TODO handle Glide resource release first
                             val file = image.uri.toFile()
                             if (file.delete()) {
-                                Log.i(
-                                    LOG_TAG,
-                                    "File $file no longer needed. Deleted"
-                                )
+                                LOGGER.info("Image {} file {} no longer needed. Deleted", image.dbId, file)
                                 
                             } else {
-                                Log.i(
-                                    LOG_TAG,
-                                    "File $file no longer needed, but failed to delete"
-                                )
-                                
+                                LOGGER.info("Image {} file {} no longer needed, but failed to delete", image.dbId, file)
                             }
                             imageDao.deleteByIdSingle(image.dbId!!).blockingSubscribe()
+                            LOGGER.info("Image {} deleted", image.dbId)
                         }
 
 
@@ -732,19 +765,12 @@ constructor(
                                 //TODO handle Glide resource release first
                                 val file = image.uri.toFile()
                                 if (file.delete()) {
-                                    Log.i(
-                                        LOG_TAG,
-                                        "File $file no longer needed. Deleted"
-                                    )
-                                    
+                                    LOGGER.info("Image {} file {} no longer needed. Deleted", image.dbId, file)
                                 } else {
-                                    Log.i(
-                                        LOG_TAG,
-                                        "File $file no longer needed, but failed to delete"
-                                    )
-                                    
+                                    LOGGER.info("Image {} file {} no longer needed, but failed to delete", image.dbId, file)
                                 }
                                 imageDao.deleteByIdSingle(image.dbId!!).blockingSubscribe()
+                                LOGGER.info("Image {} deleted", image.dbId)
                             }
 
                     }
@@ -753,14 +779,15 @@ constructor(
             for(evidence in draft.deletedDbEvidence) {
                 val file = evidence.uri.toFile()
                 if (file.delete()) {
-                    Log.i(LOG_TAG, "File $file no longer needed. Deleted")
+                    LOGGER.info("Evidence {} file {} no longer needed. Deleted", evidence.dbId, file)
                     
                 } else {
-                    Log.i(LOG_TAG, "File $file no longer needed, but failed to delete")
-                    
+                    LOGGER.info("Evidence {} file {} no longer needed, but failed to delete", evidence.dbId, file)
                 }
                 evidenceDao.deleteByIdSingle(evidence.dbId!!).blockingSubscribe()
+                LOGGER.info("Evidence {} deleted", evidence.dbId)
             }
+            //TODO I don't think I've added code to test for successful evidence/attachment/document insertion yet
             /*for(evidence in draft.evidence) {
 //                if(imagesMap[image.sha256] != null) { //?
 //                    continue
@@ -777,6 +804,9 @@ constructor(
                 val evidence = EvidenceDb(null, transactionId!!, length, evidence.sha256, evidence.mimeType, finalUri.toString(), dateTime, offset, zone)
                 evidenceDao.insertEvidence(evidence).blockingGet()
             }*/
+        }.timeInterval().map {
+            val time = it.time(TimeUnit.MILLISECONDS)
+            LOGGER.info("saveEdit: took {} ms", time)
         }.subscribeOn(Schedulers.io())
     }
 
@@ -804,23 +834,27 @@ constructor(
         val items = draft.items
         var valid = true
         if(items.isEmpty()) {
-            Log.i(LOG_TAG, "Draft is empty, nothing to save")
+            LOGGER.info("validateDraft: Draft is empty, nothing to save")
             return false
         }
         for (item in items) {
             if (item.amount == null) {
+                LOGGER.info("validateDraft: An item has a null amount")
                 valid = false
                 break
             }
             if (item.amount.compareTo(BigDecimal.ZERO) == 0) {
+                LOGGER.info("validateDraft: An item has a zero amount")
                 valid = false
                 break
             }
             if (item.description == null) {
+                LOGGER.info("validateDraft: An item has a null description")
                 valid = false
                 break
             }
             if (item.description.isBlank()) {
+                LOGGER.info("validateDraft: An item has a blank description")
                 valid = false
                 break
             }
@@ -838,6 +872,6 @@ constructor(
     }
     
     companion object {
-        const val LOG_TAG = "AddDetTransRepository"
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionRepository::class.java)
     }
 }

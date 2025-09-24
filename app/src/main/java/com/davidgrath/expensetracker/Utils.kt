@@ -1,6 +1,9 @@
 package com.davidgrath.expensetracker
 
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
+import androidx.core.net.toFile
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
@@ -16,11 +19,14 @@ import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
 import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModel
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
@@ -29,10 +35,12 @@ import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
 
+private val LOGGER = LoggerFactory.getLogger(Utils::class.java)
 class Utils {
     companion object {
         val CORE_CATEGORIES = setOf(
@@ -207,14 +215,19 @@ fun getSha256(inputStream: InputStream): Single<String> {
         val md = MessageDigest.getInstance("SHA256")
         var array = ByteArray(bufSize)
         var len = 0
+        var total = 0L //TODO UOM/UCOM
         while (len >= 0) {
             len = bufferedStream.read(array)
             if (len >= 0) {
+                total += len
                 md.update(array, 0, len)
             }
         }
         val hash = md.digest()
-        String.format("%064x", BigInteger(1, hash))
+        val hashText = String.format("%064x", BigInteger(1, hash))
+        LOGGER.info("getSha256: read {} bytes", total)
+        LOGGER.info("getSha256: hash: {}", hashText)
+        hashText
     }.subscribeOn(Schedulers.io())
 }
 
@@ -247,4 +260,21 @@ fun dateTimeOffsetZone(clock: Clock): Triple<String, String, String> {
     val offset = date.offset.id
     val zone = date.zone.id
     return Triple(dateTimeString, offset, zone)
+}
+
+fun loadRenderer(uri: Uri): Maybe<PdfRenderer> {
+    return Maybe.fromCallable {
+        val file = uri.toFile()
+        val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        val pdfRenderer: PdfRenderer? = try {
+            PdfRenderer(fd)
+        } catch (e: SecurityException) {
+            LOGGER.error("loadRenderer", e)
+            null
+        } catch (e: IOException) {
+            LOGGER.error("loadRenderer", e)
+            null
+        }
+        return@fromCallable pdfRenderer
+    }
 }

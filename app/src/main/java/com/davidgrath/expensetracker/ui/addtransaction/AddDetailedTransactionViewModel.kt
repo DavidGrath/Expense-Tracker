@@ -18,11 +18,13 @@ import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
+import com.davidgrath.expensetracker.loadRenderer
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import java.io.File
@@ -71,28 +73,26 @@ class AddDetailedTransactionViewModel(
                         initialCategoryId
                     )
                 }
-                addDetailedTransactionRepository.restoreDraft().blockingSubscribe {
-                    Log.i(LOG_TAG, "Restored existing draft")
-                }
+                addDetailedTransactionRepository.restoreDraft().blockingSubscribe()
                 var hasPDFs = false
                 for (evidence in addDetailedTransactionRepository.getDraftValue().evidence) {
                     if (evidence.mimeType != "application/pdf") {
                         continue
                     }
                     hasPDFs = true
-                    val renderer = loadRenderer(evidence).blockingGet()
+                    val renderer = loadRenderer(evidence.uri).blockingGet()
                     if (renderer != null) {
                         rendererHashMap += evidence.uri to renderer
                     }
                 }
                 _rendererLiveData.postValue(rendererHashMap)
                 if (hasPDFs) {
-                    Log.i(LOG_TAG, "Loaded renderers for existing draft PDFs")
+                    LOGGER.info("Loaded renderers for existing draft PDFs")
                 }
             }
         } else if(mode == "edit") {
             addDetailedTransactionRepository.initializeEdit(transactionId!!).blockingSubscribe {
-                Log.i(LOG_TAG, "Loaded transaction $transactionId")
+                LOGGER.info("Loaded transaction $transactionId")
             }
         }
     }
@@ -129,7 +129,7 @@ class AddDetailedTransactionViewModel(
 
         return addDetailedTransactionRepository.addEvidence(returnedUri, mimeType).map { uri ->
             if (mimeType != "application/pdf") {
-                Log.i(LOG_TAG, "Document not a PDF")
+                LOGGER.info("Document not a PDF")
                 return@map PdfState.NOT_PDF
             }
             val validate = validatePdf(uri).blockingGet()
@@ -138,6 +138,7 @@ class AddDetailedTransactionViewModel(
             }
             rendererHashMap += (uri to validate.second!!)
             _rendererLiveData.postValue(rendererHashMap)
+            LOGGER.info("Updated PDF renderer hashMap")
             return@map validate.first
         }.subscribeOn(Schedulers.io()).map {
             getImageItemId = -1
@@ -169,36 +170,28 @@ class AddDetailedTransactionViewModel(
                 PdfRenderer(fd)
                 //TODO Handle IO Exception
             } catch (e: SecurityException) {
+                LOGGER.error("validatePdf", e)
                 null
             }
             if (pdfRenderer == null) {
-                return@fromCallable PdfState.PASSWORD_PROTECTED to null
+                val state = PdfState.PASSWORD_PROTECTED
+                LOGGER.info("validatePdf: {}", state)
+                return@fromCallable state to null
             }
             if (pdfRenderer.pageCount == 0) {
-                return@fromCallable PdfState.ZERO_PAGES to null
+                val state = PdfState.ZERO_PAGES
+                LOGGER.info("validatePdf: {}", state)
+                return@fromCallable state to null
             }
-            PdfState.ALL_GOOD to pdfRenderer
+            val state = PdfState.ALL_GOOD
+            LOGGER.info("validatePdf: {}", state)
+            state to pdfRenderer
         }.subscribeOn(Schedulers.io())
 
     }
 
     fun setNote(note: String) {
         addDetailedTransactionRepository.setNote(note)
-    }
-
-    fun loadRenderer(evidence: AddEditTransactionFile): Maybe<PdfRenderer> {
-        return Maybe.fromCallable {
-            val file = evidence.uri.toFile()
-            val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            val pdfRenderer: PdfRenderer? = try {
-                PdfRenderer(fd)
-            } catch (e: SecurityException) {
-                null
-            } catch (e: IOException) {
-                null
-            }
-            return@fromCallable pdfRenderer
-        }
     }
 
 
@@ -210,6 +203,6 @@ class AddDetailedTransactionViewModel(
     }
 
     companion object {
-        private const val LOG_TAG = "AddDetailTransViewModel"
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionViewModel::class.java)
     }
 }

@@ -22,6 +22,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 
 class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
@@ -98,7 +99,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.barChartStatisticsCategories.axisRight.axisMinimum = 0f
 //        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { list ->
         viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
-            Log.i("StatisticsFragment", "Item Count: ${list.size}")
+            LOGGER.info("Item Count: ${list.size}")
             val dataSet = BarDataSet(list, null)
             dataSet.colors = MaterialColors.Palette.map { it.value }
             dataSet.setDrawIcons(true)
@@ -116,7 +117,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.lineChartStatisticsTotal.axisLeft.axisMinimum = 0f
         binding.lineChartStatisticsTotal.axisRight.axisMinimum = 0f
         viewModel.statsTotalByDay.observe(viewLifecycleOwner) { list ->
-            Log.i("StatisticsFragment", "Item Count: ${list.size}")
+            LOGGER.info("Item Count: ${list.size}")
             val entries = list.mapIndexed { i, summary ->
                 Entry(i.toFloat(), summary.sum.toFloat())
             }
@@ -139,6 +140,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
 
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val selectedMode = modes[position]
+        LOGGER.info("onItemSelected: {}", selectedMode)
         viewModel.setConfig(viewModel.statisticsConfig.copy(mode = selectedMode))
         if(selectedMode == TempStatisticsConfig.Mode.Range) {
             //Open Dialog
@@ -188,6 +190,8 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
             val statisticsFragment = StatisticsFragment()
             return statisticsFragment
         }
+
+        private val LOGGER = LoggerFactory.getLogger(StatisticsFragment::class.java)
     }
 
     class DateValuesFormatter(private val dates: List<LocalDate>): ValueFormatter() {

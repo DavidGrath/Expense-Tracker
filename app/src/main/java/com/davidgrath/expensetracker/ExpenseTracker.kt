@@ -16,24 +16,30 @@ import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
+import java.nio.file.Paths
 import java.util.Currency
 import java.util.Locale
 import java.util.UUID
+import kotlin.io.path.toPath
 
 open class ExpenseTracker : Application(), DraftFileHandler {
 
     open lateinit var appComponent: MainComponent
     private val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
     open lateinit var preferences: SharedPreferences
+    open lateinit var LOGGER: Logger
 
 //    @Suppress("DEPRECATION")
     override fun onCreate() {
         super.onCreate()
+        LOGGER = LoggerFactory.getLogger(ExpenseTracker::class.java)
         appComponent = DaggerMainComponent.builder().mainModule(MainModule(this, this)).build()
         preferences = getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, MODE_PRIVATE)
         tempInit().subscribeOn(Schedulers.io()).blockingGet()
@@ -49,6 +55,9 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val file = File(root, Constants.DRAFT_FILE_NAME)
             if(file.exists()) {
                 file.writeText(string)
+                LOGGER.info("saveDraft: Saved draft file")
+            } else {
+                LOGGER.info("saveDraft: File does not exist")
             }
         }.subscribeOn(Schedulers.io())
     }
@@ -57,7 +66,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
         val file = File(root, Constants.DRAFT_FILE_NAME)
         val exists = file.exists()
-        Log.i(LOG_TAG, "Draft Exists: $exists")
+        LOGGER.info("Draft Exists: {}", exists)
         return exists
     }
 
@@ -68,9 +77,11 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val file = File(root, Constants.DRAFT_FILE_NAME)
             val ret = file.createNewFile()
             if (ret) {
+                LOGGER.info("Created new empty draft file")
                 val emptyDraft = AddEditDetailedTransactionDraft(emptyList())
                 val string = gson.toJson(emptyDraft)
                 file.writeText(string)
+                LOGGER.info("Wrote default draft to draft file")
             }
             ret
         }
@@ -81,16 +92,16 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
             val file = File(root, Constants.DRAFT_FILE_NAME)
             val d = file.delete()
-            Log.i("ExpenseTracker", "Deleted draft file: $d")
+            LOGGER.info("Deleted draft file: {}", d)
             val documents = File(root, Constants.SUBFOLDER_NAME_DOCUMENTS)
             if(documents.exists()) {
                 val children = documents.listFiles()
                 val size = children.size
                 if(size > 0) {
                     documents.deleteRecursively()
-                    Log.i("ExpenseTracker", "Deleted $size unused files in ${documents}")
+                    LOGGER.info("Deleted {} unused files in {}", size, documents)
                 } else {
-                    Log.i("ExpenseTracker", "Deleted empty directory ${documents}")
+                    LOGGER.info("Deleted empty directory {}", documents)
                 }
             }
             val images = File(root, Constants.SUBFOLDER_NAME_IMAGES)
@@ -99,10 +110,10 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                 val size = children.size
                 if(size > 0) {
                     images.deleteRecursively()
-                    Log.i("ExpenseTracker", "Deleted $size unused files in ${images}")
+                    LOGGER.info("Deleted {} unused files in {}", size, images)
                 } else {
                     images.delete()
-                    Log.i("ExpenseTracker", "Deleted empty directory ${images}")
+                    LOGGER.info("Deleted empty directory {}", images)
                 }
             }
 
@@ -115,11 +126,14 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val root = File(filesDir, Constants.FOLDER_NAME_DRAFT)
             val file = File(root, Constants.DRAFT_FILE_NAME)
             if(!file.exists()) {
+                LOGGER.info("getDraft: File does not exist")
                 return@fromCallable null
             }
+            val size = file.length() //TODO UOM/UCOM
             val reader = file.bufferedReader()
             val draft = gson.fromJson(reader, AddEditDetailedTransactionDraft::class.java)
             reader.close()
+            LOGGER.info("getDraft: Read {} bytes from draft file", size)
             draft
         }.subscribeOn(Schedulers.io())
     }
@@ -134,10 +148,10 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                 return@fromCallable f
             }
             sourceFile.copyTo(f)
-            Log.i("ExpenseTracker", "Created ${f.path}")
+            LOGGER.info("Created {}", f.path)
             
             val b = sourceFile.delete()
-            Log.i("ExpenseTracker", "Deleted ${sourceFile.path}: $b")
+            LOGGER.info("Deleted {}: {}", sourceFile.path, b)
             
             f
         }.subscribeOn(Schedulers.io())
@@ -150,6 +164,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
 
     override fun copyUriToDraft(uri: Uri, mimeType: String, subfolder: String): Single<Uri> {
+        val subPath = Constants.FOLDER_NAME_DRAFT + File.separator + subfolder
         val folder = file(filesDir.absolutePath,
             Constants.FOLDER_NAME_DRAFT, subfolder
         )
@@ -168,6 +183,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             inputStream.copyTo(outputStream)
             inputStream.close()
             outputStream.close()
+            LOGGER.info("copyUriToDraft: Created file {}", subPath) //TODO Make a makeshift relativize
             file.toUri()
         }
     }
@@ -180,6 +196,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                 preferences.edit()
                     .putString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, Constants.DEFAULT_PROFILE_ID)
                     .commit()
+                LOGGER.info("Initialized current profile to default {}", Constants.DEFAULT_PROFILE_ID)
             }
             tempInitProfile(defaultProfile)
                 .flatMap {
@@ -214,6 +231,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val locale = Locale.getDefault()
             val currency = Currency.getInstance(locale)?.currencyCode ?: "USD"
 
+            LOGGER.info("Picked default locale and currency: {}, {}", locale, currency)
             val clock = appComponent.clock()
             val date = ZonedDateTime.now(clock)
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
@@ -237,7 +255,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                 )
                 val id = accountDao.insertAccount(account).blockingGet()
                 cashlessAccount = accountDao.findByIdSingle(id).blockingGet()!!
-                Log.i(LOG_TAG, "Created default cashless account for profile ${profileDb.stringId}")
+                LOGGER.info("Created default cashless account for profile ${profileDb.stringId}")
             }
             if (cashAccount == null) {
                 val account = AccountDb(
@@ -252,13 +270,14 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                     offset,
                     zone
                 )
-                accountDao.insertAccount(account).blockingGet()
+                accountDao.insertAccount(account).blockingSubscribe()
+                LOGGER.info("Created default cash account for profile ${profileDb.stringId}")
             }
 
             val profilePreferences = getSharedPreferences(profileDb.stringId, MODE_PRIVATE)
             profilePreferences.edit()
                 .putLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, cashlessAccount.id!!).commit()
-            Log.i(LOG_TAG, "Set default cashless account for profile ${profileDb.stringId}")
+            LOGGER.info("Set default cashless account for profile ${profileDb.stringId}")
         }
     }
     fun tempInitDefaultCategories(): Single<Unit> {
@@ -270,11 +289,13 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val offset = date.offset.id
             val zone = date.zone.id
             val categoryDao = appComponent.categoryDao()
+            var anyCategoryNotExist = false
             for (category in Utils.CORE_CATEGORIES) {
                 val categoryDb = categoryDao.findByStringId(category)
                     .subscribeOn(Schedulers.io())
                     .blockingGet()
                 if (categoryDb == null) {
+                    anyCategoryNotExist = true
                     categoryDao.insertCategory(
                         CategoryDb(
                             null,
@@ -291,11 +312,11 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                         .blockingGet()
                 }
             }
+            if(anyCategoryNotExist) {
+                LOGGER.info("Created default categories")
+            }
         }
     }
 
-    companion object {
-        const val LOG_TAG = "ExpenseTracker"
-    }
 }
 
