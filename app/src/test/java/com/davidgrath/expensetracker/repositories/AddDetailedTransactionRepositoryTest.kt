@@ -9,6 +9,7 @@ import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
+import com.davidgrath.expensetracker.assertEqualsBD
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.dateTimeOffsetZone
@@ -30,7 +31,6 @@ import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.test.TestContentProvider
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityTest
 import com.squareup.rx3.idler.Rx3Idler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
@@ -78,6 +78,10 @@ class AddDetailedTransactionRepositoryTest {
     lateinit var evidenceDao: EvidenceDao
     @Inject
     lateinit var database: ExpenseTrackerDatabase
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
+    @Inject
+    lateinit var transactionItemRepository: TransactionItemRepository
 
     lateinit var app: ExpenseTracker
 
@@ -166,15 +170,77 @@ class AddDetailedTransactionRepositoryTest {
         assertEquals(0, getHashCount(bread.sha256, mainImagesFolder).blockingGet())
     }
 
-    /*@Test
+    @Test
     fun basicEditTest() {
         //Save Basic Transaction
+        val (id, itemId, item2Id) = saveBasicTwoItemTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        val firstEvidence = TestData.Resource.Documents.SIMPLE_EVIDENCE
+        val evidenceDir = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        saveEvidenceToDevice(id, firstEvidence).blockingSubscribe()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var items = transactionItemRepository.getTransactionItemsSingle(id).blockingGet()
+        assertEqualsBD(BigDecimal(20), transaction.amount)
+        assertEquals(null, transaction.note)
+        assertEquals("Description", items[0].description)
+        assertEquals(1, getHashCount(firstEvidence.sha256, evidenceDir).blockingGet())
         //Load Draft
+
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingGet()
+
+        //Edit existing item
+        val firstItem = repository.getDraftValue().items[0]
+        val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val foodUi = categoryDbToCategoryUi(food)
+        repository.changeItem(0,
+            firstItem.copy(description = "Edited", amount = BigDecimal(20), category = foodUi,
+                brand = "Generic")
+        )
+
+        val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
+        val bread = TestData.Resource.Images.BREAD
+        val secondEvidence = TestData.Resource.Documents.EVIDENCE_IMAGE
+        addContentProviderResources(app, classLoader, bread, secondEvidence)
+        repository.addImageToItem(firstItem.id, bread.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
+        //Remove item
+        repository.deleteItem(1)
+
         //Add Valid Item
 
-        assertTrue(false)
-    }*/
-    @Test // A
+        repository.addItem()
+        val secondItem = repository.getDraftValue().items[1]
+        repository.changeItem(1, secondItem.copy(description = "Dumbbells", amount = BigDecimal(50), category = foodUi))
+
+        val note = "This is a test"
+        repository.setNote(note) //TODO Oh yeah, I haven't enforced the codepoint constraint at this level, only the UI level
+        repository.removeEvidence(0)
+        repository.addEvidence(secondEvidence.uri, "image/jpeg").blockingSubscribe()
+
+        //TODO Date/Time
+        repository.finishTransaction().blockingSubscribe()
+
+        val total = BigDecimal(70)
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        items = transactionItemRepository.getTransactionItemsSingle(id).blockingGet()
+        val images = imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet()
+        val evidenceList = evidenceDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+
+        assertEquals(2, items.size)
+        assertEqualsBD(total, transaction.amount)
+        assertEquals(note, transaction.note)
+        assertEquals("Edited", items[0].description)
+        assertEqualsBD(BigDecimal(20), items[0].amount)
+        assertEquals("Generic", items[0].brand)
+        assertEquals(food.id, items[0].primaryCategoryId)
+//        assertEquals(null, items[0].referenceNumber) //TODO Reference number
+//        assertEquals(null, items[0].variation) //TODO Variation
+        assertEquals(bread.sha256, images[0].sha256)
+        assertEquals(1, evidenceList.size)
+        assertEquals(0, getHashCount(firstEvidence.sha256, evidenceDir).blockingGet())
+        assertEquals(1, getHashCount(secondEvidence.sha256, evidenceDir).blockingGet())
+    }
+    @Test // A //TODO These letters are from a spreadsheet I drafted. Transform that to an AsciiDoc table in this repo
     fun givenImageInEditRemovedAndImageNotLinkedToAnyOtherItemsWhenSaveThenImageRemovedFromDevice() {
 
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
@@ -889,6 +955,23 @@ class AddDetailedTransactionRepositoryTest {
         val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
         return transactionItemDao.insertTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
             id to itemId
+        }
+    }
+
+    /**
+     * Total amount is `amount` * 2
+     */
+    fun saveBasicTwoItemTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Triple<Long, Long, Long>> {
+        val transaction = TestBuilder.defaultTransaction(amount.times(BigDecimal(2)))
+        val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
+        val item2 = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
+        return transactionItemDao.insertTransactionItem(item).subscribeOn(Schedulers.io()).flatMap { itemId ->
+            transactionItemDao.insertTransactionItem(item2)
+                .map { item2Id ->
+                    Triple(id, itemId, item2Id)
+                }
         }
     }
 

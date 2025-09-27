@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -18,6 +19,7 @@ import com.davidgrath.expensetracker.repositories.EvidenceRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.google.android.material.tabs.TabLayoutMediator
 import javax.inject.Inject
 
@@ -93,7 +95,10 @@ class TransactionDetailsActivity: AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when(item.itemId) {
             R.id.menu_item_transaction_details_edit -> {
-                Toast.makeText(this, "Not yet", Toast.LENGTH_SHORT).show()
+                val bundle = bundleOf(AddDetailedTransactionActivity.ARG_MODE to "edit", AddDetailedTransactionActivity.ARG_EDIT_TRANSACTION_ID to transactionId)
+                val intent = Intent(this, AddDetailedTransactionActivity::class.java)
+                intent.putExtras(bundle)
+                startActivity(intent)
                 true
             }
             R.id.menu_item_transaction_details_delete -> {

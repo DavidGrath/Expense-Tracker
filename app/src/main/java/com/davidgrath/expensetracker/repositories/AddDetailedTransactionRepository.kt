@@ -1,7 +1,6 @@
 package com.davidgrath.expensetracker.repositories
 
 import android.net.Uri
-import android.util.Log
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
@@ -13,6 +12,7 @@ import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
+import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
@@ -47,7 +47,8 @@ constructor(
     private val categoryDao: CategoryDao,
     private val itemImagesDao: TransactionItemImagesDao,
     private val clock: Clock,
-    private val evidenceDao: EvidenceDao
+    private val evidenceDao: EvidenceDao,
+    private val transactionItemDao: TransactionItemDao
 ) {
 
     private var incrementId = 0
@@ -665,10 +666,25 @@ constructor(
             }
             LOGGER.info("saveEdit: Saved {} new images", imagesMap.size)
 
+            var newCount = 0
+            var updatedCount = 0
+            var unchangedCount = 0
+
+            var total  = BigDecimal.ZERO
             for(item in draft.items) {
-                val itemId = if(item.dbId != null) {
-                    item.dbId
-                    //TODO I forgot to update existing items. Fix in next commit
+                val itemId: Long
+                if(item.dbId != null) {
+                    itemId = item.dbId
+                    total = total.plus(item.amount!!)
+                    val result = transactionItemDao.updateTransactionItem(
+                        item.dbId, item.amount!!, item.brand, 1, item.description!!, item.category.id
+                    ).blockingGet()
+                    if(result > 0) {
+                        updatedCount += result
+                    } else {
+                        unchangedCount += 1
+                    }
+
                 } else {
                     val itemDb = TransactionItemDb(
                         null,
@@ -684,7 +700,9 @@ constructor(
                         offset,
                         zone
                     )
-                    transactionItemRepository.addTransactionItem(itemDb).blockingGet()
+                    itemId = transactionItemRepository.addTransactionItem(itemDb).blockingGet()
+                    total = total.plus(item.amount)
+                    newCount++
                 }
                 for (image in item.images) {
 
@@ -711,6 +729,14 @@ constructor(
 
                 }
             }
+            val transaction = transactionRepository.getTransactionByIdSingle(transactionId!!).blockingGet()
+            val updatedTransaction = transaction.copy(
+                amount = total,
+                note = draft.note
+            )
+            transactionRepository.updateTransaction(updatedTransaction).blockingSubscribe()
+            LOGGER.info("Transaction {}: Updated basic details", transactionId)
+            LOGGER.info("Transaction {}: New Item Count: {}; Updated Item Count: {}; Unmodified Item Count: {}", transactionId, newCount, updatedCount, unchangedCount)
             for(item in draft.items) {
                 
                 for(image in item.deletedDbImages) {
@@ -775,7 +801,9 @@ constructor(
 
                     }
                 }
+                transactionItemDao.deleteById(item.dbId!!).blockingSubscribe()
             }
+            LOGGER.info("Transaction {}: Deleted {} items", transactionId, draft.deletedDbItems.size)
             for(evidence in draft.deletedDbEvidence) {
                 val file = evidence.uri.toFile()
                 if (file.delete()) {
@@ -787,11 +815,12 @@ constructor(
                 evidenceDao.deleteByIdSingle(evidence.dbId!!).blockingSubscribe()
                 LOGGER.info("Evidence {} deleted", evidence.dbId)
             }
-            //TODO I don't think I've added code to test for successful evidence/attachment/document insertion yet
-            /*for(evidence in draft.evidence) {
-//                if(imagesMap[image.sha256] != null) { //?
-//                    continue
-//                }
+            LOGGER.info("Transaction {}: Deleted {} items", transactionId, draft.deletedDbEvidence.size)
+            var addedEvidenceCount = 0
+            for(evidence in draft.evidence) {
+                if(evidence.dbId != null) {
+                    continue
+                }
                 val file = evidence.uri.toFile()
                 val localDate = LocalDate.now(clock)
                 val year = String.format("%04d", localDate.year)
@@ -803,7 +832,9 @@ constructor(
                 val length = mainFile.length()
                 val evidence = EvidenceDb(null, transactionId!!, length, evidence.sha256, evidence.mimeType, finalUri.toString(), dateTime, offset, zone)
                 evidenceDao.insertEvidence(evidence).blockingGet()
-            }*/
+                addedEvidenceCount++
+            }
+            LOGGER.info("Transaction {}: Evidence: Created: {};", transactionId, addedEvidenceCount)
         }.timeInterval().map {
             val time = it.time(TimeUnit.MILLISECONDS)
             LOGGER.info("saveEdit: took {} ms", time)

@@ -3,12 +3,14 @@ package com.davidgrath.expensetracker.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import java.math.BigDecimal
 
 @Dao
 interface TransactionItemDao {
@@ -67,10 +69,24 @@ interface TransactionItemDao {
             "WHERE date(t.datedAt) >= date(:fromDate)" +
             "AND date(t.datedAt) <= date(:toDate) ")
     fun getItemsWithTransactionsAndCategoryFromTo(fromDate: String, toDate: String): Observable<List<TransactionWithItemAndCategory>>
+    @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
+    fun getByIdSingle(id: Long): Single<TransactionItemDb>
     // endregion
+
+    //region Update
+    @Query("UPDATE TransactionItemDb SET amount = :amount, brand = :brand, quantity = :quantity, " +
+            "description = :description, primaryCategoryId = :primaryCategoryId " +
+            "WHERE id = :id")
+    fun updateTransactionItem(id: Long, amount: BigDecimal, brand: String?, quantity: Int, description: String, primaryCategoryId: Long): Single<Int>
+    //endregion
 
     //region Delete
     @Query("DELETE FROM TransactionItemDb WHERE 1")
     fun deleteAll(): Single<Int>
+    @Query("DELETE FROM TransactionItemDb WHERE id = :id")
+    fun deleteById(id: Long): Single<Int>
+
+    /*@Query("DELETE FROM TransactionItemDb WHERE id = :transactionId")
+    fun deleteByTransactionId(transactionId: Long): Single<Int>*/
     //endregion
 }

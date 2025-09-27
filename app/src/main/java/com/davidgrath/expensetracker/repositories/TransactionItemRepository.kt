@@ -10,6 +10,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,13 +32,15 @@ class TransactionItemRepository
 
     fun getTransactionItems(transactionId: Long): Observable<List<TransactionItemDb>> {
         return transactionItemDao.getAllByTransactionId(transactionId)
+            .subscribeOn(Schedulers.io())
     }
 
     fun getTransactionItemsSingle(transactionId: Long): Single<List<TransactionItemDb>> {
-        return transactionItemDao.getAllByTransactionIdSingle(transactionId)
-            .doOnSuccess {
-                LOGGER.info("getTransactionItemsSingle: ID: {}, {} items", transactionId, it.size)
-            }
+        return transactionItemDao.getAllByTransactionIdSingle(transactionId).timeInterval()
+            .map {
+                LOGGER.info("getTransactionItemsSingle time: ID: {}; time: {} ms; size: {}", transactionId, it.time(TimeUnit.MILLISECONDS), it.value().size) //TODO UOM/UCUM Maybe?
+                it.value()
+            }.subscribeOn(Schedulers.io())
     }
 
     fun addTransactionItem(item: TransactionItemDb): Single<Long> {

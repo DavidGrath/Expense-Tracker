@@ -24,8 +24,10 @@ import com.google.android.material.tabs.TabLayout
 import org.hamcrest.CustomTypeSafeMatcher
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import java.io.File
+import java.math.BigDecimal
 
 class RecyclerInputTextItemAction(private val id: Int, private val input: String): ViewAction {
     override fun getConstraints(): Matcher<View> {
@@ -238,4 +240,8 @@ fun addContentProviderResourcesInstrumented(context: Context, vararg images: Tes
         contentValues.put("fileName", image.fileName)
         context.contentResolver.insert(image.uri, contentValues)
     }
+}
+
+fun assertEqualsBD(expected: BigDecimal, actual: BigDecimal) {
+    assertEquals("Expected $expected but was $actual",0, expected.compareTo(actual))
 }

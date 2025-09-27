@@ -96,10 +96,12 @@ constructor(
 
     fun getTransactionById(id: Long): Observable<TransactionDb> {
         return transactionDao.getById(id)
+            .subscribeOn(Schedulers.io())
     }
 
     fun getTransactionByIdSingle(id: Long): Single<TransactionDb> {
         return transactionDao.getByIdSingle(id)
+            .subscribeOn(Schedulers.io())
     }
 
     fun getTotalSpent(): Observable<BigDecimal> {
@@ -146,7 +148,7 @@ constructor(
             LOGGER.info("getTotalSpentByDate: Item Count: {}", newList.size)
             newList.toList()
         }
-        return filledSummary
+        return filledSummary.subscribeOn(Schedulers.io())
     }
 
     fun getTotalSpentByDateFromTo(
@@ -154,7 +156,12 @@ constructor(
         toDate: String
     ): Observable<List<DateAmountSummary>> {
         //TODO Fill in missing/zero days for even spread
-        return transactionDao.getTransactionSumByDateFromTo(fromDate, toDate)
+        return transactionDao.getTransactionSumByDateFromTo(fromDate, toDate).subscribeOn(Schedulers.io())
+    }
+
+    fun updateTransaction(transactionDb: TransactionDb): Single<Int> {
+        return transactionDao.updateTransaction(transactionDb)
+            .subscribeOn(Schedulers.io())
     }
 
     companion object {

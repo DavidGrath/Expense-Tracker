@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import io.reactivex.rxjava3.core.Observable
@@ -35,6 +36,11 @@ interface TransactionDao {
 
     @Query("SELECT sum(amount) FROM TransactionDb WHERE date(datedAt) >= date(:fromDate) AND date(datedAt) <= date(:toDate)")
     fun getTransactionSumFromTo(fromDate: String, toDate: String): Observable<BigDecimal>
+    //endregion
+
+    //region Update
+    @Update
+    fun updateTransaction(transactionDb: TransactionDb): Single<Int>
     //endregion
 
     //region Delete
