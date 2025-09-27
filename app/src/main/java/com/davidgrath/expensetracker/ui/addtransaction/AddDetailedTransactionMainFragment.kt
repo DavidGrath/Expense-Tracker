@@ -3,7 +3,6 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
@@ -61,27 +60,27 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             val event = triple.second
             val position = triple.third
             when(event) {
-                AddDetailedTransactionRepository.TransactionDetailEvent.Delete -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.Delete -> {
                     adapter.setItems(list)
                     adapter.notifyItemRemoved(position)
                 }
-                AddDetailedTransactionRepository.TransactionDetailEvent.Insert -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.Insert -> {
                     adapter.setItems(list)
                     adapter.notifyItemInserted(position)
                 }
-                AddDetailedTransactionRepository.TransactionDetailEvent.All -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.All -> {
                     adapter.setItems(list)
                     adapter.notifyDataSetChanged()
                 }
-                AddDetailedTransactionRepository.TransactionDetailEvent.Change -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.Change -> {
                     adapter.setItems(list)
                     //No change to prevent EditText focus loss
                 }
-                AddDetailedTransactionRepository.TransactionDetailEvent.ChangeInvalidate -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.ChangeInvalidate -> {
                     adapter.setItems(list)
                     adapter.notifyItemChanged(position)
                 }
-                AddDetailedTransactionRepository.TransactionDetailEvent.None -> {
+                AddDetailedTransactionRepository.TransactionItemsEvent.None -> {
 
                 }
             }

@@ -21,6 +21,7 @@ import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.google.android.material.tabs.TabLayoutMediator
+import org.slf4j.LoggerFactory
 import javax.inject.Inject
 
 class TransactionDetailsActivity: AppCompatActivity() {
@@ -98,7 +99,8 @@ class TransactionDetailsActivity: AppCompatActivity() {
                 val bundle = bundleOf(AddDetailedTransactionActivity.ARG_MODE to "edit", AddDetailedTransactionActivity.ARG_EDIT_TRANSACTION_ID to transactionId)
                 val intent = Intent(this, AddDetailedTransactionActivity::class.java)
                 intent.putExtras(bundle)
-                startActivity(intent)
+                startActivity(intent) //TODO Remove this activity from the task/backstack
+                LOGGER.info("Started AddDetailedTransactionActivity for edit")
                 true
             }
             R.id.menu_item_transaction_details_delete -> {
@@ -111,5 +113,6 @@ class TransactionDetailsActivity: AppCompatActivity() {
 
     companion object {
         const val ARG_TRANSACTION_ID = "transactionId"
+        private val LOGGER = LoggerFactory.getLogger(TransactionDetailsActivity::class.java)
     }
 }

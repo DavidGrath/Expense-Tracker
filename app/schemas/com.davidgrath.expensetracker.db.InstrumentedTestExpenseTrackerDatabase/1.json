@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "cf085215acee4736305a7991b01c4b8b",
+    "identityHash": "eff04534f1e1ef8c28d1f9e409f97937",
     "entities": [
       {
         "tableName": "CategoryDb",
@@ -190,7 +190,7 @@
       },
       {
         "tableName": "TransactionDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `currencyCode` TEXT NOT NULL, `referenceNumber` TEXT, `debitOrCredit` INTEGER NOT NULL, `isCashless` INTEGER NOT NULL, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `datedAt` TEXT NOT NULL, `datedAtTime` TEXT, `datedAtOffset` TEXT, `datedAtTimezone` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `currencyCode` TEXT NOT NULL, `referenceNumber` TEXT, `debitOrCredit` INTEGER NOT NULL, `isCashless` INTEGER NOT NULL, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `datedAt` TEXT NOT NULL, `datedAtTime` TEXT NOT NULL, `datedAtOffset` TEXT NOT NULL, `datedAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -286,19 +286,19 @@
             "fieldPath": "datedAtTime",
             "columnName": "datedAtTime",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "datedAtOffset",
             "columnName": "datedAtOffset",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "datedAtTimezone",
             "columnName": "datedAtTimezone",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -309,13 +309,14 @@
         },
         "indices": [
           {
-            "name": "index_TransactionDb_datedAt",
+            "name": "index_TransactionDb_datedAt_datedAtTime",
             "unique": false,
             "columnNames": [
-              "datedAt"
+              "datedAt",
+              "datedAtTime"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_TransactionDb_datedAt` ON `${TABLE_NAME}` (`datedAt`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_TransactionDb_datedAt_datedAtTime` ON `${TABLE_NAME}` (`datedAt`, `datedAtTime`)"
           }
         ],
         "foreignKeys": []
@@ -652,7 +653,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cf085215acee4736305a7991b01c4b8b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eff04534f1e1ef8c28d1f9e409f97937')"
     ]
   }
 }

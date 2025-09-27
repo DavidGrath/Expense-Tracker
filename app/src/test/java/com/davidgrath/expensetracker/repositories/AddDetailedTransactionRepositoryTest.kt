@@ -23,12 +23,14 @@ import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getCreatedLocalDateTime
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.test.TestContentProvider
 import com.squareup.rx3.idler.Rx3Idler
@@ -46,9 +48,14 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.threeten.bp.Clock
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.LocalTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.temporal.ChronoUnit
+import org.threeten.bp.temporal.TemporalUnit
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -91,6 +98,9 @@ class AddDetailedTransactionRepositoryTest {
         fun setUpClass() {
             RxJavaPlugins.setInitIoSchedulerHandler(Rx3Idler.create("Robolectric Rx3 Handler"))
         }
+
+        val MOCKED_DATE = LocalDate.of(2025, 6, 30)
+        val MOCKED_TIME = LocalTime.of(8, 0)
     }
 
     @Before
@@ -881,6 +891,223 @@ class AddDetailedTransactionRepositoryTest {
         assertEquals(1, getHashCount(modifiedResource.sha256, draftImagesFolder).blockingGet())
     }
 
+    //region Date and Time
+
+    @Test
+    fun givenModeIsAddAndDoNotUseCustomTimeAndTransactionHasCustomTimeWhenSaveThenTransactionHasCurrentDateTime() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals(0, now.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsAddAndUseCustomTimeAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasSpecifiedDateTime() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val custom = LocalDateTime.parse("2025-01-01T01:00:30.123").truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsAddAndUseCustomTimeAndDateNotNullAndTimeNullWhenSaveThenTransactionHasSpecifiedDate() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(localDate)
+        repository.setTime(null)
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val custom = localDate.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals(0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsAddAndUseCustomTimeAndDateNullAndTimeNotNullWhenSaveThenTransactionHasSpecifiedTime() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(null)
+        repository.setTime(localTime)
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val custom = MOCKED_DATE.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals(0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsAddAndUseCustomTimeAndDateNullAndTimeNullWhenSaveThenTransactionHasDefaultDateTime() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(null)
+        repository.setTime(null)
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val custom = MOCKED_DATE.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals(0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsEditAndUseCustomTimeAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasNewDateTime() {
+
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingGet()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+
+        val custom = localDate.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsEditAndUseCustomTimeAndDateNotNullAndTimeNullWhenSaveThenTransactionHasNewDate() {
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingGet()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(localDate)
+        repository.setTime(null)
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+
+        val custom = localDate.atTime(originalDateTime.toLocalTime()).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsEditAndUseCustomTimeAndDateNullAndTimeNotNullWhenSaveThenTransactionHasNewTime() {
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingGet()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(null)
+        repository.setTime(localTime)
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+
+        val custom = originalDateTime.toLocalDate().atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsEditAndUseCustomTimeAndDateNullAndTimeNullWhenSaveThenTransactionHasOriginalDateTime() {
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingGet()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(null)
+        repository.setTime(null)
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+
+        val custom = originalDateTime.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+    }
+
+    //TODO Continue future-prevention code later
+
+    /*@Test
+    fun givenModeIsAnyAndUseCustomDateTimeAndDateNotNullAndTimeNotNullAndDateTimeInFutureWhenSaveThenCurrentTimeUsedInstead() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 7, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setUseCustomDateTime(true)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+
+        val dateTime = repository.getDraftValue().customDate!!.atTime(repository.getDraftValue().customTime!!).truncatedTo(ChronoUnit.MINUTES)
+        val now = MOCKED_DATE.atTime(MOCKED_TIME)
+        assertEquals("Expected $now but was $dateTime",0, custom.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenModeIsAnyAndUseCustomDateTimeAndTimeNotNullWhenSetDateAndDateTodayThenDateTimeNotInFuture() {
+
+    }*/
+
+    // endregion
 
     @Test
     @Ignore("Not ready yet")

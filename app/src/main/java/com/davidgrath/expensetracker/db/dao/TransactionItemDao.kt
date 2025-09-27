@@ -53,7 +53,8 @@ interface TransactionItemDao {
             "FROM TransactionItemDb ti " +
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
-            "WHERE date(t.datedAt) >= date(:fromDate)")
+            "WHERE date(t.datedAt) >= date(:fromDate) " +
+            "ORDER BY date(t.datedAt), time(datedAtTime)") //TODO Think about ordinals later
     fun getItemsWithTransactionsAndCategoryFrom(fromDate: String): Flowable<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
@@ -67,7 +68,8 @@ interface TransactionItemDao {
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
             "WHERE date(t.datedAt) >= date(:fromDate)" +
-            "AND date(t.datedAt) <= date(:toDate) ")
+            "AND date(t.datedAt) <= date(:toDate) " +
+            "ORDER BY date(t.datedAt), time(datedAtTime)") // TODO Think about ordinals later
     fun getItemsWithTransactionsAndCategoryFromTo(fromDate: String, toDate: String): Observable<List<TransactionWithItemAndCategory>>
     @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
     fun getByIdSingle(id: Long): Single<TransactionItemDb>

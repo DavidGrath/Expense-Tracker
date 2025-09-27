@@ -28,6 +28,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
 import javax.inject.Inject
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
@@ -53,8 +54,8 @@ constructor(
 
     private var incrementId = 0
     private var draft = AddEditDetailedTransactionDraft(emptyList())
-    private val _draftLiveData = MutableLiveData<Triple<AddEditDetailedTransactionDraft, TransactionDetailEvent, Int>>(Triple(draft, TransactionDetailEvent.None, -1))
-    private val draftLiveData: LiveData<Triple<AddEditDetailedTransactionDraft, TransactionDetailEvent, Int>> = _draftLiveData
+    private val _draftLiveData = MutableLiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>>(Triple(draft, TransactionItemsEvent.None, -1))
+    private val draftLiveData: LiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>> = _draftLiveData
     private var currentMode = "add"
     private var transactionId: Long? = null
 
@@ -75,7 +76,7 @@ constructor(
         }
         val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)))
         LOGGER.info("Created draft with initial values")
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
         fileHandler.saveDraft(draft).subscribe()
     }
 
@@ -117,9 +118,11 @@ constructor(
                 //Set Account
                 //Set Seller
                 //Set Date
+                draft = draft.copy(customDate = LocalDate.parse(transaction.datedAt))
                 //Set Time
+                draft = draft.copy(customTime = LocalTime.parse(transaction.datedAtTime)) // TODO Think about ordinals later
                 LOGGER.info("Initialized existing transaction {}", transactionId)
-                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
             }.subscribeOn(Schedulers.io())
     }
 
@@ -145,7 +148,7 @@ constructor(
                 val item = AddTransactionItem(incrementId, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)
                 val newItems = listOf(item) + items
                 val newDraft = draft.copy(items = newItems)
-                _draftLiveData.postValue(Triple(newDraft, TransactionDetailEvent.Insert, 0))
+                _draftLiveData.postValue(Triple(newDraft, TransactionItemsEvent.Insert, 0))
                 fileHandler.saveDraft(newDraft).subscribe()
             }
             LOGGER.info("Moved initial details to top of existing draft")
@@ -164,7 +167,7 @@ constructor(
             val newItems = currentList + AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category))
             draft = draft.copy(items = newItems)
             LOGGER.info("addItem: New list size: {}", newItems.size)
-            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Insert, currentList.size))
+            _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Insert, currentList.size))
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
             }
@@ -189,7 +192,7 @@ constructor(
                 removeAt(position)
             }
             draft = draft.copy(items = newItems)
-            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Delete, position))
+            _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Delete, position))
             LOGGER.info("deleteItem: Deleted item at position {}", position)
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
@@ -215,7 +218,7 @@ constructor(
         images.removeAt(imagePosition)
         items[position] = currentItem.copy(images = images)
         draft = draft.copy(items = items)
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Delete, position))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Delete, position))
         LOGGER.info("Removed image at position {} from item {}", imagePosition, position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -276,7 +279,7 @@ constructor(
             it[position] = item
         }
         draft = draft.copy(items = newItems)
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.Change, position))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Change, position))
         LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -288,7 +291,7 @@ constructor(
             it[position] = item
         }
         draft = draft.copy(items = newItems)
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.ChangeInvalidate, position))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.ChangeInvalidate, position))
         LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -361,7 +364,7 @@ constructor(
                 draft.imageHashes
             }
             draft = draft.copy(items = newItems, imageHashes = newHashes)
-            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.ChangeInvalidate, index))
+            _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.ChangeInvalidate, index))
             LOGGER.info("addImageToItem: {}: Done", itemId)
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
@@ -411,7 +414,7 @@ constructor(
                     uri = xUri!!
                 }
                 draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
-                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+                _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
                 LOGGER.info("addEvidence: Transaction {}: Done", transactionId)
                 if (currentMode == "add") {
                     fileHandler.saveDraft(draft).subscribe()
@@ -432,7 +435,7 @@ constructor(
                     LOGGER.info("addEvidence: File already exists in draft for evidence")
                 }
                 draft = draft.copy(evidenceHashes = newHashes, evidence = newEvidence)
-                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+                _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
                 LOGGER.info("addEvidence: Done")
                 if (currentMode == "add") {
                     fileHandler.saveDraft(draft).subscribe()
@@ -461,14 +464,14 @@ constructor(
             }
         }
         draft = draft.copy(evidence = evidenceList)
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
         LOGGER.info("removeEvidence: Done")
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }
     }
 
-    fun getDraft(): LiveData<Triple<AddEditDetailedTransactionDraft, TransactionDetailEvent, Int>> {
+    fun getDraft(): LiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>> {
         return draftLiveData
     }
 
@@ -480,7 +483,7 @@ constructor(
             .flatMap {  bool ->
                 fileHandler.getDraft().toSingle().map { draft ->
                     this.draft = draft
-                    _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                    _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
                     bool
                 }
             }
@@ -524,7 +527,7 @@ constructor(
                 }
                 val newDraft = draft.copy(items = newItems, imageHashes = newImageHashes)
                 this.draft = newDraft
-                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
                 LOGGER.info("restoreDraft: Done")
             }
     }
@@ -550,17 +553,18 @@ constructor(
         return Single.fromCallable {
             val total = draft.items.map { it.amount!! }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
             //TODO Dates, Times, and Ordinals
+            val (datedDate, datedTime) = customDateTimeForDraft(draft)
+//            val (dateTime, date, time, offset, zone) = quintuple
             val date = ZonedDateTime.now(clock)
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
             val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val timeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_TIME)
 
             val offset = date.offset.id
             val zone = date.zone.id
 
             val actuallyUsedNewImages = draft.items.map { it.images }.fold(emptyList<AddEditTransactionFile>()) { acc, list -> acc + list }.filter { it.dbId == null }.toSet()
             val imagesMap = mutableMapOf<String, Long>()
+
             for(image in actuallyUsedNewImages) {
                 if(imagesMap[image.sha256] != null) {
                     continue
@@ -576,14 +580,18 @@ constructor(
                 val imageId = imageDao.insertImage(imageDb).blockingGet()
                 imagesMap[image.sha256] = imageId
             }
+            if(actuallyUsedNewImages.isNotEmpty()) {
+                LOGGER.info("saveDraft: Saved {} new images", actuallyUsedNewImages.size)
+            }
             val note = if(draft.note.isNullOrBlank()) {
                 null
             } else {
                 draft.note
             }
-            val transaction = TransactionDb(null, 1, total, "USD", null, false, true, note, null, null, dateTimeString, offset, zone, 0, dateString, timeString, offset, zone)
+            val transaction = TransactionDb(null, 1, total, "USD", null, false, true, note, null, null, dateTimeString, offset, zone, 0, datedDate, datedTime, offset, zone)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
+                LOGGER.info("saveDraft: Created new transaction")
                 draft.evidence.map { evidence ->
                     val file = evidence.uri.toFile()
                     val localDate = LocalDate.now(clock)
@@ -597,7 +605,9 @@ constructor(
                     val evidence = EvidenceDb(null, id, length, evidence.sha256, evidence.mimeType, finalUri.toString(), dateTimeString, offset, zone)
                     evidenceDao.insertEvidence(evidence).blockingGet()
                 }
-
+                if(draft.evidence.isNotEmpty()) {
+                    LOGGER.info("saveDraft: Saved {} evidence to transaction", draft.evidence.size)
+                }
                 val singles = draft.items.map { draftItem ->
                     val item = TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateTimeString, offset, zone)
                     transactionItemRepository.addTransactionItem(item)
@@ -612,9 +622,10 @@ constructor(
                 }
                 Single.mergeDelayError(singles).toList()
             }.flatMap {
+                LOGGER.info("saveDraft: Saved {} items to transaction", it.size)
                 incrementId = 0
                 draft = AddEditDetailedTransactionDraft(emptyList())
-                _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+                _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
                 fileHandler.deleteDraftFiles()
             }.blockingGet()
             Unit
@@ -730,10 +741,22 @@ constructor(
                 }
             }
             val transaction = transactionRepository.getTransactionByIdSingle(transactionId!!).blockingGet()
-            val updatedTransaction = transaction.copy(
+            var updatedTransaction = transaction.copy(
                 amount = total,
                 note = draft.note
             )
+            if(draft.useCustomDateTime) {
+
+                val customDate = draft.customDate ?: LocalDate.parse(transaction.datedAt)
+                val customTime = draft.customTime ?: LocalTime.parse(transaction.datedAtTime!!)
+                val customDateTime = customDate.atTime(customTime)
+
+                val (datedDate, datedTime) =
+                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)
+
+               updatedTransaction = updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime)
+               LOGGER.info("saveEdit: Transaction {}: set custom dateTime", transactionId)
+            }
             transactionRepository.updateTransaction(updatedTransaction).blockingSubscribe()
             LOGGER.info("Transaction {}: Updated basic details", transactionId)
             LOGGER.info("Transaction {}: New Item Count: {}; Updated Item Count: {}; Unmodified Item Count: {}", transactionId, newCount, updatedCount, unchangedCount)
@@ -845,7 +868,7 @@ constructor(
         incrementId = 0
         if(currentMode == "add") {
             draft = AddEditDetailedTransactionDraft(emptyList())
-            _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.All, -1))
+            _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
             fileHandler.deleteDraftFiles().blockingGet()
         } else if(currentMode == "edit") {
 
@@ -854,7 +877,7 @@ constructor(
 
     fun setNote(note: String) {
         draft = draft.copy(note = note)
-        _draftLiveData.postValue(Triple(draft, TransactionDetailEvent.None, -1))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
         //TODO Debounce
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -893,7 +916,66 @@ constructor(
         return valid
     }
 
-    enum class TransactionDetailEvent {
+    fun setUseCustomDateTime(useCustomDateTime: Boolean) {
+        draft = draft.copy(useCustomDateTime = useCustomDateTime)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        LOGGER.info("Use custom dateTime {}", useCustomDateTime)
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+    fun setDate(localDate: LocalDate?) {
+        draft = draft.copy(customDate = localDate)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        if(localDate == null) {
+            LOGGER.info("Set custom date to null")
+        } else {
+            LOGGER.info("Set custom date to a non-null value")
+        }
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun setTime(localTime: LocalTime?) {
+        draft = draft.copy(customTime = localTime)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        if(localTime == null) {
+            LOGGER.info("Set custom time to null")
+        } else {
+            LOGGER.info("Set custom time to a non-null value")
+        }
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun customDateTimeForDraft(draft: AddEditDetailedTransactionDraft): Pair<String, String> {
+        val date = ZonedDateTime.now(clock)
+//        val (dateTime, offset, zone) = dateTimeOffsetZone(clock)
+        val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
+        val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val timeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_TIME)
+        val useCustom = draft.useCustomDateTime
+        return if(useCustom) {
+            val customDate = draft.customDate ?: LocalDate.now(clock)
+            val customTime = draft.customTime ?: LocalTime.now(clock)
+            val customDateTime = customDate.atTime(customTime)
+//            DateTimeQuintuple(
+                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)
+//                customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME),
+//                offset, zone
+//            )
+        } else {
+//            DateTimeQuintuple(dateTime, dateString, timeString, offset, zone)
+            dateString to timeString
+        }
+    }
+
+    /**
+     * Mainly meant for the `EditText`s to help avoid infinite loops with the `TextWatcher`s
+     */
+    enum class TransactionItemsEvent {
         Delete,
         Insert,
         All,

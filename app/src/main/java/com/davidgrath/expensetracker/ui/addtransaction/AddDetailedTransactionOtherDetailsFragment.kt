@@ -6,23 +6,46 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
+import android.widget.CompoundButton
+import android.widget.CompoundButton.OnCheckedChangeListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.ibm.icu.text.BreakIterator
 import org.slf4j.LoggerFactory
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.ZonedDateTime
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.format.FormatStyle
 
-class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
+class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener, MaterialPickerOnPositiveButtonClickListener<Long> {
 
-    lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
-    lateinit var viewModel: AddDetailedTransactionViewModel
+    private lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
+    private lateinit var viewModel: AddDetailedTransactionViewModel
+    private var datePicker: MaterialDatePicker<Long>? = null
+    private var timePicker: MaterialTimePicker? = null
+    private var customLocalTime: LocalTime? = null
+    private var customLocalDate: LocalDate? = null
+    private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
@@ -36,12 +59,45 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.textViewAddDetailedTransactionAddEvidence.setOnClickListener(this)
+        binding.textViewAddDetailedTransactionCustomDate.setOnClickListener(this)
+        binding.textViewAddDetailedTransactionCustomTime.setOnClickListener(this)
+        binding.imageViewAddDetailedTransactionCustomDateRemove.setOnClickListener(this)
+        binding.imageViewAddDetailedTransactionCustomTimeRemove.setOnClickListener(this)
+
+        binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
         val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap())
         binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
         binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
             items = draft.evidence
             adapter.setItems(items, renderers)
+            binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(null)
+            binding.checkBoxAddDetailedTransactionUseCustomDateTime.isChecked = draft.useCustomDateTime
+            binding.linearLayoutAddDetailedTransactionDateTime.visibility = if(draft.useCustomDateTime) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+            binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
+            customLocalTime = draft.customTime
+            customLocalDate = draft.customDate
+            if(!draft.useCustomDateTime) {
+                return@observe
+            }
+            if(draft.customDate == null) {
+                binding.textViewAddDetailedTransactionCustomDate.text = ""
+                binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.GONE
+            } else {
+                binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.customDate)
+                binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.VISIBLE
+            }
+            if(draft.customTime == null) {
+                binding.textViewAddDetailedTransactionCustomTime.text = ""
+                binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.GONE
+            } else {
+                binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.customTime)
+                binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.VISIBLE
+            }
         }
         viewModel.rendererLiveData.observe(viewLifecycleOwner) { map ->
             renderers = map
@@ -106,7 +162,87 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
                     requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_OPEN_DOCUMENT)
                     LOGGER.info("startedActivityForResult called to get evidence")
                 }
+                binding.textViewAddDetailedTransactionCustomDate -> {
+                    datePicker = childFragmentManager.findFragmentByTag(DIALOG_TAG_DATE) as MaterialDatePicker<Long>?
+                    if(datePicker == null) {
+                        LOGGER.info("datePicker is null. Creating")
+                        val calendarConstraints = CalendarConstraints.Builder()
+                            .setValidator(DateValidatorPointBackward.now())
+                            .build()
+                        val builder = MaterialDatePicker.Builder.datePicker()
+                            .setCalendarConstraints(calendarConstraints)
+                        if(customLocalDate != null) {
+                            val millis = customLocalDate!!.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+                            builder.setSelection(millis)
+                            LOGGER.info("Using existing date for datePicker")
+                        } else {
+                            val millis = Instant.now().toEpochMilli()
+                            builder.setSelection(millis)
+                            LOGGER.info("Using current date for datePicker")
+                        }
+                        datePicker = builder
+                            .build()
+                        datePicker!!.addOnPositiveButtonClickListener(this)
+                    }
+                    if(!(datePicker?.dialog?.isShowing?: false)) {
+                        datePicker!!.show(childFragmentManager, DIALOG_TAG_DATE)
+                        LOGGER.info("Showed datePicker")
+                    }
+                }
+                binding.textViewAddDetailedTransactionCustomTime -> {
+                    timePicker = childFragmentManager.findFragmentByTag(DIALOG_TAG_TIME) as MaterialTimePicker?
+                    if(timePicker == null) {
+                        LOGGER.info("timePicker is null. Creating")
+                        val builder = MaterialTimePicker.Builder()
+                        if(customLocalTime != null) { //TODO Default date and time to now if Material doesn't do that already
+                            builder.setHour(customLocalTime!!.hour)
+                            builder.setMinute(customLocalTime!!.minute)
+                            LOGGER.info("Using existing time for timePicker")
+                        }
+                        val is24Hour = DateFormat.is24HourFormat(requireContext())
+                        val format = if(is24Hour) {
+                            TimeFormat.CLOCK_24H
+                        } else {
+                            TimeFormat.CLOCK_12H
+                        }
+                        timePicker = builder.setTimeFormat(format)
+                            .build()
+                        timePicker!!.addOnPositiveButtonClickListener {
+                            //TODO Check for impossible future time
+                            LOGGER.info("timePicker time set")
+                            val time = LocalTime.of(timePicker!!.hour, timePicker!!.minute)
+                            viewModel.setCustomTime(time)
+                        }
+                    }
+                    if(!(timePicker?.dialog?.isShowing?: false)) {
+                        timePicker!!.show(childFragmentManager, DIALOG_TAG_TIME)
+                        LOGGER.info("Showed timePicker")
+                    }
+                }
+                binding.imageViewAddDetailedTransactionCustomDateRemove -> {
+                    viewModel.setCustomDate(null)
+                }
+                binding.imageViewAddDetailedTransactionCustomTimeRemove -> {
+                    viewModel.setCustomTime(null)
+                }
             }
+        }
+    }
+
+    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
+        when(buttonView) {
+            binding.checkBoxAddDetailedTransactionUseCustomDateTime -> {
+                viewModel.setUseCustomDateTime(isChecked)
+            }
+        }
+    }
+
+    override fun onPositiveButtonClick(selection: Long?) {
+        selection?.let {
+            LOGGER.info("datePicker date picked")
+            val instant = Instant.ofEpochMilli(it)
+            val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+            viewModel.setCustomDate(localDate)
         }
     }
 
@@ -118,5 +254,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener {
         }
         
         private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionOtherDetailsFragment::class.java)
+        private val DIALOG_TAG_DATE = "dateDialog"
+        private val DIALOG_TAG_TIME = "timeDialog"
     }
 }

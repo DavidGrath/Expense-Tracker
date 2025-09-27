@@ -27,6 +27,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
 import java.io.File
 import java.io.IOException
 import java.math.BigDecimal
@@ -52,6 +53,7 @@ class AddDetailedTransactionViewModel(
     var rendererLiveData: LiveData<Map<Uri, PdfRenderer>> = _rendererLiveData
 
     init {
+        addDetailedTransactionRepository.setMode(mode)
         if(mode == "add") {
             if (!addDetailedTransactionRepository.draftExists()) {
                 if (initialAmount != null || initialDescription != null || initialCategoryId != null) {
@@ -192,6 +194,18 @@ class AddDetailedTransactionViewModel(
 
     fun setNote(note: String) {
         addDetailedTransactionRepository.setNote(note)
+    }
+
+    fun setUseCustomDateTime(useCustomDateTime: Boolean) {
+        addDetailedTransactionRepository.setUseCustomDateTime(useCustomDateTime)
+    }
+
+    fun setCustomDate(localDate: LocalDate?) {
+        addDetailedTransactionRepository.setDate(localDate)
+    }
+
+    fun setCustomTime(localTime: LocalTime?) {
+        addDetailedTransactionRepository.setTime(localTime)
     }
 
 

@@ -6,12 +6,59 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:animateLayoutChanges="true">
 
-        <TextView
+        <CheckBox
+            android:id="@+id/check_box_add_detailed_transaction_use_custom_date_time"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TODO Time" />
+            android:text="Custom Date/Time"/>
+        <LinearLayout
+            android:id="@+id/linear_layout_add_detailed_transaction_date_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="visible"
+            android:animateLayoutChanges="true">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_weight="1">
+                <TextView
+                    android:id="@+id/text_view_add_detailed_transaction_custom_date"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:drawableStart="@drawable/baseline_calendar_today_24"
+                    android:text="2025-06-30"
+                    android:layout_weight="1"/>
+                <ImageView
+                    android:id="@+id/image_view_add_detailed_transaction_custom_date_remove"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_cancel_24"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_weight="1">
+                <TextView
+                    android:id="@+id/text_view_add_detailed_transaction_custom_time"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:drawableStart="@drawable/baseline_access_alarm_24"
+                    android:text="08:00"
+                    android:layout_weight="1"/>
+                <ImageView
+                    android:id="@+id/image_view_add_detailed_transaction_custom_time_remove"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_cancel_24"/>
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

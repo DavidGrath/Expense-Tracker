@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 
 @Builder
 @NullMarked
-@Entity(indices = [Index(value = ["datedAt"])])
+@Entity(indices = [Index(value = ["datedAt","datedAtTime"])]) // TODO Think about ordinals later
 data class TransactionDb(
     @PrimaryKey(autoGenerate = true)
     var id: Long?,
@@ -41,9 +41,12 @@ data class TransactionDb(
     val ordinal: Int,
     val datedAt: String,
 
-    val datedAtTime: String?,
+    /*val datedAtTime: String?, //TODO Think about ordinals later
     val datedAtOffset: String?,
-    val datedAtTimezone: String?,
+    val datedAtTimezone: String?,*/
+    val datedAtTime: String,
+    val datedAtOffset: String,
+    val datedAtTimezone: String,
 ): Comparable<TransactionDb> {
 
 
