@@ -12,6 +12,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
@@ -32,8 +33,6 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
     lateinit var categoryRepository: CategoryRepository
-    @Inject
-    lateinit var clock: Clock
     var noPagesDialogFragment: GenericDialogFragment? = null
     var passwordDialogFragment: GenericDialogFragment? = null
 
@@ -61,7 +60,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         }
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, clock, transactionId, amount, description, categoryId)
+            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, transactionId, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
 

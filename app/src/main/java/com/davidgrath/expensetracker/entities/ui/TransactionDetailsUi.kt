@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.entities.ui
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneId
 import java.math.BigDecimal
 
 data class TransactionDetailsUi(
@@ -18,6 +19,7 @@ data class TransactionDetailsUi(
     val timestamp: LocalDateTime,
     val datedDate: LocalDate,
     val datedTime: LocalTime?,
+    val datedZone: ZoneId,
     val seller: SellerUi? = null,
 ) {
 }

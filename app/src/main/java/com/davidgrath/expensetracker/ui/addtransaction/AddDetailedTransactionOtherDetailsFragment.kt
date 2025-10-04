@@ -10,6 +10,7 @@ import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.CompoundButton
 import android.widget.CompoundButton.OnCheckedChangeListener
@@ -17,8 +18,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -35,6 +39,7 @@ import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
+import javax.inject.Inject
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener, MaterialPickerOnPositiveButtonClickListener<Long> {
 
@@ -46,6 +51,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
     private var customLocalDate: LocalDate? = null
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+    @Inject
+    lateinit var timeHandler: TimeHandler
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
@@ -58,6 +65,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        (requireContext().applicationContext as ExpenseTracker).appComponent.inject(this)
         binding.textViewAddDetailedTransactionAddEvidence.setOnClickListener(this)
         binding.textViewAddDetailedTransactionCustomDate.setOnClickListener(this)
         binding.textViewAddDetailedTransactionCustomTime.setOnClickListener(this)
@@ -68,35 +76,76 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap())
         binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
         binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
+        val mode = viewModel.mode
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
             items = draft.evidence
             adapter.setItems(items, renderers)
             binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(null)
             binding.checkBoxAddDetailedTransactionUseCustomDateTime.isChecked = draft.useCustomDateTime
-            binding.linearLayoutAddDetailedTransactionDateTime.visibility = if(draft.useCustomDateTime) {
-                View.VISIBLE
+            if(mode == "edit") {
+                binding.checkBoxAddDetailedTransactionUseCustomDateTime.visibility = View.GONE
+                binding.linearLayoutAddDetailedTransactionDateTime.visibility = View.VISIBLE
             } else {
-                View.GONE
+                binding.checkBoxAddDetailedTransactionUseCustomDateTime.visibility = View.VISIBLE
+                binding.linearLayoutAddDetailedTransactionDateTime.visibility = if(draft.useCustomDateTime) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
             }
             binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
             customLocalTime = draft.customTime
             customLocalDate = draft.customDate
-            if(!draft.useCustomDateTime) {
-                return@observe
-            }
+
             if(draft.customDate == null) {
-                binding.textViewAddDetailedTransactionCustomDate.text = ""
+                if(mode == "edit") {
+                    binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.dbOriginalDate!!)
+                    val zone = draft.dbOriginalZoneId
+                    if(zone != timeHandler.getZone()) {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    } else {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    }
+                } else {
+                    binding.textViewAddDetailedTransactionCustomDate.text = ""
+                }
                 binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.GONE
             } else {
                 binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.customDate)
                 binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.VISIBLE
+                if(mode == "edit") {
+                    val zone = draft.dbOriginalZoneId
+                    if(zone != timeHandler.getZone()) {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    } else {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    }
+                }
             }
             if(draft.customTime == null) {
-                binding.textViewAddDetailedTransactionCustomTime.text = ""
+                if(mode == "edit") {
+                    binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.dbOriginalTime!!)
+                    val zone = draft.dbOriginalZoneId
+                    if(zone != timeHandler.getZone()) {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    } else {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    }
+                } else {
+                    binding.textViewAddDetailedTransactionCustomTime.text = ""
+                }
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.GONE
             } else {
                 binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.customTime)
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.VISIBLE
+                if(mode == "edit") {
+                    val zone = draft.dbOriginalZoneId
+                    if(zone != timeHandler.getZone()) {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    } else {
+                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
+                    }
+                }
             }
         }
         viewModel.rendererLiveData.observe(viewLifecycleOwner) { map ->
@@ -241,7 +290,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         selection?.let {
             LOGGER.info("datePicker date picked")
             val instant = Instant.ofEpochMilli(it)
-            val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+            val localDate = instant.atZone(timeHandler.getZone()).toLocalDate()
             viewModel.setCustomDate(localDate)
         }
     }

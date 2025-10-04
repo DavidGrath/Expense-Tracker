@@ -16,12 +16,22 @@ interface TestComponent: MainComponent {
 
     fun inject(expenseTrackerTest: ExpenseTrackerTest)
 
+    //region UI
+
     fun inject(addDetailedTransactionActivityTest: AddDetailedTransactionActivityTest)
     fun inject(addDetailedTransactionOtherDetailsFragmentTest: AddDetailedTransactionOtherDetailsFragmentTest)
+    //endregion
 
+    //region Repository
     fun inject(transactionRepositoryTest: TransactionRepositoryTest)
     fun inject(addDetailedTransactionRepositoryTest: AddDetailedTransactionRepositoryTest)
 
+    //endregion
+
+
+    //region DAO
     fun inject(transactionItemDaoTest: TransactionItemDaoTest)
     fun inject(transactionDaoTest: TransactionDaoTest)
+
+    //endregion
 }

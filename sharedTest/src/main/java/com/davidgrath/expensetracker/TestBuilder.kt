@@ -17,13 +17,13 @@ class TestBuilder {
                 .sellerID(null)
                 .sellerLocationId(null)
                 .createdAt("2025-06-30T08:00:00")
-                .createdAtOffset("+05:00")
-                .createdAtTimezone("America/New_York")
+                .createdAtOffset("Z")
+                .createdAtTimezone("UTC")
                 .ordinal(0)
                 .datedAt("2025-06-30")
                 .datedAtTime("08:00:00")
-                .datedAtOffset("+05:00")
-                .datedAtTimezone("America/New_York")
+                .datedAtOffset("Z")
+                .datedAtTimezone("UTC")
             return builder
         }
 
@@ -39,8 +39,8 @@ class TestBuilder {
                 .variation("")
                 .primaryCategoryId(primaryCategoryId)
                 .createdAt("2025-06-30T08:00:00")
-                .createdAtOffset("+05:00")
-                .createdAtTimezone("America/New_York")
+                .createdAtOffset("Z")
+                .createdAtTimezone("UTC")
             return builder
         }
 

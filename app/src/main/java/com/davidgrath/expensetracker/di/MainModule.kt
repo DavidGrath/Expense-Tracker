@@ -81,8 +81,9 @@ class MainModule(private val application: Application, private val fileHandler: 
         return fileHandler
     }
 
+    @Singleton
     @Provides
-    fun clock(): Clock {
-        return Clock.systemDefaultZone()
+    fun timeHandler(): TimeHandler {
+        return MainTimeHandler()
     }
 }

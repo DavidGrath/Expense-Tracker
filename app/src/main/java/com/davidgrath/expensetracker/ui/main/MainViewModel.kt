@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.toLiveData
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.itemSumToCategoryUi
 import com.davidgrath.expensetracker.transactionWithCategoryToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
@@ -15,6 +16,7 @@ import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCat
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
+import com.davidgrath.expensetracker.offsetTimeToLocalTime
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
@@ -39,7 +41,8 @@ constructor(
     private val transactionRepository: TransactionRepository,
     private val transactionItemRepository: TransactionItemRepository,
     private val imageRepository: ImageRepository,
-    private val categoryRepository: CategoryRepository, private val clock: Clock
+    private val categoryRepository: CategoryRepository,
+    private val timeHandler: TimeHandler
 ) : AndroidViewModel(application) {
 
     val listLiveData: LiveData<List<GeneralTransactionListItem>>
@@ -63,7 +66,7 @@ constructor(
         listLiveData = transactionRepository.getTransactions().map{ transactionsAndItems ->
             val list = arrayListOf<TransactionWithItemAndCategoryUi>()
             for (item in transactionsAndItems) {
-                val createdDateTime = getCreatedLocalDateTime(item)
+                val createdDateTime = offsetTimeToLocalTime(timeHandler, item.transactionCreatedAt, item.transactionCreatedAtOffset)
                 val datedDate = LocalDate.parse(item.transactionDatedAt)
                 val datedDateTime = getLocalDateTime(item)
                 val category = transactionWithCategoryToCategoryUi(item)
@@ -105,7 +108,7 @@ constructor(
             }
             mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()*/
-        statsTotalByDay = transactionRepository.getTotalSpentByDate(LocalDate.now(clock).toString())
+        statsTotalByDay = transactionRepository.getTotalSpentByDate(LocalDate.now(timeHandler.getClock()).toString())
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 
@@ -118,13 +121,6 @@ constructor(
             .subscribe({ id -> }, {})
     }
 
-    fun getCreatedLocalDateTime(transactionWithItemAndCategory: TransactionWithItemAndCategory): LocalDateTime {
-        val utcDateTime = LocalDateTime.parse(transactionWithItemAndCategory.transactionCreatedAt)
-        val offset = ZoneOffset.of(transactionWithItemAndCategory.transactionCreatedAtOffset)
-        val offsetDateTime = utcDateTime.atOffset(offset)
-        val localDateTime = offsetDateTime.toLocalDateTime()
-        return localDateTime
-    }
 
     fun getLocalDateTime(transactionWithItemAndCategory: TransactionWithItemAndCategory): LocalDateTime? {
         if (transactionWithItemAndCategory.transactionDatedAtTime == null) {
@@ -132,11 +128,8 @@ constructor(
         }
         val utcDate = LocalDate.parse(transactionWithItemAndCategory.transactionDatedAt)
         val utcTime = LocalTime.parse(transactionWithItemAndCategory.transactionDatedAtTime)
-        val offset = ZoneOffset.of(transactionWithItemAndCategory.transactionDatedAtOffset)
         val utcDateTime = utcDate.atTime(utcTime)
-        val offsetDateTime = utcDateTime.atOffset(offset)
-        val localDateTime = offsetDateTime.toLocalDateTime()
-        return localDateTime
+        return offsetTimeToLocalTime(timeHandler, utcDateTime.toString(), transactionWithItemAndCategory.transactionDatedAtOffset!!)
     }
 
     companion object {

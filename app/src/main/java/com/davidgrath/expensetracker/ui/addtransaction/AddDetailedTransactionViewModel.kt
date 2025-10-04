@@ -36,10 +36,9 @@ import java.util.UUID
 
 class AddDetailedTransactionViewModel(
     private val application: Application,
-    private val mode: String,
+    val mode: String,
     private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val clock: Clock,
     private val transactionId: Long?,
     private val initialAmount: BigDecimal?,
     private val initialDescription: String?,

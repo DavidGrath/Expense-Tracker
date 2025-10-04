@@ -87,8 +87,9 @@ class InstrumentedTestModule(private val application: Application, private val f
         return fileHandler
     }
 
+    @Singleton
     @Provides
-    fun clock(): Clock {
-        return Clock.fixed(LocalDateTime.parse("2025-06-30T08:00:00.000").toInstant(ZoneOffset.UTC), ZoneId.of("UTC"))
+    fun timeHandler(): TimeHandler {
+        return InstrumentedTestTimeHandler()
     }
 }

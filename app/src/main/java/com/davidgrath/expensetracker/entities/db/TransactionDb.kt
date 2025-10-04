@@ -4,6 +4,8 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
+import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.offsetTimeToLocalTime
 
 import org.jilt.Builder;
 import org.jspecify.annotations.NullMarked;
@@ -54,16 +56,13 @@ data class TransactionDb(
         return this.id!!.compareTo(other.id!!)
     }
     @Ignore
-    fun getDatedLocalDateTime(): LocalDateTime? {
+    fun getDatedLocalDateTime(timeHandler: TimeHandler): LocalDateTime? {
         if(datedAtTime == null) {
             return null
         }
         val utcDate = LocalDate.parse(datedAt)
         val utcTime = LocalTime.parse(datedAtTime)
-        val offset = ZoneOffset.of(datedAtOffset)
         val utcDateTime = utcDate.atTime(utcTime)
-        val offsetDateTime = utcDateTime.atOffset(offset)
-        val localDateTime = offsetDateTime.toLocalDateTime()
-        return localDateTime
+        return offsetTimeToLocalTime(timeHandler, utcDateTime.toString(), datedAtOffset)
     }
 }

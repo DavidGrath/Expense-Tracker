@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.repositories
 
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
@@ -18,11 +19,11 @@ import javax.inject.Singleton
 class TransactionItemRepository
  @Inject constructor(
      private val transactionItemDao: TransactionItemDao,
-     private val clock: Clock
+     private val timeHandler: TimeHandler
  ){
 
     fun getTotalSpentByCategory(): Observable<List<ItemSumByCategory>> {
-        return transactionItemDao.getSumByCategoryFrom(LocalDate.now(clock).toString())
+        return transactionItemDao.getSumByCategoryFrom(LocalDate.now(timeHandler.getClock()).toString())
             .map {
                 LOGGER.info("getTotalSpentByCategory: Item count: {} items", it.size)
                 it

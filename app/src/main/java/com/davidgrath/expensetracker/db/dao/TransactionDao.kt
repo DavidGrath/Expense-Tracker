@@ -22,8 +22,35 @@ interface TransactionDao {
     fun getById(id: Long): Observable<TransactionDb>
     @Query("SELECT * FROM TransactionDb WHERE id = :id")
     fun getByIdSingle(id: Long): Single<TransactionDb>
-    @Query("SELECT * FROM TransactionDb WHERE date(datedAt) >= :fromDate")
-    fun getAllFrom(fromDate: String): Observable<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb")
+    fun getAllTemp(): Single<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE date(datedAt) >= date(:fromDate)")
+    fun getAllFromUTC(fromDate: String): Observable<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate)")
+    fun getAllFromTransactionOffset(fromDate: String): Observable<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset))")
+    fun getAllFromSpecifiedOffset(fromDate: String, offset: String): Observable<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset))")
+    fun getAllFromSpecifiedOffsetSingle(fromDate: String, offset: String): Single<List<TransactionDb>>
+    @Query("SELECT * FROM TransactionDb WHERE " +
+            "date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset)) " +
+            "AND " +
+            "date(datetime(datedAt || \"T\" || datedAtTime, :offset)) <= date(datetime(:toDate || \"T00:00:00\" || :offset)) ")
+    fun getAllFromToSpecifiedOffsetSingle(fromDate: String, toDate: String, offset: String): Single<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate)")
+    fun getAllFromTransactionOffsetSingle(fromDate: String): Single<List<TransactionDb>>
+
+    @Query("SELECT * FROM TransactionDb WHERE " +
+            "date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate) " +
+            "AND " +
+            "date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) <= date(:toDate) ")
+    fun getAllFromToTransactionOffsetSingle(fromDate: String, toDate: String): Single<List<TransactionDb>>
 
     @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb WHERE aggregateDate >= date(:fromDate) GROUP BY aggregateDate ORDER BY aggregateDate")
     fun getTransactionSumByDateFrom(fromDate: String): Observable<List<DateAmountSummary>>

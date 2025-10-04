@@ -4,6 +4,7 @@ import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModelFactory
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
@@ -18,8 +19,9 @@ interface MainComponent {
     fun categoryDao(): CategoryDao
     fun accountDao(): AccountDao
     fun profileDao(): ProfileDao
-    fun clock(): Clock
+    fun timeHandler(): TimeHandler
     fun inject(mainViewModelFactory: MainViewModelFactory)
     fun inject(addDetailedTransactionActivity: AddDetailedTransactionActivity)
     fun inject(transactionDetailsActivity: TransactionDetailsActivity)
+    fun inject(addDetailedTransactionOtherDetailsFragment: AddDetailedTransactionOtherDetailsFragment)
 }

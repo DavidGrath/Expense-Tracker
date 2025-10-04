@@ -209,7 +209,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
 
     fun tempCreateDefaultProfile(): Single<ProfileDb> {
-        val clock = appComponent.clock()
+        val clock = appComponent.timeHandler().getClock()
         val date = ZonedDateTime.now(clock)
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -232,7 +232,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val currency = Currency.getInstance(locale)?.currencyCode ?: "USD"
 
             LOGGER.info("Picked default locale and currency: {}, {}", locale, currency)
-            val clock = appComponent.clock()
+            val clock = appComponent.timeHandler().getClock()
             val date = ZonedDateTime.now(clock)
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
             val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -282,7 +282,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
     fun tempInitDefaultCategories(): Single<Unit> {
         return Single.fromCallable {
-            val clock = appComponent.clock()
+            val clock = appComponent.timeHandler().getClock()
             val date = ZonedDateTime.now(clock)
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
             val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)

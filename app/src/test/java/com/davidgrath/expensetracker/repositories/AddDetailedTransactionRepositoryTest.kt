@@ -21,16 +21,15 @@ import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
-import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
-import com.davidgrath.expensetracker.getCreatedLocalDateTime
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.test.TestContentProvider
 import com.squareup.rx3.idler.Rx3Idler
@@ -38,7 +37,11 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -55,7 +58,6 @@ import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.temporal.ChronoUnit
-import org.threeten.bp.temporal.TemporalUnit
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -72,7 +74,7 @@ class AddDetailedTransactionRepositoryTest {
     @Inject
     lateinit var fileHandler: DraftFileHandler
     @Inject
-    lateinit var clock: Clock
+    lateinit var timeHandler: TimeHandler
     @Inject
     lateinit var transactionDao: TransactionDao
     @Inject
@@ -258,7 +260,7 @@ class AddDetailedTransactionRepositoryTest {
         val resource = TestData.Resource.Images.BREAD
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val imageId = saveImageToDevice(resource).blockingGet()
         val itemImage = TransactionItemImagesDb(null, itemId, imageId, dateTimeString, offset, zone)
         itemImagesDao.insertItemImage(itemImage).subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -283,7 +285,7 @@ class AddDetailedTransactionRepositoryTest {
 
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val breadImageId = saveImageToDevice(bread).blockingGet()
 
         val itemImage = TransactionItemImagesDb(null, itemId, breadImageId, dateTimeString, offset, zone)
@@ -322,7 +324,7 @@ class AddDetailedTransactionRepositoryTest {
 
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val breadImageId = saveImageToDevice(bread).blockingGet()
 
         val itemImage = TransactionItemImagesDb(null, itemId, breadImageId, dateTimeString, offset, zone)
@@ -387,7 +389,7 @@ class AddDetailedTransactionRepositoryTest {
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
         val mainImage = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val breadImageId = saveImageToDevice(bread).blockingGet()
 
         val itemImage = TransactionItemImagesDb(null, itemId, breadImageId, dateTimeString, offset, zone)
@@ -439,7 +441,7 @@ class AddDetailedTransactionRepositoryTest {
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
         val resourceFile = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val imageId = saveImageToDevice(resource).blockingGet()
 
         val otherItemImage = TransactionItemImagesDb(null, otherTransaction.second, imageId, dateTimeString, offset, zone)
@@ -465,7 +467,7 @@ class AddDetailedTransactionRepositoryTest {
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
 //        val resourceFile = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val imageId = saveImageToDevice(resource).blockingGet()
         val itemImage = TransactionItemImagesDb(null, itemId, imageId, dateTimeString, offset, zone)
         itemImagesDao.insertItemImage(itemImage).subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -488,7 +490,7 @@ class AddDetailedTransactionRepositoryTest {
         val resource = TestData.Resource.Images.BREAD
         val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
         mainImagesFolder.mkdirs()
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val imageId = saveImageToDevice(resource).blockingGet()
 
         val itemImage = TransactionItemImagesDb(null, itemId, imageId, dateTimeString, offset, zone)
@@ -907,8 +909,8 @@ class AddDetailedTransactionRepositoryTest {
 
         repository.finishTransaction().blockingSubscribe()
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val now = LocalDateTime.now(timeHandler.getClock()).truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals(0, now.compareTo(transactionTime))
     }
 
@@ -927,7 +929,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.finishTransaction().blockingSubscribe()
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val custom = LocalDateTime.parse("2025-01-01T01:00:30.123").truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
@@ -946,7 +948,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.finishTransaction().blockingSubscribe()
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val custom = localDate.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals(0, custom.compareTo(transactionTime))
     }
 
@@ -965,7 +967,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.finishTransaction().blockingSubscribe()
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val custom = MOCKED_DATE.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals(0, custom.compareTo(transactionTime))
     }
 
@@ -984,12 +986,12 @@ class AddDetailedTransactionRepositoryTest {
         repository.finishTransaction().blockingSubscribe()
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val custom = MOCKED_DATE.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals(0, custom.compareTo(transactionTime))
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+        assertEquals("Expected $custom but got $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
-    fun givenModeIsEditAndUseCustomTimeAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasNewDateTime() {
+    fun givenModeIsEditAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasNewDateTime() {
 
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
         var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
@@ -1000,7 +1002,6 @@ class AddDetailedTransactionRepositoryTest {
 
         val localDate = LocalDate.of(2025, 1, 1)
         val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
         repository.setDate(localDate)
         repository.setTime(localTime)
         repository.finishTransaction().blockingSubscribe()
@@ -1008,12 +1009,12 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
 
         val custom = localDate.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
-    fun givenModeIsEditAndUseCustomTimeAndDateNotNullAndTimeNullWhenSaveThenTransactionHasNewDate() {
+    fun givenModeIsEditAndDateNotNullAndTimeNullWhenSaveThenTransactionHasNewDate() {
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
         var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
         val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
@@ -1023,7 +1024,6 @@ class AddDetailedTransactionRepositoryTest {
 
         val localDate = LocalDate.of(2025, 1, 1)
         val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
         repository.setDate(localDate)
         repository.setTime(null)
         repository.finishTransaction().blockingSubscribe()
@@ -1031,12 +1031,12 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
 
         val custom = localDate.atTime(originalDateTime.toLocalTime()).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
-    fun givenModeIsEditAndUseCustomTimeAndDateNullAndTimeNotNullWhenSaveThenTransactionHasNewTime() {
+    fun givenModeIsEditAndDateNullAndTimeNotNullWhenSaveThenTransactionHasNewTime() {
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
         var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
         val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
@@ -1046,7 +1046,6 @@ class AddDetailedTransactionRepositoryTest {
 
         val localDate = LocalDate.of(2025, 1, 1)
         val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
         repository.setDate(null)
         repository.setTime(localTime)
         repository.finishTransaction().blockingSubscribe()
@@ -1055,12 +1054,12 @@ class AddDetailedTransactionRepositoryTest {
 
         val custom = originalDateTime.toLocalDate().atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
 
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
-    fun givenModeIsEditAndUseCustomTimeAndDateNullAndTimeNullWhenSaveThenTransactionHasOriginalDateTime() {
+    fun givenModeIsEditAndDateNullAndTimeNullWhenSaveThenTransactionHasOriginalDateTime() {
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
         var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
         val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
@@ -1070,7 +1069,6 @@ class AddDetailedTransactionRepositoryTest {
 
         val localDate = LocalDate.of(2025, 1, 1)
         val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
         repository.setDate(null)
         repository.setTime(null)
         repository.finishTransaction().blockingSubscribe()
@@ -1078,7 +1076,7 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
 
         val custom = originalDateTime.truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime()!!.truncatedTo(ChronoUnit.MINUTES)
+        val transactionTime = transaction.getDatedLocalDateTime(timeHandler)!!.truncatedTo(ChronoUnit.MINUTES)
         assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
@@ -1156,7 +1154,7 @@ class AddDetailedTransactionRepositoryTest {
         }
         val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
         copyResourceToFile(classLoader, resource.resourceName, mainImage)
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val image = ImageDb(null, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
         return imageDao.insertImage(image).subscribeOn(Schedulers.io())
     }
@@ -1170,7 +1168,7 @@ class AddDetailedTransactionRepositoryTest {
         }
         val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
         copyResourceToFile(classLoader, resource.resourceName, mainEvidence)
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(clock)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
         val evidence = EvidenceDb(null, transactionId, 0L, resource.sha256, "image/jpeg", mainEvidence.toUri().toString(), dateTimeString, offset, zone)
         return evidenceDao.insertEvidence(evidence).subscribeOn(Schedulers.io())
     }

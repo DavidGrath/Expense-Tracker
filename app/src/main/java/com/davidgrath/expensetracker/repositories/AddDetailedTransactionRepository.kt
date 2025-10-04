@@ -14,6 +14,7 @@ import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
@@ -27,10 +28,12 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
+import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import javax.inject.Inject
 import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
@@ -47,7 +50,7 @@ constructor(
     private val transactionItemRepository: TransactionItemRepository,
     private val categoryDao: CategoryDao,
     private val itemImagesDao: TransactionItemImagesDao,
-    private val clock: Clock,
+    private val timeHandler: TimeHandler,
     private val evidenceDao: EvidenceDao,
     private val transactionItemDao: TransactionItemDao
 ) {
@@ -117,10 +120,23 @@ constructor(
                 draft = draft.copy(note = transaction.note)
                 //Set Account
                 //Set Seller
-                //Set Date
-                draft = draft.copy(customDate = LocalDate.parse(transaction.datedAt))
-                //Set Time
-                draft = draft.copy(customTime = LocalTime.parse(transaction.datedAtTime)) // TODO Think about ordinals later
+                //Set Date and Time
+                val localDate = LocalDate.parse(transaction.datedAt)
+                val localTime = LocalTime.parse(transaction.datedAtTime)
+                val instant = localDate.atTime(localTime).toInstant(ZoneOffset.UTC)
+
+                val offset = ZoneOffset.of(transaction.datedAtOffset)
+                val originalOffsetDateTime = instant.atOffset(offset)
+                val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeHandler.getZone().rules.getOffset(
+                    Instant.now())))
+                val localDateTime = localOffsetDateTime.toLocalDateTime()
+                val zone = ZoneId.of(transaction.datedAtTimezone)
+                if(zone != timeHandler.getZone()) {
+                    LOGGER.info("Transaction {} has different time zone from the system", transactionId)
+                }
+                draft = draft.copy(dbOriginalDate = localDateTime.toLocalDate(), dbOriginalTime = localDateTime.toLocalTime()) // TODO Think about ordinals later
+                draft = draft.copy(dbOriginalOffset = offset, dbOriginalZoneId = zone)
+
                 LOGGER.info("Initialized existing transaction {}", transactionId)
                 _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
             }.subscribeOn(Schedulers.io())
@@ -555,7 +571,7 @@ constructor(
             //TODO Dates, Times, and Ordinals
             val (datedDate, datedTime) = customDateTimeForDraft(draft)
 //            val (dateTime, date, time, offset, zone) = quintuple
-            val date = ZonedDateTime.now(clock)
+            val date = ZonedDateTime.now(timeHandler.getClock())
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
             val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
@@ -594,7 +610,7 @@ constructor(
                 LOGGER.info("saveDraft: Created new transaction")
                 draft.evidence.map { evidence ->
                     val file = evidence.uri.toFile()
-                    val localDate = LocalDate.now(clock)
+                    val localDate = LocalDate.now(timeHandler.getClock())
                     val year = String.format("%04d", localDate.year)
                     val month = String.format("%02d", localDate.monthValue)
                     val day = String.format("%02d", localDate.dayOfMonth)
@@ -656,7 +672,7 @@ constructor(
             }
 
             
-            val (dateTime, offset, zone) = dateTimeOffsetZone(clock)
+            val (dateTime, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
 
             val actuallyUsedNewImages = draft.items.map { it.images }.fold(emptyList<AddEditTransactionFile>()) { acc, list -> acc + list }.filter { it.dbId == null }.toSet()
             val imagesMap = mutableMapOf<String, Long>()
@@ -745,18 +761,22 @@ constructor(
                 amount = total,
                 note = draft.note
             )
-            if(draft.useCustomDateTime) {
 
-                val customDate = draft.customDate ?: LocalDate.parse(transaction.datedAt)
-                val customTime = draft.customTime ?: LocalTime.parse(transaction.datedAtTime!!)
-                val customDateTime = customDate.atTime(customTime)
 
-                val (datedDate, datedTime) =
-                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)
+            val customDate = draft.customDate ?: draft.dbOriginalDate!!
+            val customTime = draft.customTime ?: draft.dbOriginalTime!!
+            LOGGER.debug("original: {}", draft.dbOriginalTime)
+            val customDateTime = ZonedDateTime.of(customDate.atTime(customTime), timeHandler.getZone()).withZoneSameInstant(ZoneId.of("UTC"))
 
-               updatedTransaction = updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime)
-               LOGGER.info("saveEdit: Transaction {}: set custom dateTime", transactionId)
-            }
+            val (datedDate, datedTime) =
+                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(
+                    DateTimeFormatter.ISO_LOCAL_TIME
+                )
+
+            updatedTransaction =
+                updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime)
+            LOGGER.info("saveEdit: Transaction {}: set custom dateTime", transactionId)
+
             transactionRepository.updateTransaction(updatedTransaction).blockingSubscribe()
             LOGGER.info("Transaction {}: Updated basic details", transactionId)
             LOGGER.info("Transaction {}: New Item Count: {}; Updated Item Count: {}; Unmodified Item Count: {}", transactionId, newCount, updatedCount, unchangedCount)
@@ -845,7 +865,7 @@ constructor(
                     continue
                 }
                 val file = evidence.uri.toFile()
-                val localDate = LocalDate.now(clock)
+                val localDate = LocalDate.now(timeHandler.getClock())
                 val year = String.format("%04d", localDate.year)
                 val month = String.format("%02d", localDate.monthValue)
                 val day = String.format("%02d", localDate.dayOfMonth)
@@ -951,15 +971,15 @@ constructor(
     }
 
     fun customDateTimeForDraft(draft: AddEditDetailedTransactionDraft): Pair<String, String> {
-        val date = ZonedDateTime.now(clock)
+        val date = ZonedDateTime.now(timeHandler.getClock())
 //        val (dateTime, offset, zone) = dateTimeOffsetZone(clock)
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val timeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_TIME)
         val useCustom = draft.useCustomDateTime
         return if(useCustom) {
-            val customDate = draft.customDate ?: LocalDate.now(clock)
-            val customTime = draft.customTime ?: LocalTime.now(clock)
+            val customDate = draft.customDate ?: LocalDate.now(timeHandler.getClock())
+            val customTime = draft.customTime ?: LocalTime.now(timeHandler.getClock())
             val customDateTime = customDate.atTime(customTime)
 //            DateTimeQuintuple(
                 customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)

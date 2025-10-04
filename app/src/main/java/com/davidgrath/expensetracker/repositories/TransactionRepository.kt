@@ -6,6 +6,7 @@ import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
@@ -38,11 +39,11 @@ constructor(
     private val transactionItemDao: TransactionItemDao,
     private val transactionItemImagesDao: TransactionItemImagesDao,
     private val categoryDao: CategoryDao,
-    private val clock: Clock
+    private val timeHandler: TimeHandler
 ) {
 
     fun addTransaction(amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
-        val date = ZonedDateTime.now(clock)
+        val date = ZonedDateTime.now(timeHandler.getClock())
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -84,7 +85,7 @@ constructor(
     }
 
     fun getTransactions(): Flowable<List<TransactionWithItemAndCategory>> {
-        return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(clock).toString())
+        return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(timeHandler.getClock()).toString())
             .subscribeOn(Schedulers.io())
             .timeInterval()
             .map {
@@ -105,7 +106,7 @@ constructor(
     }
 
     fun getTotalSpent(): Observable<BigDecimal> {
-        return transactionDao.getTransactionSumFrom(LocalDate.now(clock).toString())
+        return transactionDao.getTransactionSumFrom(LocalDate.now(timeHandler.getClock()).toString())
             .subscribeOn(Schedulers.io())
     }
 
@@ -114,7 +115,7 @@ constructor(
         val filledSummary = originalSummary.map { list ->
             var zeroCount = 0
             val start = LocalDate.parse(fromDate)
-            val now = LocalDate.now(clock)
+            val now = LocalDate.now(timeHandler.getClock())
             var currentDate = start
 
             val newList = arrayListOf<DateAmountSummary>()

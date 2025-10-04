@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
@@ -31,7 +32,8 @@ class TransactionDetailsViewModel(
     private val imageRepository: ImageRepository,
     private val categoryRepository: CategoryRepository,
     private val evidenceRepository: EvidenceRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val timeHandler: TimeHandler
 ) : ViewModel() {
 
     val transaction: LiveData<TransactionDetailsUi>
@@ -43,7 +45,7 @@ class TransactionDetailsViewModel(
             .map {
                 //TODO Accounts in Add screen
                 val account = accountRepository.getAccountByIdSingle(1).blockingGet()
-                transactionDbToTransactionDetailedUi(it, account)
+                transactionDbToTransactionDetailedUi(timeHandler, it, account)
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         items = transactionItemRepository.getTransactionItems(transactionId)

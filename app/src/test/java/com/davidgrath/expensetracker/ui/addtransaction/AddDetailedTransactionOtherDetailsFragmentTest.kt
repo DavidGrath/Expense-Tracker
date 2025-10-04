@@ -12,16 +12,21 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
 import androidx.test.espresso.assertion.ViewAssertions
+import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
+import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
@@ -31,12 +36,17 @@ import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.TransactionItemRepository
+import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.test.TestContentProvider
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
 import org.junit.After
@@ -48,7 +58,13 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.format.FormatStyle
 import java.io.File
+import java.math.BigDecimal
 import javax.inject.Inject
 
 @RunWith(RobolectricTestRunner::class)
@@ -62,8 +78,22 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
+    lateinit var transactionRepository: TransactionRepository
+    @Inject
+    lateinit var categoryRepository: CategoryRepository
+    @Inject
+    lateinit var transactionItemRepository: TransactionItemRepository
+    @Inject
     lateinit var evidenceDao: EvidenceDao
+    @Inject
+    lateinit var timeHandler: TimeHandler
+
     lateinit var app: TestExpenseTracker
+
+    companion object {
+        private val MOCKED_DATE = LocalDate.of(2025, 6, 30)
+        private val MOCKED_TIME = LocalTime.of(8, 0)
+    }
 
     @Before
     fun setUp() {
@@ -77,6 +107,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     @After
     fun tearDown() {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        timeHandler.changeZone(ZoneId.of("UTC"))
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         draftFolder.deleteRecursively()
         val contentFolder = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
@@ -304,5 +335,125 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         val newDraft = addDetailedTransactionRepository.getDraftValue()
         assertEquals(Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE, newDraft.evidence.size)
 
+    }
+
+    @Test
+    fun givenModeIsEditThenUseCustomCheckBoxNotVisible() {
+
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+        onView(withId(R.id.check_box_add_detailed_transaction_use_custom_date_time)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.GONE)
+        ))
+        onView(withId(R.id.linear_layout_add_detailed_transaction_date_time)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)
+        ))
+
+    }
+
+    @Test
+    fun givenModeIsEditWhenRemoveDateClickedThenRemoveDateButtonGoneAndOriginalDateDisplayed() {
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+
+        val customDate = LocalDate.of(2025, 1, 1)
+        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+//        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+        val dateString = dateFormat.format(MOCKED_DATE)
+        // Using Repository setTime method to avoid having to open the dialog
+        addDetailedTransactionRepository.setDate(customDate)
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_date_remove)).perform(click())
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_date_remove)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.GONE)
+        ))
+        onView(withId(R.id.text_view_add_detailed_transaction_custom_date)).check(matches(withText(dateString)))
+    }
+
+    @Test
+    fun givenModeIsEditWhenRemoveTimeClickedThenRemoveTimeButtonGoneAndOriginalTimeDisplayed() {
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+
+        val customTime = LocalTime.of( 1, 1, 30)
+//        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+        val timeString = timeFormat.format(MOCKED_TIME)
+        // Using Repository setTime method to avoid having to open the dialog
+        addDetailedTransactionRepository.setTime(customTime)
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_time_remove)).perform(click())
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_time_remove)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.GONE)
+        ))
+        onView(withId(R.id.text_view_add_detailed_transaction_custom_time)).check(matches(withText(timeString)))
+    }
+
+
+    @Test
+    fun givenModeIsEditWhenSetCustomDateNotNullThenRemoveDateButtonVisibleAndCustomDateDisplayed() {
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+
+        val customDate = LocalDate.of(2025, 1, 1)
+        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        val dateString = dateFormat.format(customDate)
+//        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+        // Using Repository setTime method to avoid having to open the dialog
+        addDetailedTransactionRepository.setDate(customDate)
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_date_remove)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)
+        ))
+        onView(withId(R.id.text_view_add_detailed_transaction_custom_date)).check(matches(withText(dateString)))
+    }
+
+    @Test
+    fun givenModeIsEditWhenSetCustomTimeNotNullThenRemoveTimeButtonVisibleAndCustomTimeDisplayed() { //TODO Deal with setting time to the future
+
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+
+        val customTime = LocalTime.of( 1, 1, 30)
+//        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+        val timeString = timeFormat.format(customTime)
+        // Using Repository setTime method to avoid having to open the dialog
+        addDetailedTransactionRepository.setTime(customTime)
+
+        onView(withId(R.id.image_view_add_detailed_transaction_custom_time_remove)).check(matches(
+            withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)
+        ))
+        onView(withId(R.id.text_view_add_detailed_transaction_custom_time)).check(matches(withText(timeString)))
+    }
+
+    @Test
+    fun givenTransactionZoneIsNotSameAsSystemZoneWhenLoadEditThenOriginalZoneDisplayedAndNoticeDisplayed() {
+        timeHandler.changeZone(ZoneId.of("Pacific/Honolulu"))
+        startInEditMode()
+        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
+        onView(withId(R.id.text_view_add_detailed_transaction_zone_difference_notice)).check(matches(isDisplayed()))
+    }
+
+    /**
+     * Relying on edit mode, so can't use ScenarioRule
+     */
+    fun startInEditMode() {
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+
+
+        val intent = Intent(app, AddDetailedTransactionActivity::class.java).also {
+            it.putExtra(AddDetailedTransactionActivity.ARG_MODE, "edit")
+            it.putExtra(AddDetailedTransactionActivity.ARG_EDIT_TRANSACTION_ID, id)
+        }
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+    }
+
+    fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
+        val transaction = TestBuilder.defaultTransaction(amount)
+        val id = transactionRepository.addTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
+        return transactionItemRepository.addTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
+            id to itemId
+        }
     }
 }

@@ -13,8 +13,10 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneOffset
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -30,40 +32,69 @@ class TransactionDaoTest {
         (ApplicationProvider.getApplicationContext<TestExpenseTracker>().appComponent as TestComponent).inject(this)
     }
 
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeOutsideLocalOffsetDayWhenFetchByLocalOffsetThenTransactionNotPresent() {
-
+    //Ignore zones for now
+    @Test //D
+    fun givenTransactionTimeOutsideSpecifiedOffsetDayAndUseSpecifiedOffsetWhenFetchThenTransactionNotPresent() {
+        val builder = TestBuilder.defaultTransactionBuilder(BigDecimal(100)).datedAt("2025-06-30") // 8 AM UTC
+        val honolulu = builder.datedAtOffset("-10:00").datedAtTimezone("Pacific/Honolulu").build()  // 10 PM Honolulu Previous day, 6 AM Noronha
+        val guamBuilder = builder.datedAtOffset("+10:00").datedAtTimezone("Pacific/Guam") // 6 PM Guam, 6 AM Noronha
+        val guam = guamBuilder.build()
+        val guam2 = guamBuilder.datedAtTime("00:00:00").build()  // 10 AM Guam, 10 PM Noronha previous day
+        transactionDao.insertTransaction(honolulu).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam2).subscribeOn(Schedulers.io()).blockingSubscribe()
+        //Starting from 2025-06-30T02:00:00Z
+        val transactions = transactionDao.getAllFromSpecifiedOffsetSingle("2025-06-30", "-02:00").subscribeOn(Schedulers.io()).blockingGet() // America/Noronha
+        LOGGER.debug("transactions: {}", transactionDao.getAllTemp().subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(2, transactions.size)
+        assertEquals("Pacific/Honolulu", transactions[0].datedAtTimezone)
+        assertEquals("Pacific/Guam", transactions[1].datedAtTimezone)
     }
 
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeWithinLocalOffsetDayWhenFetchByLocalOffsetThenTransactionPresent() {
-
+    @Test //C
+    fun givenTransactionTimeWithinSpecifiedOffsetDayAndUseSpecifiedOffsetWhenFetchThenTransactionPresent() {
+        val builder = TestBuilder.defaultTransactionBuilder(BigDecimal(100)).datedAt("2025-06-30")
+        val honolulu = builder.datedAtOffset("-10:00").datedAtTimezone("Pacific/Honolulu").build()
+        val guamBuilder = builder.datedAtOffset("+10:00").datedAtTimezone("Pacific/Guam")
+        val guam = guamBuilder.build()
+        val guam2 = guamBuilder.datedAtTime("00:00:00").build()
+        transactionDao.insertTransaction(honolulu).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam2).subscribeOn(Schedulers.io()).blockingSubscribe()
+        //Starting from 2025-06-29T02:00:00
+        val transactions = transactionDao.getAllFromToSpecifiedOffsetSingle("2025-06-29", "2025-06-30", "-02:00").subscribeOn(Schedulers.io()).blockingGet() // America/Noronha
+        LOGGER.debug("transactions: {}", transactionDao.getAllTemp().subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(3, transactions.size)
     }
 
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeOutsideUTCDayWhenFetchByUTCThenTransactionNotPresent() {
-
+    @Test //A
+    fun givenTransactionTimeWithinTransactionOffsetDayAndUseTransactionOffsetWhenFetchThenTransactionPresent() {
+        val builder = TestBuilder.defaultTransactionBuilder(BigDecimal(100)).datedAt("2025-06-30")
+        val honolulu = builder.datedAtOffset("-10:00").datedAtTimezone("Pacific/Honolulu").build()
+        val guamBuilder = builder.datedAtOffset("+10:00").datedAtTimezone("Pacific/Guam")
+        val guam = guamBuilder.build()
+        val guam2 = guamBuilder.datedAtTime("00:00:00").build()
+        transactionDao.insertTransaction(honolulu).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam2).subscribeOn(Schedulers.io()).blockingSubscribe()
+        val transactions = transactionDao.getAllFromTransactionOffsetSingle("2025-06-29").subscribeOn(Schedulers.io()).blockingGet()
+        LOGGER.debug("transactions: {}", transactionDao.getAllTemp().subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(3, transactions.size)
     }
 
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeWithinUTCDayWhenFetchByUTCThenTransactionPresent() {
-
-    }
-
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeOutsideLocalOffsetDayAndTransactionWithinTransactionOffsetDayWhenFetchByTransactionOffsetThenTransactionPresent() {
-
-    }
-
-    @Test
-    @Ignore("Not ready yet")
-    fun givenTransactionAtUTCTimeAndTransactionTimeWithinLocalOffsetDayAndTransactionOutsideTransactionOffsetDayWhenFetchByTransactionOffsetThenTransactionNotPresent() {
-
+    @Test //B
+    fun givenTransactionTimeOutsideTransactionOffsetDayAndUseTransactionOffsetWhenFetchThenTransactionNotPresent() {
+        val builder = TestBuilder.defaultTransactionBuilder(BigDecimal(100)).datedAt("2025-06-30") // 8 AM UTC
+        val honolulu = builder.datedAtOffset("-10:00").datedAtTimezone("Pacific/Honolulu").build() // 10 PM Honolulu previous day
+        val guamBuilder = builder.datedAtOffset("+10:00").datedAtTimezone("Pacific/Guam") // 6 PM Guam
+        val guam = guamBuilder.build()
+        val guam2 = guamBuilder.datedAtTime("00:00:00").build() // 12 AM Guam
+        transactionDao.insertTransaction(honolulu).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam).subscribeOn(Schedulers.io()).blockingSubscribe()
+        transactionDao.insertTransaction(guam2).subscribeOn(Schedulers.io()).blockingSubscribe()
+        val transactions = transactionDao.getAllFromTransactionOffsetSingle("2025-06-30").subscribeOn(Schedulers.io()).blockingGet()
+        LOGGER.debug("transactions: {}", transactions)
+        assertEquals(2, transactions.size)
     }
 
     @Test
@@ -121,5 +152,9 @@ class TransactionDaoTest {
 
         val secondSum = transactionDao.getTransactionSumFromTo(firstTransactionDate.toString(), fourthTransactionDate.toString()).blockingFirst()
         assertEquals(0, BigDecimal(1610.00).compareTo(secondSum))
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(TransactionDaoTest::class.java)
     }
 }

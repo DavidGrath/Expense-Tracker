@@ -59,6 +59,13 @@
                     android:src="@drawable/baseline_cancel_24"/>
             </LinearLayout>
         </LinearLayout>
+        <TextView
+            android:id="@+id/text_view_add_detailed_transaction_zone_difference_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:drawableStart="@drawable/baseline_info_24"
+            android:text="Transaction time zone not same as local time zone"/>
 
         <TextView
             android:layout_width="match_parent"

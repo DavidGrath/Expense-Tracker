@@ -4,6 +4,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.core.net.toFile
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
@@ -28,6 +29,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
+import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZoneId
@@ -167,27 +169,40 @@ fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
     return category
 }
 
-fun transactionDbToTransactionUi(transactionDb: TransactionDb): TransactionUi {
-    val createdDateTime = getCreatedLocalDateTime(transactionDb)
-    val datedDate = LocalDate.parse(transactionDb.datedAt)
-    val datedDateTime = transactionDb.getDatedLocalDateTime()
+fun transactionDbToTransactionUi(timeHandler: TimeHandler, transactionDb: TransactionDb): TransactionUi {
+    val createdDateTime = offsetTimeToLocalTime(timeHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
+    var datedDate = LocalDate.parse(transactionDb.datedAt)
+    val datedDateTime = transactionDb.getDatedLocalDateTime(timeHandler)
+    if(datedDateTime != null) {
+        datedDate = datedDateTime.toLocalDate()
+    }
     val transactionUi = TransactionUi(transactionDb.id!!, transactionDb.amount, transactionDb.currencyCode, transactionDb.isCashless, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null, emptyList())
     return transactionUi
 }
 
-fun transactionDbToTransactionDetailedUi(transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
-    val createdDateTime = getCreatedLocalDateTime(transactionDb)
-    val datedDate = LocalDate.parse(transactionDb.datedAt)
-    val datedDateTime = transactionDb.getDatedLocalDateTime()
-    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.isCashless, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null)
+fun transactionDbToTransactionDetailedUi(timeHandler: TimeHandler, transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
+    val createdDateTime = offsetTimeToLocalTime(timeHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
+    var datedDate = LocalDate.parse(transactionDb.datedAt)
+    LOGGER.debug("transactionDb: {}", transactionDb)
+    val datedDateTime = transactionDb.getDatedLocalDateTime(timeHandler)
+    if(datedDateTime != null) {
+        datedDate = datedDateTime.toLocalDate()
+    }
+    val zone = ZoneId.of(transactionDb.datedAtTimezone)
+    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.isCashless, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), zone, null)
     return transactionUi
 }
 
-fun getCreatedLocalDateTime(transactionDb: TransactionDb): LocalDateTime {
-    val utcDateTime = LocalDateTime.parse(transactionDb.createdAt)
-    val offset = ZoneOffset.of(transactionDb.createdAtOffset)
-    val offsetDateTime = utcDateTime.atOffset(offset)
-    val localDateTime = offsetDateTime.toLocalDateTime()
+
+val instantFormatter = DateTimeFormatter.ISO_INSTANT
+fun offsetTimeToLocalTime(timeHandler: TimeHandler, dateTimeString: String, offsetString: String): LocalDateTime {
+    val parsedDateTime = LocalDateTime.parse(dateTimeString)
+    val instantString = instantFormatter.format(parsedDateTime.toInstant(ZoneOffset.UTC))
+    val instant = Instant.parse(instantString)
+    val offset = ZoneOffset.of(offsetString)
+    val originalOffsetDateTime = instant.atOffset(offset)
+    val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeHandler.getZone().rules.getOffset(Instant.now())))
+    val localDateTime = localOffsetDateTime.toLocalDateTime()
     return localDateTime
 }
 

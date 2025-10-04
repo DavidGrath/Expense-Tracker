@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.ui.transactiondetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.di.MainComponent
+import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.EvidenceRepository
@@ -18,13 +19,14 @@ class TransactionDetailsViewModelFactory(
     private val imageRepository: ImageRepository,
     private val categoryRepository: CategoryRepository,
     private val evidenceRepository: EvidenceRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val timeHandler: TimeHandler
 ): ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return TransactionDetailsViewModel(transactionId, transactionRepository,
             transactionItemRepository, imageRepository, categoryRepository, evidenceRepository,
-            accountRepository
+            accountRepository, timeHandler
         ) as T
     }
 }

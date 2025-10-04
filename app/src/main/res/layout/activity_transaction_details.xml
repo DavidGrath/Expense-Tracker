@@ -19,7 +19,23 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical">
-<!--        TODO Date/Time -->
+
+        <TextView
+            android:id="@+id/text_view_transaction_details_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Date Long"/>
+        <TextView
+            android:id="@+id/text_view_transaction_details_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Time Long"/>
+        <TextView
+            android:id="@+id/text_view_transaction_details_zone_difference_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transaction time zone not same as local time zone"
+            android:visibility="gone"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
