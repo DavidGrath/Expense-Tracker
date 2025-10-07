@@ -8,6 +8,8 @@ import org.threeten.bp.ZoneOffset
 
 data class AddEditDetailedTransactionDraft(
     val items: List<AddTransactionItem>,
+    val accountId: Long,
+    val debitOrCredit: Boolean = false,
     /**
      * To prevent the user from adding duplicate images
      */

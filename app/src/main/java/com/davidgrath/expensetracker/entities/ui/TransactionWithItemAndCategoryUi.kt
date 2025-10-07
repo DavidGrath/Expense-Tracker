@@ -13,7 +13,7 @@ data class TransactionWithItemAndCategoryUi(
     val transactionTotal: BigDecimal,
     val itemAmount: BigDecimal,
     val currencyCode: String,
-    val cashOrCredit: Boolean,
+    val debitOrCredit: Boolean,
     val description: String,
     val transactionCreatedAt: LocalDateTime,
     val transactionDatedAt: LocalDate,

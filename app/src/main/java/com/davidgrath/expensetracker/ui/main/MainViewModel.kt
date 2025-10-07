@@ -1,30 +1,39 @@
 package com.davidgrath.expensetracker.ui.main
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.toLiveData
+import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.accountDbToAccountUi
+import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.itemSumToCategoryUi
 import com.davidgrath.expensetracker.transactionWithCategoryToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.offsetTimeToLocalTime
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionsToTransactionItems
 import com.github.mikephil.charting.data.BarEntry
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
@@ -42,7 +51,9 @@ constructor(
     private val transactionItemRepository: TransactionItemRepository,
     private val imageRepository: ImageRepository,
     private val categoryRepository: CategoryRepository,
-    private val timeHandler: TimeHandler
+    private val timeHandler: TimeHandler,
+    private val accountRepository: AccountRepository,
+    private val profileRepository: ProfileRepository
 ) : AndroidViewModel(application) {
 
     val listLiveData: LiveData<List<GeneralTransactionListItem>>
@@ -57,6 +68,9 @@ constructor(
         private set
     private val _statisticsConfigLiveData = MutableLiveData<TempStatisticsConfig>(statisticsConfig)
     val statisticsConfigLiveData: LiveData<TempStatisticsConfig> = _statisticsConfigLiveData
+    val accountsLiveData: LiveData<List<AccountUi>>
+    private var currentProfile = -1L
+
     fun setConfig(statisticsConfig: TempStatisticsConfig) {
         this.statisticsConfig = statisticsConfig
         _statisticsConfigLiveData.postValue(statisticsConfig)
@@ -75,7 +89,7 @@ constructor(
                         .map { image ->
                             Uri.parse(image.uri)
                         }
-                val view = TransactionWithItemAndCategoryUi(item.transactionId, item.itemId, item.accountId, item.transactionTotal, item.itemAmount, item.currencyCode, item.isCashless,
+                val view = TransactionWithItemAndCategoryUi(item.transactionId, item.itemId, item.accountId, item.transactionTotal, item.itemAmount, item.currencyCode, item.debitOrCredit,
                     item.description, createdDateTime, datedDate, datedDateTime?.toLocalTime(), category, images)
                 list.add(view)
             }
@@ -110,15 +124,43 @@ constructor(
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()*/
         statsTotalByDay = transactionRepository.getTotalSpentByDate(LocalDate.now(timeHandler.getClock()).toString())
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
+        val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
+        val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
+        currentProfile = profile.id!!
+        accountsLiveData = accountRepository.getAccountsForProfile(currentProfile).map { list ->
+            list.map { accountDbToAccountUi(it) }
+        }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 
     fun getCategories(): Single<List<CategoryDb>> {
         return categoryRepository.getCategoriesSingle()
     }
 
-    fun saveTransaction(amount: BigDecimal, description: String, categoryId: Long) {
-        transactionRepository.addTransaction(amount, description, categoryId)
+    fun getAccounts(): Single<List<AccountUi>> {
+        return accountRepository.getAccountsForProfileSingle(currentProfile).map { accounts ->
+            accounts.map { accountDbToAccountUi(it) }
+        }
+    }
+
+    fun saveTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long) {
+        transactionRepository.addTransaction(accountId, amount, description, categoryId)
             .subscribe({ id -> }, {})
+    }
+
+    fun addAccount(name: String, currencyCode: String) {
+        val id = accountRepository.createAccount(currentProfile, name, currencyCode).blockingGet()
+        LOGGER.info("Created account {} for profile {}", id, currentProfile)
+    }
+
+    fun editAccount(accountId: Long, name: String) {
+        val count = accountRepository.editAccountName(accountId, name).blockingGet()
+//        LOGGER.info("Updated account {} for profile {}", id, currentProfile)
+        if(count > 0) {
+            LOGGER.info("Updated account {}", accountId)
+        } else {
+            LOGGER.info("No updates for account {}", accountId)
+        }
     }
 
 

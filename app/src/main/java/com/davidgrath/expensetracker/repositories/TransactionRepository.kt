@@ -39,10 +39,11 @@ constructor(
     private val transactionItemDao: TransactionItemDao,
     private val transactionItemImagesDao: TransactionItemImagesDao,
     private val categoryDao: CategoryDao,
-    private val timeHandler: TimeHandler
+    private val timeHandler: TimeHandler,
+    private val accountRepository: AccountRepository
 ) {
 
-    fun addTransaction(amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
+    fun addTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
         val date = ZonedDateTime.now(timeHandler.getClock())
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -51,14 +52,14 @@ constructor(
 
         val offset = date.offset.id
         val zone = date.zone.id
+        val account = accountRepository.getAccountByIdSingle(accountId).blockingGet()!!
         val transaction = TransactionDb(
             null,
-            0,
+            accountId,
             amount,
-            "USD",
+            account.currencyCode,
             null,
             false,
-            true,
             null,
             null,
             null,

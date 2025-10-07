@@ -17,6 +17,8 @@ import com.davidgrath.expensetracker.repositories.AddDetailedTransactionReposito
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.Locale
 
 class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener {
@@ -30,7 +32,6 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     lateinit var binding: FragmentAddDetailedTransactionMainBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
     lateinit var adapter: AddTransactionItemRecyclerAdapter
-    var currencyCode = "USD" //TODO Use account currency code, better yet, add account switcher
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -54,9 +55,11 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         adapter = AddTransactionItemRecyclerAdapter(c, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
+
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
             LOGGER.info("Event: ${triple.second}, Position: ${triple.third}")
-            val list = triple.first.items
+            val draft = triple.first
+            val list = draft.items
             val event = triple.second
             val position = triple.third
             when(event) {
@@ -85,10 +88,13 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                 }
             }
         }
-        binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
-        viewModel.transactionTotalLiveData.observe(viewLifecycleOwner) { total ->
+
+        viewModel.currentAccount.observe(viewLifecycleOwner) { (account, total) ->
+            val currencyCode = account.currencyCode
             binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total) //TODO General number formatting, UCUM/UOM
         }
+        binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
+
         binding.imageButtonAddDetailedTransactionDone.setOnClickListener(this)
     }
 

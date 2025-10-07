@@ -7,6 +7,7 @@ A basic app for me to track my expenses
 * Instrumented tests are suffixed with `InstrumentedTest`
 * `./data` for the main app files, `./draft` for the `AddDetailedTransaction` screen, under each of them, `./images` for all images, `./documents` for all documents
 * Tests that open other activities should use `androidTest`: https://github.com/robolectric/robolectric/issues/5104
+* For RxJava, generally, `subscribeOn` should be called in Repositories for consistency
 
 ## To-Do
 * Jenkins Testing Pipeline

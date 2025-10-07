@@ -14,7 +14,6 @@ data class TransactionDetailsUi(
     val amount: BigDecimal,
     val currencyCode: String,
     val debitOrCredit: Boolean,
-    val isCashless: Boolean,
     val note: String?,
     val timestamp: LocalDateTime,
     val datedDate: LocalDate,

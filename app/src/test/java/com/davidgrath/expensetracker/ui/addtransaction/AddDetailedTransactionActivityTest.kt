@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
@@ -38,15 +37,15 @@ import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.di.TestComponent
-import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
-import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
@@ -57,9 +56,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
 import javax.inject.Inject
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -89,6 +86,10 @@ class AddDetailedTransactionActivityTest {
     lateinit var transactionRepository: TransactionRepository
     @Inject
     lateinit var transactionItemRepository: TransactionItemRepository
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var accountRepository: AccountRepository
     lateinit var app: TestExpenseTracker
 
     companion object {
@@ -171,8 +172,10 @@ class AddDetailedTransactionActivityTest {
         val basicAmount = "300.00"
         val basicDescription = "Dumbbells"
         val categoryId = dumbbellCategory.id!!
+        val accountId = getDefaultAccountId()
         mainActivityScenario.onActivity {
             val intent = Intent(it, AddDetailedTransactionActivity::class.java).also {
+                it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_ACCOUNT_ID, accountId)
                 it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_CATEGORY_ID, categoryId)
                 it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_AMOUNT, basicAmount)
                 it.putExtra(
@@ -525,7 +528,8 @@ class AddDetailedTransactionActivityTest {
         addDetailedTransactionRepository.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).subscribe()
         //Existing item
-        val transaction = TestBuilder.defaultTransaction(BigDecimal.TEN)
+        val accountId = getDefaultAccountId()
+        val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
         val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
@@ -557,7 +561,8 @@ class AddDetailedTransactionActivityTest {
 
     @Test
     fun givenNoDraftExistsWhenExistingTransactionOpenedForEditThenDraftFileNotCreated() {
-        val transaction = TestBuilder.defaultTransaction(BigDecimal.TEN)
+        val accountId = getDefaultAccountId()
+        val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
         val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
@@ -580,13 +585,20 @@ class AddDetailedTransactionActivityTest {
 
     }
 
+    fun getDefaultAccountId(): Long {
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
+        return accountId!!
+    }
+
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
+        val accountId = getDefaultAccountId()
         val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()
         for(resource in evidence) {
             evidenceMap[resource.sha256] = resource.uri
         }
-        return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), evidence = evidence, evidenceHashes = evidenceMap)
+        return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), evidence = evidence, evidenceHashes = evidenceMap, accountId = accountId)
     }
 }

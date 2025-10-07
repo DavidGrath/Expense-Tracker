@@ -12,6 +12,7 @@ import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
@@ -41,6 +42,8 @@ import java.io.IOException
 import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
+import java.util.Currency
+import java.util.Locale
 
 private val LOGGER = LoggerFactory.getLogger(Utils::class.java)
 class Utils {
@@ -118,7 +121,7 @@ fun transactionsToTransactionItems(transactions: List<TransactionWithItemAndCate
             itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Date, currentDate, null, null))
         }
         if(currentTransaction?.id != transaction.transactionId) {
-            val transactionUi = TransactionUi(transaction.transactionId, transaction.itemAmount, transaction.currencyCode, transaction.cashOrCredit,
+            val transactionUi = TransactionUi(transaction.transactionId, transaction.itemAmount, transaction.currencyCode, transaction.debitOrCredit,
                 transaction.transactionCreatedAt, currentDate, transaction.transactionDatedAtTime, null, emptyList())
             currentTransaction = transactionUi
             itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Transaction, null, transactionUi, null))
@@ -176,7 +179,7 @@ fun transactionDbToTransactionUi(timeHandler: TimeHandler, transactionDb: Transa
     if(datedDateTime != null) {
         datedDate = datedDateTime.toLocalDate()
     }
-    val transactionUi = TransactionUi(transactionDb.id!!, transactionDb.amount, transactionDb.currencyCode, transactionDb.isCashless, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null, emptyList())
+    val transactionUi = TransactionUi(transactionDb.id!!, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null, emptyList())
     return transactionUi
 }
 
@@ -189,7 +192,7 @@ fun transactionDbToTransactionDetailedUi(timeHandler: TimeHandler, transactionDb
         datedDate = datedDateTime.toLocalDate()
     }
     val zone = ZoneId.of(transactionDb.datedAtTimezone)
-    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.isCashless, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), zone, null)
+    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), zone, null)
     return transactionUi
 }
 
@@ -222,6 +225,18 @@ fun evidenceDbToEvidenceUi(evidence: EvidenceDb): EvidenceUi {
     val localDateTime = offsetDateTime.toLocalDateTime()
     val uri = Uri.parse(evidence.uri)
     return EvidenceUi(evidence.id!!, evidence.transactionId, evidence.sizeBytes, evidence.sha256, evidence.mimeType, uri, localDateTime)
+}
+
+fun accountDbToAccountUi(accountDb: AccountDb): AccountUi {
+    var currencyDisplayName: String = "Unknown currency" // TODO Context and string IDs
+    try {
+        val currency = Currency.getInstance(accountDb.currencyCode)
+        currencyDisplayName = currency.getDisplayName(Locale.getDefault())
+    } catch (e: IllegalArgumentException) {
+        LOGGER.warn("Currency not recognized", e)
+    }
+    val accountUi = AccountUi(accountDb.id!!, accountDb.profileId, accountDb.currencyCode, currencyDisplayName, accountDb.name)
+    return accountUi
 }
 fun getSha256(inputStream: InputStream): Single<String> {
     return Single.fromCallable {

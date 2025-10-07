@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
+import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.google.android.material.tabs.TabLayoutMediator
 
@@ -23,10 +24,16 @@ class MainActivity : FragmentActivity() {
             MainViewModel::class.java)
         activityMainBinding.viewpagerMain.adapter = MainFragmentStateAdapter(this)
         TabLayoutMediator(activityMainBinding.tabLayoutMain, activityMainBinding.viewpagerMain) { tab, position ->
-            if(position == 0) {
-                tab.text = "Transactions"
-            } else {
-                tab.text = "Statistics"
+            when(position) {
+                0 -> {
+                    tab.text = "Transactions"
+                }
+                1 -> {
+                    tab.text = "Statistics"
+                }
+                2 -> {
+                    tab.text = "Accounts"
+                }
             }
         }.attach()
         setContentView(activityMainBinding.root)
@@ -34,14 +41,23 @@ class MainActivity : FragmentActivity() {
 
     class MainFragmentStateAdapter(mainActivity: MainActivity): FragmentStateAdapter(mainActivity) {
         override fun getItemCount(): Int {
-            return 2
+            return 3
         }
 
         override fun createFragment(position: Int): Fragment {
-            if(position == 0) {
-                return TransactionsFragment.newInstance()
-            } else {
-                return StatisticsFragment.newInstance()
+            when(position) {
+                0 -> {
+                    return TransactionsFragment.newInstance()
+                }
+                1 -> {
+                    return StatisticsFragment.newInstance()
+                }
+                2 -> {
+                    return AccountsFragment.newInstance()
+                }
+                else -> {
+                    return TransactionsFragment.newInstance()
+                }
             }
         }
     }

@@ -7,11 +7,11 @@ import android.widget.EditText
 import androidx.core.net.toUri
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
-import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
@@ -22,6 +22,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.davidgrath.expensetracker.AccountUiIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
@@ -31,7 +32,6 @@ import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
-import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
@@ -41,8 +41,10 @@ import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getHashCount
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.test.TestContentProvider
@@ -83,6 +85,10 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     lateinit var categoryRepository: CategoryRepository
     @Inject
     lateinit var transactionItemRepository: TransactionItemRepository
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var accountRepository: AccountRepository
     @Inject
     lateinit var evidenceDao: EvidenceDao
     @Inject
@@ -432,6 +438,16 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         onView(withId(R.id.text_view_add_detailed_transaction_zone_difference_notice)).check(matches(isDisplayed()))
     }
 
+    @Test
+    fun basicAccountChangeTest() {
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
+        onView(withId(R.id.spinner_add_detailed_transaction_account)).perform(click())
+        onData(allOf(AccountUiIdMatcher(accountId))).perform(click())
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        assertEquals(accountId, draft.accountId)
+    }
+
     /**
      * Relying on edit mode, so can't use ScenarioRule
      */
@@ -448,7 +464,10 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     }
 
     fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
-        val transaction = TestBuilder.defaultTransaction(amount)
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id!!
+
+        val transaction = TestBuilder.defaultTransaction(accountId, amount)
         val id = transactionRepository.addTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()

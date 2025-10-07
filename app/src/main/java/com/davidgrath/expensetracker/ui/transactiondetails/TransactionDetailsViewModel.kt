@@ -43,19 +43,20 @@ class TransactionDetailsViewModel(
     init {
         transaction = transactionRepository.getTransactionById(transactionId)
             .map {
-                //TODO Accounts in Add screen
-                val account = accountRepository.getAccountByIdSingle(1).blockingGet()
+                val account = accountRepository.getAccountByIdSingle(it.accountId).blockingGet()!!
                 transactionDbToTransactionDetailedUi(timeHandler, it, account)
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         items = transactionItemRepository.getTransactionItems(transactionId)
             .map { list ->
+                val t = transactionRepository.getTransactionByIdSingle(transactionId).blockingGet()
+                val account = accountRepository.getAccountByIdSingle(t.accountId).blockingGet()!!
                 list.map { item ->
                     val images = imageRepository.getTransactionItemImages(item.id!!).blockingGet()
                         .map { image -> imageDbToImageUi(image) }
                     val category = categoryDbToCategoryUi(categoryRepository.getById(item.primaryCategoryId).blockingGet())
                     val secondaryCategories = categoryRepository.getOtherItemCategories(item.id).blockingGet().map { categoryDbToCategoryUi(it) }
-                    TransactionDetailItemUi(item.id!!, item.transactionId, item.amount, item.description, category, secondaryCategories, item.brand, images)
+                    TransactionDetailItemUi(item.id!!, item.transactionId, item.amount, account.currencyCode, item.description, category, secondaryCategories, item.brand, images)
                 }
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()

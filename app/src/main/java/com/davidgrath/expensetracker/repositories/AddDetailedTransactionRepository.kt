@@ -52,11 +52,12 @@ constructor(
     private val itemImagesDao: TransactionItemImagesDao,
     private val timeHandler: TimeHandler,
     private val evidenceDao: EvidenceDao,
-    private val transactionItemDao: TransactionItemDao
+    private val transactionItemDao: TransactionItemDao,
+    private val accountRepository: AccountRepository
 ) {
 
     private var incrementId = 0
-    private var draft = AddEditDetailedTransactionDraft(emptyList())
+    private var draft = AddEditDetailedTransactionDraft(emptyList(), -1)
     private val _draftLiveData = MutableLiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>>(Triple(draft, TransactionItemsEvent.None, -1))
     private val draftLiveData: LiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>> = _draftLiveData
     private var currentMode = "add"
@@ -67,7 +68,7 @@ constructor(
         LOGGER.info("Current mode set to {}", mode)
     }
 
-    fun initializeDraft(initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
+    fun initializeDraft(accountId: Long, initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
         val category = if(initialCategoryId != null) {
             categoryDao.findById(initialCategoryId)
                 .subscribeOn(Schedulers.io())
@@ -77,7 +78,7 @@ constructor(
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         }
-        val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)))
+        val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)), accountId)
         LOGGER.info("Created draft with initial values")
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
         fileHandler.saveDraft(draft).subscribe()
@@ -87,9 +88,9 @@ constructor(
         this.transactionId = transactionId
         return transactionRepository.getTransactionByIdSingle(transactionId)
             .map { transaction ->
-                val existingDraft = fileHandler.getDraft().blockingGet()?: AddEditDetailedTransactionDraft(emptyList())
+                val existingDraft = fileHandler.getDraft().blockingGet()?: AddEditDetailedTransactionDraft(emptyList(), -1)
                 val transactionItems = transactionItemRepository.getTransactionItemsSingle(transactionId).blockingGet()
-                draft = AddEditDetailedTransactionDraft(emptyList())
+                draft = AddEditDetailedTransactionDraft(emptyList(), transaction.accountId)
                 //Set Items, incrementId
                 val imagesMap = mutableMapOf<String, Uri>()
                 incrementId = 0
@@ -165,7 +166,7 @@ constructor(
                 val newItems = listOf(item) + items
                 val newDraft = draft.copy(items = newItems)
                 _draftLiveData.postValue(Triple(newDraft, TransactionItemsEvent.Insert, 0))
-                fileHandler.saveDraft(newDraft).subscribe()
+                fileHandler.saveDraft(newDraft).blockingSubscribe()
             }
             LOGGER.info("Moved initial details to top of existing draft")
         }.blockingGet()
@@ -508,6 +509,14 @@ constructor(
     fun restoreDraft(): Single<Unit> {
         return fileHandler.getDraft().toSingle()
             .map { draft ->
+                //Account for potential changes made to old accounts
+                var accountId = draft.accountId
+                val account = accountRepository.getAccountByIdSingle(accountId).blockingGet() //TODO Validate by profile ID, too
+                if(account == null) {
+                    LOGGER.info("restoreDraft: Account {} no longer exists, falling back to default", accountId)
+                    val defaultAccount = accountRepository.getAccountsForProfileSingle(1).blockingGet()[0] //TODO This is a hack. Fix later
+                    accountId = defaultAccount.id!!
+                }
                 //Account for potential changes to images made with previous edits
                 val imageHashes = draft.imageHashes
                 val newImageHashes = imageHashes.toMutableMap()
@@ -541,7 +550,7 @@ constructor(
                     }
                     LOGGER.info("restoreDraft: Updated {} total item images", total)
                 }
-                val newDraft = draft.copy(items = newItems, imageHashes = newImageHashes)
+                val newDraft = draft.copy(items = newItems, imageHashes = newImageHashes, accountId = accountId)
                 this.draft = newDraft
                 _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
                 LOGGER.info("restoreDraft: Done")
@@ -604,7 +613,9 @@ constructor(
             } else {
                 draft.note
             }
-            val transaction = TransactionDb(null, 1, total, "USD", null, false, true, note, null, null, dateTimeString, offset, zone, 0, datedDate, datedTime, offset, zone)
+            LOGGER.debug("AccountID: {}, Draft: {}", draft.accountId, draft)
+            val account = accountRepository.getAccountByIdSingle(draft.accountId).blockingGet()!!
+            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, note, null, null, dateTimeString, offset, zone, 0, datedDate, datedTime, offset, zone)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
                 LOGGER.info("saveDraft: Created new transaction")
@@ -640,7 +651,7 @@ constructor(
             }.flatMap {
                 LOGGER.info("saveDraft: Saved {} items to transaction", it.size)
                 incrementId = 0
-                draft = AddEditDetailedTransactionDraft(emptyList())
+                draft = AddEditDetailedTransactionDraft(emptyList(), -1)
                 _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
                 fileHandler.deleteDraftFiles()
             }.blockingGet()
@@ -887,7 +898,7 @@ constructor(
     fun deleteDraft() {
         incrementId = 0
         if(currentMode == "add") {
-            draft = AddEditDetailedTransactionDraft(emptyList())
+            draft = AddEditDetailedTransactionDraft(emptyList(), -1)
             _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
             fileHandler.deleteDraftFiles().blockingGet()
         } else if(currentMode == "edit") {
@@ -965,6 +976,24 @@ constructor(
         } else {
             LOGGER.info("Set custom time to a non-null value")
         }
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun setAccount(accountId: Long) {
+        draft = draft.copy(accountId = accountId)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        LOGGER.info("Changed account ID")
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun setDebitOrCredit(debitOrCredit: Boolean) {
+        draft = draft.copy(debitOrCredit = debitOrCredit)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        LOGGER.info("Changed debitOrCredit")
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }

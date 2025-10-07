@@ -27,7 +27,7 @@ data class TransactionDb(
     val currencyCode: String,
     val referenceNumber: String?,
     val debitOrCredit: Boolean,
-    val isCashless: Boolean, //TODO Possibly revise to enum Mode {Cash,Transfer,POS,etc}
+//    val isCashless: Boolean, //TODO Possibly revise to enum Mode {Cash,Transfer,POS,etc}
     /**
      * Maximum 500 NFC Normalized code points //TODO Actually implement the NFC part
      */

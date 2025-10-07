@@ -78,7 +78,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val ret = file.createNewFile()
             if (ret) {
                 LOGGER.info("Created new empty draft file")
-                val emptyDraft = AddEditDetailedTransactionDraft(emptyList())
+                val emptyDraft = AddEditDetailedTransactionDraft(emptyList(), -1)
                 val string = gson.toJson(emptyDraft)
                 file.writeText(string)
                 LOGGER.info("Wrote default draft to draft file")
@@ -226,8 +226,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         return Single.fromCallable {
             val accountDao = appComponent.accountDao()
             val accounts = accountDao.getAllByProfileIdSingle(profileDb.id!!).blockingGet()
-            var cashAccount = accounts.find { !it.isCashless }
-            var cashlessAccount = accounts.find { it.isCashless }
+            var defaultAccount = accounts.firstOrNull()
             val locale = Locale.getDefault()
             val currency = Currency.getInstance(locale)?.currencyCode ?: "USD"
 
@@ -239,45 +238,28 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val offset = date.offset.id
             val zone = date.zone.id
 
-            if (cashlessAccount == null) {
-                //Create Cashless Account
+            if (defaultAccount == null) {
+                //Create Default Account
                 val account = AccountDb(
                     null,
                     profileDb.id!!,
                     currency,
                     null,
                     "",
-                    true,
-                    "Default Cashless",
+                    "Default Account",
                     dateString,
                     offset,
                     zone
                 )
                 val id = accountDao.insertAccount(account).blockingGet()
-                cashlessAccount = accountDao.findByIdSingle(id).blockingGet()!!
-                LOGGER.info("Created default cashless account for profile ${profileDb.stringId}")
-            }
-            if (cashAccount == null) {
-                val account = AccountDb(
-                    null,
-                    profileDb.id!!,
-                    currency,
-                    null,
-                    "",
-                    false,
-                    "Default Cash",
-                    dateString,
-                    offset,
-                    zone
-                )
-                accountDao.insertAccount(account).blockingSubscribe()
-                LOGGER.info("Created default cash account for profile ${profileDb.stringId}")
+                defaultAccount = accountDao.findByIdSingle(id).blockingGet()!!
+                LOGGER.info("Created default account for profile ${profileDb.stringId}")
             }
 
             val profilePreferences = getSharedPreferences(profileDb.stringId, MODE_PRIVATE)
             profilePreferences.edit()
-                .putLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, cashlessAccount.id!!).commit()
-            LOGGER.info("Set default cashless account for profile ${profileDb.stringId}")
+                .putLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, defaultAccount.id!!).commit()
+            LOGGER.info("Set default account for profile ${profileDb.stringId}")
         }
     }
     fun tempInitDefaultCategories(): Single<Unit> {

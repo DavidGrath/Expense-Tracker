@@ -8,11 +8,10 @@ import java.math.BigDecimal
 
 class TestBuilder {
     companion object {
-        fun defaultTransactionBuilder(amount: BigDecimal = BigDecimal.ZERO): TransactionDbBuilder {
+        fun defaultTransactionBuilder(accountId: Long, amount: BigDecimal): TransactionDbBuilder {
             val builder = TransactionDbBuilder()
                 .amount(amount)
-                .accountId(0).currencyCode("USD")
-                .isCashless(false)
+                .accountId(accountId).currencyCode("USD")
                 .note(null)
                 .sellerID(null)
                 .sellerLocationId(null)
@@ -27,8 +26,8 @@ class TestBuilder {
             return builder
         }
 
-        fun defaultTransaction(amount: BigDecimal): TransactionDb {
-            return defaultTransactionBuilder(amount).build()
+        fun defaultTransaction(accountId: Long, amount: BigDecimal): TransactionDb {
+            return defaultTransactionBuilder(accountId, amount).build()
         }
 
         fun defaultTransactionItemBuilder(transactionId: Long, price: BigDecimal, primaryCategoryId: Long): TransactionItemDbBuilder {

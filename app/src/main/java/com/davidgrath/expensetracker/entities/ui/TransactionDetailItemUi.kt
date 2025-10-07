@@ -6,6 +6,7 @@ data class TransactionDetailItemUi(
     val id: Long,
     val transactionId: Long,
     val amount: BigDecimal,
+    val accountCurrencyCode: String,
     val description: String,
     val primaryCategory: CategoryUi,
     val otherCategories: List<CategoryUi>,

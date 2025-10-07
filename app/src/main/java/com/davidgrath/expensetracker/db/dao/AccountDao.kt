@@ -26,4 +26,18 @@ interface AccountDao {
     fun findByIdSingle(id: Long): Maybe<AccountDb>
 
     //endregion
+
+    //region Update
+    @Query("UPDATE AccountDb SET name = :name " +
+            "WHERE id = :id") //AND profileId = :profileId
+    fun updateAccountName(id: Long, name: String): Single<Int>
+    // endregion
+
+    //region Delete
+
+    @Query("DELETE FROM AccountDb " +
+            "WHERE id = :id " +
+            "AND profileId = :profileId")
+    fun deleteAccountById(profileId: Long, id: Long): Single<Int>
+    //endregion
 }

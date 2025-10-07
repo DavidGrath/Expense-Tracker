@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.repositories
 
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.db.dao.TransactionDao
@@ -25,6 +26,10 @@ class TransactionRepositoryTest {
     lateinit var transactionRepository: TransactionRepository
     @Inject
     lateinit var transactionDao: TransactionDao
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var accountRepository: AccountRepository
 
     @Before
     fun setUp() {
@@ -54,7 +59,8 @@ class TransactionRepositoryTest {
 //        val fifthTransactionDate = LocalDate.parse("2025-01-11")
         val fifthTransactionDate = LocalDate.parse("2025-07-11")
 
-        val builder = TestBuilder.defaultTransactionBuilder()
+        val accountId = getDefaultAccountId()
+        val builder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal.ZERO)
         //Empty Set
         var transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-07-01").blockingFirst()
         assertEquals(0, transactionSumByDates.size)
@@ -92,6 +98,12 @@ class TransactionRepositoryTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum1.sum))
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum2.sum))
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum3.sum))
+    }
+
+    fun getDefaultAccountId(): Long {
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
+        return accountId!!
     }
 
 }

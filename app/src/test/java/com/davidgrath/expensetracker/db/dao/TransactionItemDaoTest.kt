@@ -1,10 +1,13 @@
 package com.davidgrath.expensetracker.db.dao
 
 import androidx.test.core.app.ApplicationProvider
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
+import com.davidgrath.expensetracker.repositories.AccountRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -25,6 +28,10 @@ class TransactionItemDaoTest {
     lateinit var transactionItemDao: TransactionItemDao
     @Inject
     lateinit var categoryDao: CategoryDao
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var accountRepository: AccountRepository
 
     @Before
     fun setUp() {
@@ -38,17 +45,18 @@ class TransactionItemDaoTest {
 
         val fromDate = LocalDate.parse("2025-01-01")
         val toDate = LocalDate.parse("2025-01-02")
-        val transactionDb = TestBuilder.defaultTransactionBuilder(BigDecimal(4_000.00)).datedAt(fromDate.toString()).build()
+        val accountId = getDefaultAccountId()
+        val transactionDb = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(4_000.00)).datedAt(fromDate.toString()).build()
         val id = transactionDao.insertTransaction(transactionDb).subscribeOn(Schedulers.io()).blockingGet()
         val bread = TransactionItemDb(null, id, BigDecimal(1_500), null, 1, "Bread", "", null, food.id!!, transactionDb.createdAt, transactionDb.createdAtOffset, transactionDb.createdAtTimezone)
         val dumbbells = TransactionItemDb(null, id, BigDecimal(2_500), null, 1, "Dumbbells", "", null, fitness.id!!, transactionDb.createdAt, transactionDb.createdAtOffset, transactionDb.createdAtTimezone)
 
-        val transactionDb2 = TestBuilder.defaultTransactionBuilder(BigDecimal(6_000.00)).datedAt(toDate.toString()).build()
+        val transactionDb2 = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(6_000.00)).datedAt(toDate.toString()).build()
         val id2 = transactionDao.insertTransaction(transactionDb2).subscribeOn(Schedulers.io()).blockingGet()
         val water = TransactionItemDb(null, id2, BigDecimal(1_000), null, 1, "Water", "", null, food.id!!, transactionDb2.createdAt, transactionDb2.createdAtOffset, transactionDb2.createdAtTimezone)
         val sweatpants = TransactionItemDb(null, id2, BigDecimal(5_000), null, 1, "Sweatpants", "", null, fitness.id!!, transactionDb2.createdAt, transactionDb2.createdAtOffset, transactionDb2.createdAtTimezone)
 
-        val transactionDb3 = TestBuilder.defaultTransactionBuilder(BigDecimal(8_000.00)).datedAt(toDate.plusDays(1).toString()).build()
+        val transactionDb3 = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(8_000.00)).datedAt(toDate.plusDays(1).toString()).build()
         val id3 = transactionDao.insertTransaction(transactionDb3).subscribeOn(Schedulers.io()).blockingGet()
         val fish = TransactionItemDb(null, id3, BigDecimal(3_000), null, 1, "Fish", "", null, food.id!!, transactionDb3.createdAt, transactionDb3.createdAtOffset, transactionDb3.createdAtTimezone)
         val jumpRope = TransactionItemDb(null, id3, BigDecimal(5_000), null, 1, "Jump Rope", "", null, fitness.id!!, transactionDb3.createdAt, transactionDb3.createdAtOffset, transactionDb3.createdAtTimezone)
@@ -67,5 +75,11 @@ class TransactionItemDaoTest {
 
         assertEquals("Expected 2500 but was $foodSum",0, BigDecimal(2_500).compareTo(foodSum))
         assertEquals("Expected 7500 but was $fitnessSum", 0, BigDecimal(7_500).compareTo(fitnessSum))
+    }
+
+    fun getDefaultAccountId(): Long {
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()?.id
+        return accountId!!
     }
 }

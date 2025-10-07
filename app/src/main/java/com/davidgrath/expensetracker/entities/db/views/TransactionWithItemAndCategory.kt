@@ -10,7 +10,7 @@ data class TransactionWithItemAndCategory(
     val transactionTotal: BigDecimal,
     val itemAmount: BigDecimal,
     val currencyCode: String,
-    val isCashless: Boolean,
+    val debitOrCredit: Boolean,
     val description: String,
     val transactionCreatedAt: String,
     val transactionCreatedAtOffset: String,

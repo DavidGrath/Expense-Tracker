@@ -72,6 +72,6 @@ interface TransactionDao {
 
     //region Delete
     @Query("DELETE FROM TransactionDb WHERE 1")
-    fun deleteAll(): Single<Int>
+    fun deleteAll(): Single<Int> //TODO Replace with clearAllTables
     //endregion
 }

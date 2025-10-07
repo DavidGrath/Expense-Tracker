@@ -19,6 +19,7 @@ import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
+import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.google.android.material.tabs.TabLayout
 import org.hamcrest.CustomTypeSafeMatcher
@@ -102,6 +103,15 @@ class CategoryStringIdMatcher(val stringId: String): CustomTypeSafeMatcher<Categ
             return false
         }
         return item.stringId == stringId
+    }
+}
+
+class AccountUiIdMatcher(val id: Long): CustomTypeSafeMatcher<AccountUi>("An account") {
+    override fun matchesSafely(item: AccountUi?): Boolean {
+        if(item == null) {
+            return false
+        }
+        return item.id == id
     }
 }
 

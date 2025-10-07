@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.entities.db.CategoryDb
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +21,7 @@ class CategoryRepository
 
     fun getCategoriesSingle(): Single<List<CategoryDb>> {
         return categoryDao.getAllSingle()
+            .subscribeOn(Schedulers.io())
             .doOnSuccess {
                 LOGGER.info("getCategories: {} items", it.size)
             }

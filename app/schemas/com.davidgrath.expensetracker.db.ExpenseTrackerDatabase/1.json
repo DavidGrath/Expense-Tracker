@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "eff04534f1e1ef8c28d1f9e409f97937",
+    "identityHash": "be00f8e994e30fffc80ed16066e2dcc6",
     "entities": [
       {
         "tableName": "CategoryDb",
@@ -190,7 +190,7 @@
       },
       {
         "tableName": "TransactionDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `currencyCode` TEXT NOT NULL, `referenceNumber` TEXT, `debitOrCredit` INTEGER NOT NULL, `isCashless` INTEGER NOT NULL, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `datedAt` TEXT NOT NULL, `datedAtTime` TEXT NOT NULL, `datedAtOffset` TEXT NOT NULL, `datedAtTimezone` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `currencyCode` TEXT NOT NULL, `referenceNumber` TEXT, `debitOrCredit` INTEGER NOT NULL, `note` TEXT, `sellerID` INTEGER, `sellerLocationId` INTEGER, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `datedAt` TEXT NOT NULL, `datedAtTime` TEXT NOT NULL, `datedAtOffset` TEXT NOT NULL, `datedAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -225,12 +225,6 @@
           {
             "fieldPath": "debitOrCredit",
             "columnName": "debitOrCredit",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isCashless",
-            "columnName": "isCashless",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -527,7 +521,7 @@
       },
       {
         "tableName": "AccountDb",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `profileId` INTEGER NOT NULL, `currencyCode` TEXT NOT NULL, `financialInstitutionId` INTEGER, `referenceNumber` TEXT NOT NULL, `isCashless` INTEGER NOT NULL, `name` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `profileId` INTEGER NOT NULL, `currencyCode` TEXT NOT NULL, `financialInstitutionId` INTEGER, `referenceNumber` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `createdAtOffset` TEXT NOT NULL, `createdAtTimezone` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -557,12 +551,6 @@
             "fieldPath": "referenceNumber",
             "columnName": "referenceNumber",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isCashless",
-            "columnName": "isCashless",
-            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -653,7 +641,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eff04534f1e1ef8c28d1f9e409f97937')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'be00f8e994e30fffc80ed16066e2dcc6')"
     ]
   }
 }

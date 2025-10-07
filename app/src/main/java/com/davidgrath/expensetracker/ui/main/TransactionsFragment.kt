@@ -74,11 +74,11 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
                 binding.fabTransactions -> {
                     if(addTransactionDialog == null) {
                         val categories = viewModel.getCategories()
-                            .subscribeOn(Schedulers.io())
-//                            .observeOn(AndroidSchedulers.mainThread())
                             .blockingGet()
+                        val accounts = viewModel.getAccounts().blockingGet()
                         addTransactionDialog = AddTransactionDialogFragment()
                         addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
+                        addTransactionDialog!!.accounts = accounts.toMutableList()
                     }
                     if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
                         addTransactionDialog?.listener = this
@@ -103,15 +103,15 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         return true
     }
 
-    override fun onGoToDetails(amount: BigDecimal?, description: String?, categoryId: Long?) {
-        val bundle = AddDetailedTransactionActivity.createBundle(amount?.toString(), description, categoryId)
+    override fun onGoToDetails(accountId: Long, amount: BigDecimal?, description: String?, categoryId: Long?) {
+        val bundle = AddDetailedTransactionActivity.createBundle(accountId, amount?.toString(), description, categoryId)
         val intent = Intent(requireActivity(), AddDetailedTransactionActivity::class.java)
         intent.putExtras(bundle)
         startActivity(intent)
     }
 
-    override fun onAddTransaction(amount: BigDecimal, description: String, categoryId: Long) {
-        viewModel.saveTransaction(amount, description, categoryId)
+    override fun onAddTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long) {
+        viewModel.saveTransaction(accountId, amount, description, categoryId)
     }
 
     override fun onTransactionClicked(transactionId: Long) {
@@ -125,7 +125,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             val transactionsFragment = TransactionsFragment()
             return transactionsFragment
         }
-        const val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
+        private const val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
 
         private val LOGGER = LoggerFactory.getLogger(TransactionsFragment::class.java)
     }

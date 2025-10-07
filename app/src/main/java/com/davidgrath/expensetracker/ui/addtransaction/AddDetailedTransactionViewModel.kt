@@ -11,16 +11,22 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.map
+import androidx.lifecycle.switchMap
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.accountDbToAccountUi
+import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.loadRenderer
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -39,7 +45,11 @@ class AddDetailedTransactionViewModel(
     val mode: String,
     private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
     private val categoryRepository: CategoryRepository,
+    private val accountRepository: AccountRepository,
+    private val profileDao: ProfileDao,
+    private val profileStringId: String,
     private val transactionId: Long?,
+    private val initialAccountId: Long?,
     private val initialAmount: BigDecimal?,
     private val initialDescription: String?,
     private val initialCategoryId: Long?
@@ -50,25 +60,33 @@ class AddDetailedTransactionViewModel(
     private var rendererHashMap = emptyMap<Uri, PdfRenderer>()
     private val _rendererLiveData = MutableLiveData<Map<Uri, PdfRenderer>>(rendererHashMap)
     var rendererLiveData: LiveData<Map<Uri, PdfRenderer>> = _rendererLiveData
+    val profile = profileDao.getByStringId(profileStringId).subscribeOn(Schedulers.io()).blockingGet()
 
     init {
+        LOGGER.debug("profile: {}", profile)
         addDetailedTransactionRepository.setMode(mode)
         if(mode == "add") {
             if (!addDetailedTransactionRepository.draftExists()) {
                 if (initialAmount != null || initialDescription != null || initialCategoryId != null) {
                     addDetailedTransactionRepository.createDraft().blockingGet()
                     addDetailedTransactionRepository.initializeDraft(
+                        initialAccountId!!,
                         initialAmount,
                         initialDescription,
                         initialCategoryId
                     )
                 } else {
                     addDetailedTransactionRepository.createDraft().blockingGet()
+                    val account = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet()[0]
+                    addDetailedTransactionRepository.setAccount(account.id!!)
+                    LOGGER.info("Set default account {} for draft", account.id)
                     addDetailedTransactionRepository.addItem()
+                    LOGGER.info("Added blank item to draft")
                 }
             } else {
                 if (initialAmount != null || initialDescription != null || initialCategoryId != null) {
                     addDetailedTransactionRepository.moveToTopOfDraft(
+//                        initialAccountId!!,
                         initialAmount,
                         initialDescription,
                         initialCategoryId
@@ -99,12 +117,25 @@ class AddDetailedTransactionViewModel(
     }
 
     val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
-    val transactionTotalLiveData: LiveData<BigDecimal> = transactionItemsLiveData.map { items ->
-        items.first.items.map {
-            it.amount ?: BigDecimal.ZERO
-        }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
-            ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+    val currentAccount = addDetailedTransactionRepository.getDraft().map {
+        val draft = it.first
+        val accountId = it.first.accountId
+        val accountDb = accountRepository.getAccountByIdSingle(accountId).blockingGet()
+        if(accountDb == null) {
+            AccountUi(-1, -1, "AAA", "Error", "Error") to BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+        } else {
+            val total = draft.items.map {
+                it.amount ?: BigDecimal.ZERO
+            }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
+                ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+            accountDbToAccountUi(accountDb) to total
+        }
     }
+
+
+    val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).map { list ->
+        list.map { accountDbToAccountUi(it) }
+    }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
 
     fun addItem(): Boolean {
         return addDetailedTransactionRepository.addItem()
@@ -205,6 +236,10 @@ class AddDetailedTransactionViewModel(
 
     fun setCustomTime(localTime: LocalTime?) {
         addDetailedTransactionRepository.setTime(localTime)
+    }
+
+    fun setAccountId(accountId: Long) {
+        addDetailedTransactionRepository.setAccount(accountId)
     }
 
 

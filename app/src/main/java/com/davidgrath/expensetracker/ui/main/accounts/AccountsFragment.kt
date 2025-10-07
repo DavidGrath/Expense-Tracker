@@ -1,0 +1,95 @@
+package com.davidgrath.expensetracker.ui.main.accounts
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.View.OnClickListener
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.databinding.FragmentAccountsBinding
+import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.EditAccountDialogFragment
+import com.davidgrath.expensetracker.ui.main.MainViewModel
+import org.slf4j.LoggerFactory
+import java.util.Currency
+
+class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.AccountClickListener, AddAccountDialogFragment.AddAccountListener, EditAccountDialogFragment.EditAccountListener {
+
+    private lateinit var viewModel: MainViewModel
+    private lateinit var binding: FragmentAccountsBinding
+    private var addAccountDialogFragment: AddAccountDialogFragment? = null
+    private var editAccountDialogFragment: EditAccountDialogFragment? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        binding = FragmentAccountsBinding.inflate(layoutInflater, null, false)
+        viewModel = ViewModelProvider.create(requireActivity()).get(MainViewModel::class.java)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val adapter = AccountsRecyclerAdapter(emptyList(), this)
+        val layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerviewAccounts.adapter = adapter
+        binding.recyclerviewAccounts.layoutManager = layoutManager
+        viewModel.accountsLiveData.observe(viewLifecycleOwner) { accounts ->
+            adapter.setItems(accounts)
+        }
+        binding.fabAccounts.setOnClickListener(this)
+    }
+
+    override fun onClick(v: View?) {
+        when(v) {
+            binding.fabAccounts -> {
+                val currencies = Currency.getAvailableCurrencies().sortedBy { it.currencyCode }
+                LOGGER.info("Loaded {} currencies", currencies.size)
+                if(addAccountDialogFragment == null) {
+                    LOGGER.info("AddAccount dialog is null, creating")
+                    addAccountDialogFragment = AddAccountDialogFragment()
+                    addAccountDialogFragment!!.currencies = currencies
+                }
+                if(!(addAccountDialogFragment?.dialog?.isShowing?:false)) {
+                    addAccountDialogFragment?.listener = this
+                    addAccountDialogFragment?.show(childFragmentManager,
+                        FRAGMENT_TAG_ADD_ACCOUNT
+                    )
+                    LOGGER.info("Showed addAccountDialog")
+                }
+            }
+        }
+    }
+
+    override fun onEditClicked(accountId: Long, accountName: String) {
+        if(editAccountDialogFragment == null) {
+            LOGGER.info("EditAccount dialog is null, creating")
+            editAccountDialogFragment = EditAccountDialogFragment.createDialog(accountId, accountName)
+        }
+        if(!(editAccountDialogFragment?.dialog?.isShowing?:false)) {
+            editAccountDialogFragment?.listener = this
+            editAccountDialogFragment?.show(childFragmentManager,
+                FRAGMENT_TAG_EDIT_ACCOUNT
+            )
+            LOGGER.info("Showed editAccountDialog")
+        }
+    }
+
+    override fun onAddAccount(name: String, currency: Currency) {
+        viewModel.addAccount(name, currency.currencyCode)
+    }
+
+    override fun onEditAccount(accountId: Long, name: String) {
+        viewModel.editAccount(accountId, name)
+    }
+
+    companion object {
+        fun newInstance(): AccountsFragment {
+            val statisticsFragment = AccountsFragment()
+            return statisticsFragment
+        }
+        private const val FRAGMENT_TAG_ADD_ACCOUNT = "addAccount"
+        private const val FRAGMENT_TAG_EDIT_ACCOUNT = "editAccount"
+        private val LOGGER = LoggerFactory.getLogger(AccountsFragment::class.java)
+    }
+}

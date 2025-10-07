@@ -12,8 +12,10 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.VISIBLE
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.CompoundButton
 import android.widget.CompoundButton.OnCheckedChangeListener
+import android.widget.Spinner
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,8 +23,10 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.ui.AccountAdapter
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -147,6 +151,42 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                     }
                 }
             }
+        }
+        val accountAdapter = AccountAdapter(requireContext(), mutableListOf<AccountUi>())
+
+        val listener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val account = accountAdapter._objects[position]
+                viewModel.setAccountId(account.id)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+        }
+        binding.spinnerAddDetailedTransactionAccount.adapter = accountAdapter
+        binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
+        viewModel.accountsLiveData.observe(viewLifecycleOwner) {
+            LOGGER.debug("Accounts list size: {}", it.size)
+            accountAdapter.setItems(it)
+            if(binding.spinnerAddDetailedTransactionAccount.selectedItemPosition == Spinner.INVALID_POSITION) {
+                binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
+                binding.spinnerAddDetailedTransactionAccount.setSelection(0)
+                binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
+            }
+        }
+        viewModel.currentAccount.observe(viewLifecycleOwner) { (account, total) ->
+            val accountPosition = accountAdapter._objects.indexOfFirst { it.id == account.id }
+            binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
+
+            if(accountPosition == -1) {
+                LOGGER.warn("Current Account not available in spinner. Changing selection to first item")
+                binding.spinnerAddDetailedTransactionAccount.setSelection(0)
+            } else {
+                LOGGER.info("Current Account of spinner changed")
+                binding.spinnerAddDetailedTransactionAccount.setSelection(accountPosition)
+            }
+            binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
         }
         viewModel.rendererLiveData.observe(viewLifecycleOwner) { map ->
             renderers = map

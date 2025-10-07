@@ -23,7 +23,7 @@ class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionD
                 binding.textViewTransactionDetailsItemDescription.text = item.description
                 binding.imageViewTransactionDetailsItemCategory.setImageResource(item.primaryCategory.iconId)
                 //TODO Locales and formatting
-                binding.textViewTransactionDetailsItemPrice.text = "USD " + item.amount
+                binding.textViewTransactionDetailsItemPrice.text = "${item.accountCurrencyCode} ${item.amount}"
                 val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images)
                 val layoutManager = GridLayoutManager(binding.root.context, 5)
                 binding.recyclerViewTransactionDetailsItemImages.adapter = adapter

@@ -9,7 +9,7 @@ data class TransactionUi(
     val id: Long,
     val amount: BigDecimal,
     val currencyCode: String,
-    val cashOrCredit: Boolean,
+    val debitOrCredit: Boolean,
     val timestamp: LocalDateTime,
     val datedDate: LocalDate,
     val datedTime: LocalTime?,

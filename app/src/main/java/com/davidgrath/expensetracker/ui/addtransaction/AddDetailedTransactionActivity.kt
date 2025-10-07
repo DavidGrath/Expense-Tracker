@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -9,10 +10,13 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
+import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
@@ -33,6 +37,11 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
     lateinit var categoryRepository: CategoryRepository
+    @Inject
+    lateinit var accountRepository: AccountRepository
+    @Inject
+    lateinit var profileDao: ProfileDao
+
     var noPagesDialogFragment: GenericDialogFragment? = null
     var passwordDialogFragment: GenericDialogFragment? = null
 
@@ -45,6 +54,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         var amount: BigDecimal? = null
         var description: String? = null
         var categoryId: Long? = null
+        var accountId: Long? = null
         var mode = "add"
         var transactionId: Long? = null
         if (extras != null) {
@@ -56,11 +66,15 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                 amount = if (amountString != null) BigDecimal(amountString) else null
                 description = extras.getString(ARG_INITIAL_DESCRIPTION)
                 categoryId = extras.getLong(ARG_INITIAL_CATEGORY_ID)
+                accountId = extras.getLong(ARG_INITIAL_ACCOUNT_ID)
             }
         }
+        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
+        val currentProfileStringId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)!!
+
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, transactionId, amount, description, categoryId)
+            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, accountRepository, profileDao, currentProfileStringId, transactionId, accountId, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
 
@@ -181,6 +195,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     companion object {
 
         private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionActivity::class.java)
+        const val ARG_INITIAL_ACCOUNT_ID = "initialAccount"
         const val ARG_INITIAL_AMOUNT = "initialAmount"
         const val ARG_INITIAL_DESCRIPTION = "initialDescription"
         const val ARG_INITIAL_CATEGORY_ID = "initialCategoryId"
@@ -192,11 +207,13 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         const val DIALOG_TAG_PASSWORD_PROTECTED = "passwordProtected"
 
         fun createBundle(
+            initialAccountId: Long?,
             initialAmount: String?,
             initialDescription: String?,
             initialCategoryId: Long?
         ): Bundle {
             return bundleOf(
+                ARG_INITIAL_ACCOUNT_ID to initialAccountId,
                 ARG_INITIAL_AMOUNT to initialAmount,
                 ARG_INITIAL_DESCRIPTION to initialDescription,
                 ARG_INITIAL_CATEGORY_ID to initialCategoryId

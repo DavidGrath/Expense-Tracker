@@ -40,7 +40,7 @@
 **Account**
 * ID: Long
 * ProfileID: Long
-* CurrencyCode: String
+* CurrencyCode: String - A java.util.Currency code, which is ISO 4217
 * FinancialInstitutionID: Long?
 * ReferenceNumber: String
 * Name: String
@@ -55,7 +55,6 @@
 * CurrencyCode: String
 * ReferenceNumber: String?
 * DebitOrCredit: Boolean
-* IsCashless: Boolean
 * Note: String? - Maximum 500 code points
 * SellerID: Long?
 * SellerLocationId: Long?

@@ -45,14 +45,10 @@ class ExpenseTrackerTest {
         assertEquals(Constants.DEFAULT_PROFILE_ID, preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null))
         val profile = profileDao.findByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         assertNotNull(profile)
-        //Assert default cash account exists
+        //Assert default account exists
         val accounts = accountDao.getAllByProfileIdSingle(profile!!.id!!).subscribeOn(Schedulers.io()).blockingGet()
-        val cashAccount = accounts.find { !it.isCashless }
-        assertNotNull(cashAccount)
-        assertEquals("USD", cashAccount!!.currencyCode)
-        //Assert default cashless account exists
-        val cashlessAccount = accounts.find { it.isCashless }
-        assertNotNull(cashlessAccount)
-        assertEquals("USD", cashlessAccount!!.currencyCode)
+        val account = accounts.firstOrNull()
+        assertNotNull(account)
+        assertEquals("USD", account!!.currencyCode)
     }
 }
