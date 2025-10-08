@@ -1,32 +1,55 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
-import android.net.Uri
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
-import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.databinding.RecyclerviewAddEditItemImageBinding
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import org.slf4j.LoggerFactory
 
-class AddTransactionItemImagesRecyclerAdapter(private var files: List<AddEditTransactionFile>): RecyclerView.Adapter<AddTransactionItemImagesRecyclerAdapter.AddTransactionItemImagesViewHolder>() {
+class AddTransactionItemImagesRecyclerAdapter(private var files: List<AddEditTransactionFile>, var listener: ItemImageClickListener? = null): RecyclerView.Adapter<AddTransactionItemImagesRecyclerAdapter.AddTransactionItemImagesViewHolder>() {
+
+    private var selectedItemPosition = -1
+    interface ItemImageClickListener {
+        fun onDeleteImage(position: Int)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionItemImagesViewHolder {
-        val size = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_item_image_size)
-        val layoutParams = ViewGroup.LayoutParams(size, size)
-        val imageView = ImageView(parent.context)
-        imageView.layoutParams = layoutParams
-        return AddTransactionItemImagesViewHolder(imageView)
+
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = RecyclerviewAddEditItemImageBinding.inflate(inflater, parent, false)
+        val viewHolder = AddTransactionItemImagesViewHolder(binding)
+        return viewHolder
     }
 
     override fun onBindViewHolder(holder: AddTransactionItemImagesViewHolder, position: Int) {
-        val image = holder.imageView
+        val image = holder.binding.imageViewItemImageMain
         val file = files[position]
         Glide.with(image.context)
             .load(file.uri)
             .centerCrop()
             .into(image)
+        holder.binding.root.setOnClickListener {
+            val pos = holder.absoluteAdapterPosition
+            if(selectedItemPosition == pos) {
+                listener?.onDeleteImage(pos)
+            } else {
+                val oldSelection = selectedItemPosition
+                selectedItemPosition = pos
+                notifyItemChanged(pos)
+                if(oldSelection != -1) {
+                    notifyItemChanged(oldSelection)
+                }
+            }
+        }
+        if(selectedItemPosition == position) {
+            holder.binding.imageViewItemImageSelectedIndicator.visibility = View.VISIBLE
+        } else {
+            holder.binding.imageViewItemImageSelectedIndicator.visibility = View.GONE
+        }
     }
 
     override fun getItemCount(): Int {
@@ -36,10 +59,11 @@ class AddTransactionItemImagesRecyclerAdapter(private var files: List<AddEditTra
     fun setItems(uris: List<AddEditTransactionFile>) {
         LOGGER.info("setItems: List size {}", uris.size)
         this.files = uris
+        selectedItemPosition = -1
         notifyDataSetChanged()
     }
 
-    class AddTransactionItemImagesViewHolder(val imageView: ImageView): ViewHolder(imageView) {
+    class AddTransactionItemImagesViewHolder(val binding: RecyclerviewAddEditItemImageBinding): ViewHolder(binding.root) {
 
     }
 

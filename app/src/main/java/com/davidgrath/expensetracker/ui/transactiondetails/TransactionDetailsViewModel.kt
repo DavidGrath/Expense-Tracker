@@ -41,7 +41,7 @@ class TransactionDetailsViewModel(
     val evidence: LiveData<List<EvidenceUi>>
 
     init {
-        transaction = transactionRepository.getTransactionById(transactionId)
+        transaction = transactionRepository.getTransactionById(transactionId) //TODO Replace with Join query
             .map {
                 val account = accountRepository.getAccountByIdSingle(it.accountId).blockingGet()!!
                 transactionDbToTransactionDetailedUi(timeHandler, it, account)

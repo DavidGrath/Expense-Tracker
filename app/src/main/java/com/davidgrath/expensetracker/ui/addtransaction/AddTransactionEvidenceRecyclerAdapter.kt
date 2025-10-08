@@ -4,33 +4,75 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.graphics.pdf.PdfRenderer.Page
 import android.net.Uri
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.databinding.RecyclerviewAddEditEvidenceBinding
+import com.davidgrath.expensetracker.databinding.RecyclerviewAddEditItemImageBinding
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import org.slf4j.LoggerFactory
 
-class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddEditTransactionFile>, var pdfRenderers: Map<Uri, PdfRenderer>): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddEditTransactionFile>, var pdfRenderers: Map<Uri, PdfRenderer>, private var listener: EvidenceClickListener? = null): RecyclerView.Adapter<AddTransactionEvidenceRecyclerAdapter.AddTransactionEvidenceViewHolder>() {
+
+    private var selectedItemPosition = -1
+
+    interface EvidenceClickListener {
+        fun onDeleteEvidence(position: Int, uri: Uri)
+    }
 
     //TODO Cache bitmaps, too
     private var pageZeroMaps = hashMapOf<PdfRenderer, Page>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AddTransactionEvidenceViewHolder {
-        val height = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_evidence_height)
-        val layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
-        val imageView = ImageView(parent.context)
-        imageView.layoutParams = layoutParams
-        return AddTransactionEvidenceViewHolder(imageView)
+
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = RecyclerviewAddEditEvidenceBinding.inflate(inflater, parent, false)
+        val viewHolder =
+            AddTransactionEvidenceViewHolder(binding)
+        return viewHolder
     }
 
     override fun onBindViewHolder(holder: AddTransactionEvidenceViewHolder, position: Int) {
-        val image = holder.imageView
+        val image = holder.binding.imageViewAddEditEvidenceMain
         val evidence = evidenceList[position]
         val uri = evidence.uri
         val mimeType = evidence.mimeType
+        holder.binding.root.setOnClickListener {
+            val pos = holder.absoluteAdapterPosition
+            val xEvidence = evidenceList[pos]
+            val xMimeType = xEvidence.mimeType
+            val xUri = xEvidence.uri
+            if(selectedItemPosition == pos) {
+                if(xMimeType == "application/pdf") {
+                    val xRenderer = pdfRenderers[xUri]
+                    val pageZero = pageZeroMaps.remove(xRenderer)
+                    if(pageZero != null) {
+                        LOGGER.info("Removed PdfRenderer first page")
+                        pageZero.close()
+                        LOGGER.info("Closed PdfRenderer first page")
+                    }
+                    //TODO Release Glide resources, too
+                }
+                listener?.onDeleteEvidence(pos, xEvidence.uri)
+            } else {
+                val oldSelection = selectedItemPosition
+                selectedItemPosition = pos
+                notifyItemChanged(pos)
+                if(oldSelection != -1) {
+                    notifyItemChanged(oldSelection)
+                }
+            }
+        }
+        if(selectedItemPosition == position) {
+            holder.binding.imageViewAddEditEvidenceSelectedIndicator.visibility = View.VISIBLE
+        } else {
+            holder.binding.imageViewAddEditEvidenceSelectedIndicator.visibility = View.GONE
+        }
         when(mimeType) {
             "image/jpeg", "image/png" -> {
                 Glide.with(image.context)
@@ -77,7 +119,7 @@ class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddEd
         notifyDataSetChanged()
     }
 
-    class AddTransactionEvidenceViewHolder(val imageView: ImageView): ViewHolder(imageView) {
+    class AddTransactionEvidenceViewHolder(val binding: RecyclerviewAddEditEvidenceBinding): ViewHolder(binding.root) {
 
     }
 

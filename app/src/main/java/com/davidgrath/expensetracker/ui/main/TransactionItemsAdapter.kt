@@ -7,6 +7,7 @@ import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
+import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDateBinding
@@ -82,6 +83,11 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                             binding.textViewTransactionTime.text = ""
                         } else {
                             binding.textViewTransactionTime.text = timeFormat.format(transaction.datedTime)
+                        }
+                        if(transaction.debitOrCredit) {
+                            binding.imageViewTransactionDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
+                        } else {
+                            binding.imageViewTransactionDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
                         }
 //                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
                         binding.textViewTransactionAmount.text = ""

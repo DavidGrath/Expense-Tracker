@@ -90,7 +90,7 @@ constructor(
             .map { transaction ->
                 val existingDraft = fileHandler.getDraft().blockingGet()?: AddEditDetailedTransactionDraft(emptyList(), -1)
                 val transactionItems = transactionItemRepository.getTransactionItemsSingle(transactionId).blockingGet()
-                draft = AddEditDetailedTransactionDraft(emptyList(), transaction.accountId)
+                draft = AddEditDetailedTransactionDraft(emptyList(), transaction.accountId, transaction.debitOrCredit)
                 //Set Items, incrementId
                 val imagesMap = mutableMapOf<String, Uri>()
                 incrementId = 0
@@ -768,9 +768,13 @@ constructor(
                 }
             }
             val transaction = transactionRepository.getTransactionByIdSingle(transactionId!!).blockingGet()
+            val account = accountRepository.getAccountByIdSingle(draft.accountId).blockingGet()
             var updatedTransaction = transaction.copy(
                 amount = total,
-                note = draft.note
+                note = draft.note,
+                accountId = draft.accountId,
+                debitOrCredit = draft.debitOrCredit,
+                currencyCode = account!!.currencyCode
             )
 
 
@@ -990,10 +994,11 @@ constructor(
         }
     }
 
-    fun setDebitOrCredit(debitOrCredit: Boolean) {
-        draft = draft.copy(debitOrCredit = debitOrCredit)
+    fun toggleDebitOrCredit() {
+        val debitOrCredit = draft.debitOrCredit
+        draft = draft.copy(debitOrCredit = !debitOrCredit)
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
-        LOGGER.info("Changed debitOrCredit")
+        LOGGER.info("Toggled debitOrCredit")
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }

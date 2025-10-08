@@ -9,6 +9,7 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.map
 import androidx.lifecycle.switchMap
@@ -16,6 +17,7 @@ import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.db.dao.ProfileDao
+import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
@@ -62,9 +64,44 @@ class AddDetailedTransactionViewModel(
     var rendererLiveData: LiveData<Map<Uri, PdfRenderer>> = _rendererLiveData
     val profile = profileDao.getByStringId(profileStringId).subscribeOn(Schedulers.io()).blockingGet()
 
+    val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+    val mediator = MediatorLiveData<Triple<List<AccountDb>, AccountUi, BigDecimal>>()
+
+    val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
+    val currentAccount = addDetailedTransactionRepository.getDraft().map {
+        val accounts = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet()
+        val draft = it.first
+        val accountId = it.first.accountId
+        val accountDb = accounts.find { it.id == accountId }
+        if(accountDb == null) {
+            Triple(accounts, AccountUi(-1, -1, "AAA", "Error", "Error"), BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+        } else {
+            val total = draft.items.map {
+                it.amount ?: BigDecimal.ZERO
+            }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
+                ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+            Triple(accounts, accountDbToAccountUi(accountDb), total)
+        }
+    }
+
     init {
         LOGGER.debug("profile: {}", profile)
         addDetailedTransactionRepository.setMode(mode)
+        mediator.addSource(currentAccount) {
+            mediator.postValue(it)
+        }
+        mediator.addSource(accountsLiveData) {
+            if(currentAccount.value != null) {
+                mediator.postValue(
+                    Triple(
+                        it,
+                        currentAccount.value.second,
+                        currentAccount.value.third
+                    )
+                )
+            }
+        }
+
         if(mode == "add") {
             if (!addDetailedTransactionRepository.draftExists()) {
                 if (initialAmount != null || initialDescription != null || initialCategoryId != null) {
@@ -93,49 +130,33 @@ class AddDetailedTransactionViewModel(
                     )
                 }
                 addDetailedTransactionRepository.restoreDraft().blockingSubscribe()
-                var hasPDFs = false
-                for (evidence in addDetailedTransactionRepository.getDraftValue().evidence) {
-                    if (evidence.mimeType != "application/pdf") {
-                        continue
-                    }
-                    hasPDFs = true
-                    val renderer = loadRenderer(evidence.uri).blockingGet()
-                    if (renderer != null) {
-                        rendererHashMap += evidence.uri to renderer
-                    }
-                }
-                _rendererLiveData.postValue(rendererHashMap)
-                if (hasPDFs) {
-                    LOGGER.info("Loaded renderers for existing draft PDFs")
-                }
+                loadRenderers()
             }
         } else if(mode == "edit") {
             addDetailedTransactionRepository.initializeEdit(transactionId!!).blockingSubscribe {
+                loadRenderers()
                 LOGGER.info("Loaded transaction $transactionId")
             }
         }
     }
 
-    val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
-    val currentAccount = addDetailedTransactionRepository.getDraft().map {
-        val draft = it.first
-        val accountId = it.first.accountId
-        val accountDb = accountRepository.getAccountByIdSingle(accountId).blockingGet()
-        if(accountDb == null) {
-            AccountUi(-1, -1, "AAA", "Error", "Error") to BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-        } else {
-            val total = draft.items.map {
-                it.amount ?: BigDecimal.ZERO
-            }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
-                ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-            accountDbToAccountUi(accountDb) to total
+    private fun loadRenderers() {
+        var hasPDFs = false
+        for (evidence in addDetailedTransactionRepository.getDraftValue().evidence) {
+            if (evidence.mimeType != "application/pdf") {
+                continue
+            }
+            hasPDFs = true
+            val renderer = loadRenderer(evidence.uri).blockingGet()
+            if (renderer != null) {
+                rendererHashMap += evidence.uri to renderer
+            }
+        }
+        _rendererLiveData.postValue(rendererHashMap)
+        if (hasPDFs) {
+            LOGGER.info("Loaded renderers for existing draft PDFs")
         }
     }
-
-
-    val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).map { list ->
-        list.map { accountDbToAccountUi(it) }
-    }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
 
     fun addItem(): Boolean {
         return addDetailedTransactionRepository.addItem()
@@ -180,6 +201,10 @@ class AddDetailedTransactionViewModel(
 
     fun onItemDeleted(position: Int) {
         addDetailedTransactionRepository.deleteItem(position)
+    }
+
+    fun onItemImageDeleted(itemPosition: Int, imagePosition: Int) {
+        addDetailedTransactionRepository.deleteItemImage(itemPosition, imagePosition)
     }
 
     fun finishDraft(): LiveData<Unit> {
@@ -240,6 +265,27 @@ class AddDetailedTransactionViewModel(
 
     fun setAccountId(accountId: Long) {
         addDetailedTransactionRepository.setAccount(accountId)
+    }
+
+    fun toggleDebitOrCredit() {
+        addDetailedTransactionRepository.toggleDebitOrCredit()
+    }
+
+    fun onDeleteEvidence(position: Int, uri: Uri) {
+        val mutable = rendererHashMap.toMutableMap()
+
+        val renderer = mutable.remove(uri)
+        if(renderer != null) {
+            LOGGER.info("onDeleteEvidence: Removed PDF Renderer for evidence")
+            renderer.close()
+            LOGGER.info("onDeleteEvidence: Closed PDF Renderer")
+        } else {
+            LOGGER.info("No PDF renderer for evidence")
+        }
+        rendererHashMap = mutable.toMap()
+        _rendererLiveData.postValue(rendererHashMap)
+        LOGGER.info("onDeleteEvidence: Updated renderer hash map")
+        addDetailedTransactionRepository.removeEvidence(position)
     }
 
 

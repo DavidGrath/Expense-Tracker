@@ -35,8 +35,9 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
     interface AddTransactionItemRecyclerListener {
         fun onItemChanged(position: Int, item: AddTransactionItem)
         fun onItemChangedInvalidate(position: Int, item: AddTransactionItem)
-        fun onItemDeleted(position: Int)
+        fun onDeleteItem(position: Int)
         fun onRequestAddImage(position: Int, itemId: Int)
+        fun onDeleteItemImage(position: Int, imagePosition: Int)
     }
 
 
@@ -56,7 +57,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(absPosition != 0) {
                     binding.imageViewAddDetailedTransactionItemDelete.visibility = View.VISIBLE
                     binding.imageViewAddDetailedTransactionItemDelete.setOnClickListener {
-                        listener?.onItemDeleted(absPosition)
+                        listener?.onDeleteItem(absPosition)
                     }
                 } else {
                     binding.imageViewAddDetailedTransactionItemDelete.visibility = View.GONE
@@ -144,7 +145,11 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     }
                 }
                 textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newDescriptionWatcher
-                val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images)
+                val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images, object: AddTransactionItemImagesRecyclerAdapter.ItemImageClickListener {
+                    override fun onDeleteImage(position: Int) {
+                        listener?.onDeleteItemImage(absPosition, position)
+                    }
+                })
                 val layoutManager = LinearLayoutManager(binding.root.context)
                 layoutManager.orientation = LinearLayoutManager.HORIZONTAL
                 binding.recyclerviewAddDetailedTransactionItemImages.adapter = adapter

@@ -37,9 +37,10 @@
             android:text="Transaction time zone not same as local time zone"
             android:visibility="gone"/>
         <TextView
+            android:id="@+id/text_view_transaction_details_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TODO Account"/>
+            tools:text="Default Account"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -75,7 +76,12 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:orientation="horizontal">
-
+        <ImageView
+            android:id="@+id/image_view_transaction_details_debit_or_credit"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/baseline_remove_24"
+            android:layout_marginEnd="8dp"/>
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"

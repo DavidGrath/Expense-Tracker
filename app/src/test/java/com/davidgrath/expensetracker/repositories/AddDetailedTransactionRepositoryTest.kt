@@ -202,6 +202,8 @@ class AddDetailedTransactionRepositoryTest {
         assertEquals(null, transaction.note)
         assertEquals("Description", items[0].description)
         assertEquals(1, getHashCount(firstEvidence.sha256, evidenceDir).blockingGet())
+        assertFalse(transaction.debitOrCredit)
+        assertEquals("USD", transaction.currencyCode)
         //Load Draft
 
         repository.setMode("edit")
@@ -235,6 +237,14 @@ class AddDetailedTransactionRepositoryTest {
         repository.removeEvidence(0)
         repository.addEvidence(secondEvidence.uri, "image/jpeg").blockingSubscribe()
 
+        //Edit Account
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
+        repository.setAccount(accountId)
+
+        //Change default debit to credit
+        repository.toggleDebitOrCredit()
+
         //TODO Date/Time
         repository.finishTransaction().blockingSubscribe()
 
@@ -258,6 +268,8 @@ class AddDetailedTransactionRepositoryTest {
         assertEquals(1, evidenceList.size)
         assertEquals(0, getHashCount(firstEvidence.sha256, evidenceDir).blockingGet())
         assertEquals(1, getHashCount(secondEvidence.sha256, evidenceDir).blockingGet())
+        assertEquals("GBP", transaction.currencyCode)
+        assertEquals(true , transaction.debitOrCredit)
     }
     @Test // A //TODO These letters are from a spreadsheet I drafted. Transform that to an AsciiDoc table in this repo
     fun givenImageInEditRemovedAndImageNotLinkedToAnyOtherItemsWhenSaveThenImageRemovedFromDevice() {

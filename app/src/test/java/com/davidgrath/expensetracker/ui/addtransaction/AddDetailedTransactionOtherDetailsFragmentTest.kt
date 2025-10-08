@@ -60,6 +60,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.ZoneId
@@ -99,6 +100,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     companion object {
         private val MOCKED_DATE = LocalDate.of(2025, 6, 30)
         private val MOCKED_TIME = LocalTime.of(8, 0)
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionOtherDetailsFragmentTest::class.java)
     }
 
     @Before
@@ -442,6 +444,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     fun basicAccountChangeTest() {
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
+        LOGGER.debug("Account ID: {}", accountId)
         onView(withId(R.id.spinner_add_detailed_transaction_account)).perform(click())
         onData(allOf(AccountUiIdMatcher(accountId))).perform(click())
         val draft = addDetailedTransactionRepository.getDraftValue()

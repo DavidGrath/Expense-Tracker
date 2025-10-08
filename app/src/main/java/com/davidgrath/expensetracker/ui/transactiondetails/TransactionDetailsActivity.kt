@@ -102,7 +102,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
         viewModel.transaction.observe(this) { transaction ->
             binding.transactionDetailsNote.text = transaction.note
             binding.textViewTransactionDetailsTotal.text = transaction.currencyCode + " " + transaction.amount
-            LOGGER.debug("transaction: {}", transaction)
+            binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
             val zone = transaction.datedZone
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
@@ -112,6 +112,11 @@ class TransactionDetailsActivity: AppCompatActivity() {
                 binding.textViewTransactionDetailsZoneDifferenceNotice.visibility = View.VISIBLE
             } else {
                 binding.textViewTransactionDetailsZoneDifferenceNotice.visibility = View.GONE
+            }
+            if(transaction.debitOrCredit) {
+                binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
+            } else {
+                binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
             }
         }
         setContentView(binding.root)

@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +11,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
@@ -55,7 +57,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         adapter = AddTransactionItemRecyclerAdapter(c, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
-
+        binding.imageViewAddDetailedTransactionDebitOrCredit.setOnClickListener(this)
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
             LOGGER.info("Event: ${triple.second}, Position: ${triple.third}")
             val draft = triple.first
@@ -87,9 +89,15 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
 
                 }
             }
+
+            if(draft.debitOrCredit) {
+                binding.imageViewAddDetailedTransactionDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
+            } else {
+                binding.imageViewAddDetailedTransactionDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
+            }
         }
 
-        viewModel.currentAccount.observe(viewLifecycleOwner) { (account, total) ->
+        viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
             val currencyCode = account.currencyCode
             binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total) //TODO General number formatting, UCUM/UOM
         }
@@ -115,6 +123,9 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                         Snackbar.make(binding.root, "Invalid input", Snackbar.LENGTH_SHORT).show()
                     }
                 }
+                binding.imageViewAddDetailedTransactionDebitOrCredit -> {
+                    viewModel.toggleDebitOrCredit()
+                }
                 else -> {
 
                 }
@@ -130,8 +141,12 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         viewModel.onItemChangedInvalidate(position, item)
     }
 
-    override fun onItemDeleted(position: Int) {
+    override fun onDeleteItem(position: Int) {
         viewModel.onItemDeleted(position)
+    }
+
+    override fun onDeleteItemImage(position: Int, imagePosition: Int) {
+        viewModel.onItemImageDeleted(position, imagePosition)
     }
 
     override fun onRequestAddImage(position: Int, itemId: Int) {

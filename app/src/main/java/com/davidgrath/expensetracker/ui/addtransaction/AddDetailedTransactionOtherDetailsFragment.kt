@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.ui.AccountUi
@@ -45,7 +46,7 @@ import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import javax.inject.Inject
 
-class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener, MaterialPickerOnPositiveButtonClickListener<Long> {
+class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener, MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener {
 
     private lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
     private lateinit var viewModel: AddDetailedTransactionViewModel
@@ -77,7 +78,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         binding.imageViewAddDetailedTransactionCustomTimeRemove.setOnClickListener(this)
 
         binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
-        val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap())
+        val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap(), this)
         binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
         binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
         val mode = viewModel.mode
@@ -166,16 +167,16 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         }
         binding.spinnerAddDetailedTransactionAccount.adapter = accountAdapter
         binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
-        viewModel.accountsLiveData.observe(viewLifecycleOwner) {
-            LOGGER.debug("Accounts list size: {}", it.size)
-            accountAdapter.setItems(it)
+
+//        viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
+        viewModel.mediator.observe(viewLifecycleOwner) { (accounts, account, total) ->
+            accountAdapter.setItems(accounts.map { accountDbToAccountUi(it) })
             if(binding.spinnerAddDetailedTransactionAccount.selectedItemPosition == Spinner.INVALID_POSITION) {
                 binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
                 binding.spinnerAddDetailedTransactionAccount.setSelection(0)
                 binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
             }
-        }
-        viewModel.currentAccount.observe(viewLifecycleOwner) { (account, total) ->
+
             val accountPosition = accountAdapter._objects.indexOfFirst { it.id == account.id }
             binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
 
@@ -333,6 +334,10 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
             val localDate = instant.atZone(timeHandler.getZone()).toLocalDate()
             viewModel.setCustomDate(localDate)
         }
+    }
+
+    override fun onDeleteEvidence(position: Int, uri: Uri) {
+        viewModel.onDeleteEvidence(position, uri)
     }
 
     companion object {
