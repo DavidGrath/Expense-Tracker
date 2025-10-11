@@ -1,29 +1,34 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import java.math.BigDecimal
-import java.math.RoundingMode
+import java.io.File
 import java.util.Locale
 
-class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener {
+class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
 
 
     interface AddDetailedTransactionMainListener {
@@ -150,12 +155,53 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     }
 
     override fun onRequestAddImage(position: Int, itemId: Int) {
-        viewModel.getImageItemId = itemId
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT) //TODO Rework Intents - needs Camera, needs internal images, possibly change to ACTION_GET_CONTENT
-        intent.type = "*/*"
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
-        requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
+        val atLeastOneImageExists = viewModel.getImageCount().blockingGet() > 0
+        val externalMediaDialog = AddExternalMediaDialogFragment.newInstance(true, itemId, atLeastOneImageExists)
+        externalMediaDialog.listener = this
+        externalMediaDialog.show(childFragmentManager, DIALOG_TAG_EXTERNAL_MEDIA_PICKER)
+        LOGGER.info("Opened dialog externalMediaPicker")
     }
+
+    override fun onSelectionMade(selection: AddExternalMediaDialogFragment.Selection, itemOrEvidence: Boolean, itemId: Int?) {
+        when(selection) {
+            AddExternalMediaDialogFragment.Selection.Camera -> {
+                viewModel.getImageItemId = itemId!!
+                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val cameraDirectory = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+                val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+                if(cameraFile.exists()) {
+                    LOGGER.info("Camera Intent file already exists")
+                    val delete = cameraFile.delete()
+                    if(delete) {
+                        LOGGER.info("Existing camera file deleted")
+                    } else {
+                        LOGGER.warn("Existing camera file not deleted")
+                    }
+                }
+                val uri = FileProvider.getUriForFile(requireContext().applicationContext, requireContext().applicationContext.packageName + ".provider", cameraFile)
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
+                try {
+                    requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_CAPTURE_IMAGE)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(requireContext(), "Unable to open camera", Toast.LENGTH_SHORT).show()
+                    LOGGER.error("Unable to open camera", e)
+                }
+            }
+            AddExternalMediaDialogFragment.Selection.LocalImage -> {
+                viewModel.getImageItemId = itemId!!
+                val intent = Intent(requireActivity(), AddDetailedTransactionGetImageActivity::class.java)
+                requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
+            }
+            AddExternalMediaDialogFragment.Selection.DevicePicker -> {
+                viewModel.getImageItemId = itemId!!
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT) //TODO Rework Intents - possibly change to ACTION_GET_CONTENT
+                intent.type = "*/*"
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
+                requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_ITEM_OPEN_IMAGE)
+            }
+        }
+    }
+
 
     companion object {
         @JvmStatic
@@ -163,7 +209,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             val fragment = AddDetailedTransactionMainFragment()
             return fragment
         }
-        
+        private const val DIALOG_TAG_EXTERNAL_MEDIA_PICKER = "externalMediaPicker"
         private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionMainFragment::class.java)
     }
 }

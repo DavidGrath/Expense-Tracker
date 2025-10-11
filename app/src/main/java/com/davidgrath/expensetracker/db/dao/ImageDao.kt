@@ -36,6 +36,9 @@ interface ImageDao {
 
     @Query("SELECT sum(sizeBytes) FROM ImageDb")
     fun storageSum(): Single<Long>
+
+    @Query("SELECT count(*) FROM ImageDb")
+    fun countAllSingle(): Single<Long>
     //endregion
 
     //region Delete

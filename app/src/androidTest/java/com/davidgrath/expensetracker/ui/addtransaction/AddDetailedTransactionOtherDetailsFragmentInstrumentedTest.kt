@@ -20,6 +20,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -31,8 +32,15 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.TestData
+import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
+import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getSha256
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
+import org.hamcrest.CoreMatchers
 import org.hamcrest.Matchers
 import org.hamcrest.Matchers.allOf
 import org.junit.After
@@ -42,7 +50,9 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.slf4j.LoggerFactory
 import java.io.File
+import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
 class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
@@ -51,6 +61,9 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @get:Rule
     val addDetailedTransactionActivityScenarioRule = ActivityScenarioRule(AddDetailedTransactionActivity::class.java)
+
+    @Inject
+    lateinit var repository: AddDetailedTransactionRepository
 
     @Before
     fun setUp() {
@@ -88,7 +101,9 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
         )
 
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(scrollTo(),  click())
-        onView(withId(android.R.id.message)).check(matches(allOf(isDisplayed(), withText(Matchers.matchesRegex(".*password.*"))))) //probably change to resourceId
+        onView(withId(R.id.image_view_add_external_media_device_file)).perform(click())
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(android.R.id.message)).inRoot(isDialog()).check(matches(allOf(isDisplayed(), withText(Matchers.matchesRegex(".*password.*"))))) //probably change to resourceId
 
         //"Clean up"
         onView(withId(android.R.id.button1)).perform(click())
@@ -111,6 +126,8 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
         )
 
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        onView(withId(R.id.image_view_add_external_media_device_file)).perform(click())
+        onView(withId(android.R.id.button1)).perform(click())
         onView(withId(android.R.id.message)).check(matches(allOf(isDisplayed(), withText(Matchers.matchesRegex(".*zero.*"))))) //probably change to resourceId
 
         //"Clean up"
@@ -118,7 +135,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
     }
 
     /**
-     * If the user somehow finds a way to stack 301+ combining characters into 1, then I think this test fails, but ignore that
+     * If the user somehow finds a way to stack 501+ combining characters into 1, then I think this test fails, but ignore that
      */
     @Test
     fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncatedByGrapheme() {
@@ -147,7 +164,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
         }
         onView(withId(R.id.text_view_add_detailed_transaction_note_length_indicator)).check(matches(withText("${Constants.MAX_NOTE_CODEPOINT_LENGTH - 1}/${Constants.MAX_NOTE_CODEPOINT_LENGTH}")))
 
-        val menRunning = manRunning.repeat(Math.floorDiv(Constants.MAX_NOTE_CODEPOINT_LENGTH, manRunningCount)+1) //4 x 76 = 304
+        val menRunning = manRunning.repeat(Math.floorDiv(Constants.MAX_NOTE_CODEPOINT_LENGTH, manRunningCount)+1) //4 x 126 = 504
         addDetailedTransactionActivityScenarioRule.scenario.onActivity {
             it.runOnUiThread {
                 val clipBoardManager =
@@ -195,7 +212,13 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
         }
         onView(withId(R.id.edit_text_add_detailed_transaction_note)).perform(clearText())
     }
+
+
     /*@Test
     fun givenEvidenceIsPdfAndPdfOkayWhenSelectThenImageDisplayed() {
     }*/
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionActivityInstrumentedTest::class.java)
+    }
 }

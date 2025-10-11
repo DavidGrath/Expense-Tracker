@@ -1,8 +1,10 @@
 package com.davidgrath.expensetracker
 
 import android.app.Application
+import android.content.ContentResolver
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Environment
 import android.util.Log
 import androidx.core.net.toUri
 import com.davidgrath.expensetracker.di.DaggerMainComponent
@@ -12,6 +14,7 @@ import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.ProfileDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMainFragment
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
@@ -163,6 +166,9 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         return getSha256(inputStream).doOnSuccess { inputStream.close() }
     }
 
+    /**
+     * Deletes the original if it was the Camera intent file
+     */
     override fun copyUriToDraft(uri: Uri, mimeType: String, subfolder: String): Single<Uri> {
         val subPath = Constants.FOLDER_NAME_DRAFT + File.separator + subfolder
         val folder = file(filesDir.absolutePath,
@@ -184,6 +190,14 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             inputStream.close()
             outputStream.close()
             LOGGER.info("copyUriToDraft: Created file {}", subPath) //TODO Make a makeshift relativize
+            if(uri.scheme == ContentResolver.SCHEME_FILE) {
+                LOGGER.info("copyUriToDraft: File was copied to app from camera. Deleting original")
+                val cameraDirectory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+                val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+                if(cameraFile.exists()) {
+                    cameraFile.delete()
+                }
+            }
             file.toUri()
         }
     }

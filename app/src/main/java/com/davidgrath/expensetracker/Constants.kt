@@ -14,6 +14,7 @@ class Constants {
         const val DATABASE_NAME = "expense-tracker-db"
         const val DEFAULT_PROFILE_ID = "fae075e1-d54a-4857-a76b-b3eadf88d602"
         const val DEFAULT_PREFERENCES_FILE_NAME = "ExpenseTracker"
+        const val FILE_NAME_INTENT_PICTURE = "ExpenseTrackerCameraResult"
     }
     class PreferenceKeys {
         class Device {

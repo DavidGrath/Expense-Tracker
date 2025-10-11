@@ -21,6 +21,22 @@ class ImageRepository
             }
     }
 
+    fun getAllImagesSingle(): Single<List<ImageDb>> {
+        return imageDao.getAllSingle()
+            .subscribeOn(Schedulers.io())
+            .doOnSuccess {
+                LOGGER.info("getAllImagesSingle: {} items", it.size)
+            }
+    }
+
+    fun getImageCount(): Single<Long> {
+        return imageDao.countAllSingle()
+            .subscribeOn(Schedulers.io())
+            .doOnSuccess {
+                LOGGER.info("getImageCount: {} ", it)
+            }
+    }
+
     companion object {
         private val LOGGER = LoggerFactory.getLogger(ImageRepository::class.java)
     }

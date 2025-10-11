@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Application
+import android.content.ContentResolver
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -28,6 +29,8 @@ import com.davidgrath.expensetracker.loadRenderer
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.repositories.ImageRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
@@ -48,7 +51,8 @@ class AddDetailedTransactionViewModel(
     private val addDetailedTransactionRepository: AddDetailedTransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val accountRepository: AccountRepository,
-    private val profileDao: ProfileDao,
+    private val profileRepository: ProfileRepository,
+    private val imageRepository: ImageRepository,
     private val profileStringId: String,
     private val transactionId: Long?,
     private val initialAccountId: Long?,
@@ -62,7 +66,7 @@ class AddDetailedTransactionViewModel(
     private var rendererHashMap = emptyMap<Uri, PdfRenderer>()
     private val _rendererLiveData = MutableLiveData<Map<Uri, PdfRenderer>>(rendererHashMap)
     var rendererLiveData: LiveData<Map<Uri, PdfRenderer>> = _rendererLiveData
-    val profile = profileDao.getByStringId(profileStringId).subscribeOn(Schedulers.io()).blockingGet()
+    val profile = profileRepository.getByStringId(profileStringId).subscribeOn(Schedulers.io()).blockingGet()
 
     val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     val mediator = MediatorLiveData<Triple<List<AccountDb>, AccountUi, BigDecimal>>()
@@ -171,14 +175,26 @@ class AddDetailedTransactionViewModel(
     }
 
     fun addItemFile(returnedUri: Uri): LiveData<Unit> {
-        val mimeType = application.contentResolver.getType(returnedUri) ?: ""
+        val mimeType = if(returnedUri.scheme == ContentResolver.SCHEME_CONTENT) {
+            application.contentResolver.getType(returnedUri) ?: ""
+        } else if(returnedUri.scheme == ContentResolver.SCHEME_FILE) {
+            "image/jpeg" //Hardcoding because I'm not sure how to determine what the native camera returns
+        } else {
+            ""
+        }
         return addDetailedTransactionRepository.addImageToItem(getImageItemId, returnedUri, mimeType).subscribeOn(Schedulers.io()).map {
             getImageItemId = -1
         }.subscribeOn(Schedulers.io()).toFlowable().toLiveData()
     }
 
     fun addEvidence(returnedUri: Uri): LiveData<PdfState> {
-        val mimeType = application.contentResolver.getType(returnedUri) ?: ""
+        val mimeType = if(returnedUri.scheme == ContentResolver.SCHEME_CONTENT) {
+            application.contentResolver.getType(returnedUri) ?: ""
+        } else if(returnedUri.scheme == ContentResolver.SCHEME_FILE) {
+            "image/jpeg" //Hardcoding because I'm not sure how to determine what the native camera returns
+        } else {
+            ""
+        }
 
         return addDetailedTransactionRepository.addEvidence(returnedUri, mimeType).map { uri ->
             if (mimeType != "application/pdf") {
@@ -286,6 +302,10 @@ class AddDetailedTransactionViewModel(
         _rendererLiveData.postValue(rendererHashMap)
         LOGGER.info("onDeleteEvidence: Updated renderer hash map")
         addDetailedTransactionRepository.removeEvidence(position)
+    }
+
+    fun getImageCount(): Single<Long> {
+        return imageRepository.getImageCount()
     }
 
 

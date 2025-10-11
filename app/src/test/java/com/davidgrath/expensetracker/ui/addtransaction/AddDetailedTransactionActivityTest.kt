@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -15,6 +17,8 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.RootMatchers
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -22,6 +26,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
+import com.davidgrath.expensetracker.ExpenseTrackerTest
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestConstants
@@ -35,15 +40,21 @@ import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.clearTextRecyclerViewItem
 import com.davidgrath.expensetracker.clickRecyclerViewItem
 import com.davidgrath.expensetracker.copyResourceToFile
+import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
+import com.davidgrath.expensetracker.longClickRecyclerViewItem
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepositoryTest
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
@@ -51,12 +62,18 @@ import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.squareup.rx3.idler.Rx3Idler
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.CoreMatchers.not
 import javax.inject.Inject
 import org.junit.After
+import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Ignore
@@ -66,6 +83,8 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowLooper
 import java.io.File
 import java.math.BigDecimal
 import java.util.Locale
@@ -90,6 +109,8 @@ class AddDetailedTransactionActivityTest {
     lateinit var profileRepository: ProfileRepository
     @Inject
     lateinit var accountRepository: AccountRepository
+    @Inject
+    lateinit var timeHandler: TimeHandler
     lateinit var app: TestExpenseTracker
 
     companion object {
@@ -403,6 +424,7 @@ class AddDetailedTransactionActivityTest {
             0,
             R.id.image_view_add_detailed_transaction_item_add_image
         )
+        pickFileFromDevice()
         Thread.sleep(SLEEP_DURATION)
 
 
@@ -580,6 +602,76 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
+    @Ignore("Use UI Automator instead") //TODO
+    fun simpleCameraIntentTest() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        val resource = TestData.Resource.Images.BREAD
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
+        val draftImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+
+        val cameraDirectory = app.getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+        val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+        copyResourceToFile(classLoader, resource.resourceName, cameraFile)
+
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        intending(hasAction(MediaStore.ACTION_IMAGE_CAPTURE)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, null
+            )
+        )
+
+        longClickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.image_view_add_detailed_transaction_item_add_image)
+        assertEquals(0, getHashCount(resource.sha256, cameraDirectory).subscribeOn(Schedulers.io()).blockingGet())
+
+
+        Thread.sleep(SLEEP_DURATION * 2)
+        assertEquals(1, getHashCount(resource.sha256, cameraDirectory).subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(1, getHashCount(resource.sha256, draftImagesFolder).subscribeOn(Schedulers.io()).blockingGet())
+    }
+
+    @Test
+    fun givenAtLeastOneImageExistsInDbWhenAddImageThenDialogOptionPresent() {
+        val scenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        saveImageToDevice(TestData.Resource.Images.BREAD).blockingSubscribe()
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main, 0,
+            R.id.text_view_add_detailed_transaction_show_details
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+        onView(withId(R.id.image_view_add_external_media_local_image)).inRoot(isDialog()).check(matches(isDisplayed()))
+    }
+
+    @Test
+    fun givenNoImagesExistInDbWhenAddImageThenDialogOptionPresent() {
+        val scenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main, 0,
+            R.id.text_view_add_detailed_transaction_show_details
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+        onView(withId(R.id.image_view_add_external_media_local_image)).inRoot(isDialog())
+            .check(matches(not((isDisplayed()))))
+    }
+
+    @Test
     @Ignore("Not ready yet")
     fun givenTransactionExistsWhenEditsMadeAndCancelClickedThenTransactionNotChanged() {
 
@@ -600,5 +692,27 @@ class AddDetailedTransactionActivityTest {
             evidenceMap[resource.sha256] = resource.uri
         }
         return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), evidence = evidence, evidenceHashes = evidenceMap, accountId = accountId)
+    }
+
+    fun pickFileFromDevice() {
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+        onView(withId(R.id.image_view_add_external_media_device_file)).inRoot(RootMatchers.isDialog()).perform(click())
+        onView(withId(android.R.id.button1)).inRoot(RootMatchers.isDialog()).perform(click())
+        ShadowLooper.runUiThreadTasks()
+    }
+
+    fun saveImageToDevice(resource: TestData.Resource, filename: String = "45402cd3-2452-4804-981a-7ea5515dec74.jpg"): Single<Long> {
+        val mainImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
+        mainImagesFolder.mkdirs()
+        val mainImage = File(mainImagesFolder, filename)
+        if(mainImage.exists()) {
+            throw Exception("Image already exists on device")
+        }
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        copyResourceToFile(classLoader, resource.resourceName, mainImage)
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
+        val image = ImageDb(null, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
+        return imageDao.insertImage(image).subscribeOn(Schedulers.io())
     }
 }

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
 import android.view.View
+import androidx.core.net.toUri
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -20,6 +21,7 @@ import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
@@ -27,6 +29,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
@@ -34,19 +37,26 @@ import com.davidgrath.expensetracker.RecyclerInputTextItemAction
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
+import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
+import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItemInstrumented
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.CoreMatchers.not
 import javax.inject.Inject
 import org.hamcrest.Description
 import org.hamcrest.TypeSafeMatcher
@@ -59,6 +69,7 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class AddDetailedTransactionActivityInstrumentedTest {
@@ -77,10 +88,14 @@ class AddDetailedTransactionActivityInstrumentedTest {
     lateinit var transactionRepository: TransactionRepository
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var timeHandler: TimeHandler
+    lateinit var app: InstrumentedTestExpenseTracker
 
     @Before
     fun setUp() {
-        (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>().appComponent as InstrumentedTestComponent).inject(this)
+        app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
+        (app.appComponent as InstrumentedTestComponent).inject(this)
     }
 
     @After
@@ -196,6 +211,8 @@ class AddDetailedTransactionActivityInstrumentedTest {
             0,
             R.id.image_view_add_detailed_transaction_item_add_image
         )
+        onView(withId(R.id.image_view_add_external_media_device_file)).inRoot(isDialog()).perform(click())
+        onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
         onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
         onView(withId(R.id.image_view_transaction_item_first_image)).check(matches(allOf(isDisplayed(), withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))))
     }
@@ -361,6 +378,5 @@ class AddDetailedTransactionActivityInstrumentedTest {
             return item != null && item.tag is Long && item.tag == tag
         }
     }
-
 
 }

@@ -4,6 +4,7 @@ import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageViewModelFactory
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModelFactory
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
@@ -24,4 +25,6 @@ interface MainComponent {
     fun inject(addDetailedTransactionActivity: AddDetailedTransactionActivity)
     fun inject(transactionDetailsActivity: TransactionDetailsActivity)
     fun inject(addDetailedTransactionOtherDetailsFragment: AddDetailedTransactionOtherDetailsFragment)
+    fun inject(addDetailedTransactionGetImageViewModelFactory: AddDetailedTransactionGetImageViewModelFactory)
+    fun inject(addDetailedTransactionViewModelFactory: AddDetailedTransactionViewModelFactory)
 }

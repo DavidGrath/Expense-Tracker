@@ -3,7 +3,9 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.view.View
 import android.widget.EditText
+import android.widget.ImageView
 import androidx.core.net.toUri
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -13,9 +15,12 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
@@ -32,6 +37,7 @@ import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
+import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
@@ -51,6 +57,7 @@ import com.davidgrath.expensetracker.test.TestContentProvider
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.Matchers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -60,6 +67,9 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowLooper
 import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
@@ -129,10 +139,10 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     fun givenEvidenceAlreadyInDraftWhenSelectSameEvidenceThenEvidenceOnlyAddedOnce() {
         val evidenceResource = TestData.Resource.Documents.EVIDENCE_IMAGE
         val returnIntent = Intent().also {
-            it.data = TestData.Resource.Documents.EVIDENCE_IMAGE.uri
+            it.data = evidenceResource.uri
         }
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        addContentProviderResources(context, AddDetailedTransactionOtherDetailsFragment::class.java.classLoader, TestData.Resource.Documents.EVIDENCE_IMAGE)
+        addContentProviderResources(context, AddDetailedTransactionOtherDetailsFragmentTest::class.java.classLoader, evidenceResource)
 
         //Open Document from system
 
@@ -143,9 +153,12 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         )
 
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
         //Open same document
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
+
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
         val draft = addDetailedTransactionRepository.getDraftValue()
         val evidence = draft.evidence
@@ -182,6 +195,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             )
         )
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
         //Assert no new files, or assert no existing files match same hash
 
@@ -206,6 +220,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             )
         )
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
 
         val modifiedResource = resource.copy(resourceName = TestData.Resource.Documents.EVIDENCE_IMAGE.resourceName)
@@ -220,6 +235,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             )
         )
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
         val draft = addDetailedTransactionRepository.getDraftValue()
         val evidence = draft.evidence
@@ -249,6 +265,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             )
         )
         onView(withId(R.id.text_view_add_detailed_transaction_add_evidence)).perform(click())
+        pickFileFromDevice()
         Thread.sleep(AddDetailedTransactionActivityTest.SLEEP_DURATION)
 
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
@@ -451,6 +468,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         assertEquals(accountId, draft.accountId)
     }
 
+
     /**
      * Relying on edit mode, so can't use ScenarioRule
      */
@@ -477,5 +495,13 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         return transactionItemRepository.addTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
             id to itemId
         }
+    }
+
+    fun pickFileFromDevice() {
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+        onView(withId(R.id.image_view_add_external_media_device_file)).inRoot(isDialog()).perform(click())
+        onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
+        ShadowLooper.runUiThreadTasks()
     }
 }

@@ -27,7 +27,6 @@ import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
@@ -258,10 +257,12 @@ constructor(
     }
 
     /**
+     * Creates a local image file for the `externalUri` if it doesn't exist and adds it to the item
+     * if it wasn't already in the item's list.
      * Assumed to be called from Schedulers.io
      */
-    private fun createImageForItem(item: AddTransactionItem, uriHash: String, uri: Uri?, externalUri: Uri, mimeType: String): Pair<List<AddEditTransactionFile>, Int> {
-        var xUri = uri
+    private fun createImageForItem(item: AddTransactionItem, uriHash: String, fileUri: Uri?, externalUri: Uri, mimeType: String): Pair<List<AddEditTransactionFile>, Int> {
+        var xUri = fileUri
         if(xUri == null) {
             val file: AddEditTransactionFile
             if(imageDao.doesHashExist(uriHash).blockingGet()) {

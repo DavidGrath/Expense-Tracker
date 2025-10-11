@@ -1170,6 +1170,7 @@ class AddDetailedTransactionRepositoryTest {
         assertEquals(1, accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().size)
     }
 
+
     @Test
     @Ignore("Save for later")
     fun undoTest() {

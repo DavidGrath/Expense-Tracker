@@ -17,7 +17,7 @@ data class TransactionItemDb(
     val description: String,
     val variation: String,
     val referenceNumber: String?,
-    val primaryCategoryId: Long,
+    val primaryCategoryId: Long, // val isReduction: Boolean //TODO Basically for withdrawal discounts and income deductions; amount, description, and primaryCategoryId are the main relevant fields if true
     val createdAt: String,
     val createdAtOffset: String,
     val createdAtTimezone: String

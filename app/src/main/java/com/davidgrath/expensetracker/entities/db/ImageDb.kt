@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 @Entity
 data class ImageDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long?,
+    val id: Long?, //TODO I just realized that Images have no profile ID. Fix later
     val sizeBytes: Long,
     val sha256: String,
     val mimeType: String,

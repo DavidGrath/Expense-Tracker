@@ -94,6 +94,22 @@ class RecyclerClickItemAction(private val id: Int): ViewAction {
     }
 }
 
+class RecyclerLongClickItemAction(private val id: Int): ViewAction {
+    override fun getConstraints(): Matcher<View> {
+        return Matchers.allOf(ViewMatchers.isDisplayed(), ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE))
+    }
+
+    override fun getDescription(): String {
+        return "Long clicking item"
+    }
+
+    override fun perform(uiController: UiController?, view: View?) {
+        val subView = view!!.findViewById<View>(id)
+        subView.performLongClick()
+//        ViewActions.click().perform(uiController, subView) //Doesn't work with local tests for some reason
+    }
+}
+
 class CategoryStringIdMatcher(val stringId: String): CustomTypeSafeMatcher<CategoryUi>("A category") {
     override fun matchesSafely(item: CategoryUi?): Boolean {
         if(item == null) {
@@ -200,6 +216,15 @@ fun <VH : RecyclerView.ViewHolder> clickRecyclerViewItem(@IdRes recyclerViewId: 
         .perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerClickItemAction(viewId)))
 }
 
+fun <VH : RecyclerView.ViewHolder> longClickRecyclerViewItem(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int) {
+    Espresso.onView(ViewMatchers.withId(recyclerViewId))
+        .check { view, noViewFoundException ->
+            val subView = view!!.findViewById<View>(viewId)
+            ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)).check(subView, null)
+        }
+        .perform(RecyclerViewActions.actionOnItemAtPosition<VH>(position, RecyclerLongClickItemAction(viewId)))
+}
+
 fun <VH : RecyclerView.ViewHolder> assertRecyclerViewItemText(@IdRes recyclerViewId: Int, position: Int, @IdRes viewId: Int, text: String) {
     Espresso.onView(ViewMatchers.withId(recyclerViewId))
         .check { view, noViewFoundException ->
@@ -237,7 +262,8 @@ fun addContentProviderResources(context: Context, classLoader: ClassLoader, vara
         val resourceInputStream = classLoader.getResourceAsStream(image.resourceName)
         val file = File(contentDir, image.fileName)
         val outputStream = file.outputStream()
-        resourceInputStream.copyTo(outputStream)
+        val bytes = resourceInputStream.copyTo(outputStream)
+        println("addContentProviderResources: Bytes copied: $bytes")
         resourceInputStream.close()
         outputStream.close()
     }

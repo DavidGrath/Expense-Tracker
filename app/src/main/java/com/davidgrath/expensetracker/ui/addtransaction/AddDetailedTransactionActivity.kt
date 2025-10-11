@@ -2,8 +2,11 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -25,6 +28,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
+import java.io.File
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -74,7 +78,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
 
         viewModel = ViewModelProvider.create(
             viewModelStore,
-            AddDetailedTransactionViewModelFactory(app, mode, addDetailedTransactionRepository, categoryRepository, accountRepository, profileDao, currentProfileStringId, transactionId, accountId, amount, description, categoryId)
+            AddDetailedTransactionViewModelFactory(app, mode, currentProfileStringId, transactionId, accountId, amount, description, categoryId)
         ).get(AddDetailedTransactionViewModel::class.java)
         setContentView(binding.root)
 
@@ -94,6 +98,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
             RESULT_OK -> {
                 when (requestCode) {
                     REQUEST_CODE_ITEM_OPEN_IMAGE -> {
+                        LOGGER.info("onActivityResult: Add Image")
                         val uri = data!!.data!!
                         val liveData = viewModel.addItemFile(uri)
                         liveData.observe(this, object: Observer<Unit> {
@@ -104,6 +109,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                         })
                     }
                     REQUEST_CODE_OPEN_DOCUMENT -> {
+                        LOGGER.info("onActivityResult: Add Document")
                         val uri = data!!.data!!
                         val liveData = viewModel.addEvidence(uri)
                         liveData.observe(this, object: Observer<AddDetailedTransactionViewModel.PdfState> {
@@ -146,6 +152,32 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                                         }
                                     }
                                 }
+                                liveData.removeObserver(this)
+                            }
+                        })
+                    }
+                    REQUEST_CODE_ITEM_CAPTURE_IMAGE -> {
+                        LOGGER.debug("onActivityResult: Capture Image")
+                        val cameraDirectory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+                        val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+                        val uri = cameraFile.toUri()
+                        val liveData = viewModel.addItemFile(uri)
+                        liveData.observe(this, object: Observer<Unit> {
+                            override fun onChanged(value: Unit) {
+                                LOGGER.info("onActivityResult: Camera capture done")
+                                liveData.removeObserver(this)
+                            }
+                        })
+                    }
+                    REQUEST_CODE_DOCUMENT_CAPTURE_IMAGE -> {
+                        LOGGER.debug("onActivityResult: Capture Document Image")
+                        val cameraDirectory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+                        val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+                        val uri = cameraFile.toUri()
+                        val liveData = viewModel.addEvidence(uri)
+                        liveData.observe(this, object: Observer<AddDetailedTransactionViewModel.PdfState> {
+                            override fun onChanged(value: AddDetailedTransactionViewModel.PdfState) {
+                                LOGGER.info("onActivityResult: Camera capture done")
                                 liveData.removeObserver(this)
                             }
                         })
@@ -203,6 +235,8 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         const val ARG_EDIT_TRANSACTION_ID = "editTransactionId"
         const val REQUEST_CODE_ITEM_OPEN_IMAGE = 100
         const val REQUEST_CODE_OPEN_DOCUMENT = 101
+        const val REQUEST_CODE_ITEM_CAPTURE_IMAGE = 102
+        const val REQUEST_CODE_DOCUMENT_CAPTURE_IMAGE = 103
         const val DIALOG_TAG_NO_PAGES = "noPages"
         const val DIALOG_TAG_PASSWORD_PROTECTED = "passwordProtected"
 

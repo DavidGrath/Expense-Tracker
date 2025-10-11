@@ -1,21 +1,27 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
+import android.view.View.OnLongClickListener
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.CompoundButton
 import android.widget.CompoundButton.OnCheckedChangeListener
 import android.widget.Spinner
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +34,7 @@ import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.AccountAdapter
+import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -44,9 +51,11 @@ import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
+import java.io.File
 import javax.inject.Inject
 
-class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener, MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener {
+class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener,
+    MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
 
     private lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
     private lateinit var viewModel: AddDetailedTransactionViewModel
@@ -246,11 +255,12 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                         LOGGER.info("Reached max evidence count")
                         return
                     }
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-                    intent.type = "*/*"
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "application/pdf"))
-                    requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_OPEN_DOCUMENT)
-                    LOGGER.info("startedActivityForResult called to get evidence")
+                    val externalMediaDialog = AddExternalMediaDialogFragment.newInstance(false)
+                    externalMediaDialog.listener = this
+                    externalMediaDialog.show(childFragmentManager,
+                        DIALOG_TAG_EXTERNAL_MEDIA_PICKER
+                    )
+                    LOGGER.info("Opened dialog externalMediaPicker")
                 }
                 binding.textViewAddDetailedTransactionCustomDate -> {
                     datePicker = childFragmentManager.findFragmentByTag(DIALOG_TAG_DATE) as MaterialDatePicker<Long>?
@@ -319,6 +329,47 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         }
     }
 
+    override fun onSelectionMade(selection: AddExternalMediaDialogFragment.Selection, itemOrEvidence: Boolean, itemId: Int?) {
+        when(selection) {
+            AddExternalMediaDialogFragment.Selection.LocalImage -> {}
+            AddExternalMediaDialogFragment.Selection.Camera -> {
+                if(items.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE) {
+                    LOGGER.info("Reached max evidence count")
+                    return
+                }
+
+                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                val cameraDirectory = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+                val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
+                if(cameraFile.exists()) {
+                    LOGGER.info("Camera Intent file already exists")
+                    val delete = cameraFile.delete()
+                    if(delete) {
+                        LOGGER.info("Existing camera file deleted")
+                    } else {
+                        LOGGER.warn("Existing camera file not deleted")
+                    }
+                }
+                val uri = FileProvider.getUriForFile(requireContext().applicationContext, requireContext().applicationContext.packageName + ".provider", cameraFile)
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
+                try {
+                    requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_DOCUMENT_CAPTURE_IMAGE)
+                    LOGGER.info("startedActivityForResult called to open camera evidence")
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(requireContext(), "Unable to open camera", Toast.LENGTH_SHORT).show()
+                    LOGGER.error("Unable to open camera", e)
+                }
+            }
+            AddExternalMediaDialogFragment.Selection.DevicePicker -> {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                intent.type = "*/*"
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "application/pdf"))
+                requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_OPEN_DOCUMENT)
+                LOGGER.info("startedActivityForResult called to get evidence")
+            }
+        }
+    }
+
     override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
         when(buttonView) {
             binding.checkBoxAddDetailedTransactionUseCustomDateTime -> {
@@ -348,7 +399,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         }
         
         private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionOtherDetailsFragment::class.java)
-        private val DIALOG_TAG_DATE = "dateDialog"
-        private val DIALOG_TAG_TIME = "timeDialog"
+        private const val DIALOG_TAG_DATE = "dateDialog"
+        private const val DIALOG_TAG_TIME = "timeDialog"
+        private const val DIALOG_TAG_EXTERNAL_MEDIA_PICKER = "externalMediaPicker"
     }
 }
