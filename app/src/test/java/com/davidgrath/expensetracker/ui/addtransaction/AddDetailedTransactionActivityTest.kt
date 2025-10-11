@@ -602,40 +602,6 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    @Ignore("Use UI Automator instead") //TODO
-    fun simpleCameraIntentTest() {
-        val addDetailedTransactionActivityScenario =
-            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
-
-        val resource = TestData.Resource.Images.BREAD
-        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader, TestData.Resource.Images.BREAD)
-        val draftImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGES)
-        draftImagesFolder.mkdirs()
-        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
-
-        val cameraDirectory = app.getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
-        val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
-        copyResourceToFile(classLoader, resource.resourceName, cameraFile)
-
-
-        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
-
-        intending(hasAction(MediaStore.ACTION_IMAGE_CAPTURE)).respondWith(
-            Instrumentation.ActivityResult(
-                Activity.RESULT_OK, null
-            )
-        )
-
-        longClickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.image_view_add_detailed_transaction_item_add_image)
-        assertEquals(0, getHashCount(resource.sha256, cameraDirectory).subscribeOn(Schedulers.io()).blockingGet())
-
-
-        Thread.sleep(SLEEP_DURATION * 2)
-        assertEquals(1, getHashCount(resource.sha256, cameraDirectory).subscribeOn(Schedulers.io()).blockingGet())
-        assertEquals(1, getHashCount(resource.sha256, draftImagesFolder).subscribeOn(Schedulers.io()).blockingGet())
-    }
-
-    @Test
     fun givenAtLeastOneImageExistsInDbWhenAddImageThenDialogOptionPresent() {
         val scenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         saveImageToDevice(TestData.Resource.Images.BREAD).blockingSubscribe()

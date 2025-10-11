@@ -2,9 +2,13 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
-import androidx.core.net.toUri
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -28,6 +32,14 @@ import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiSelector
+import androidx.test.uiautomator.Until
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
@@ -37,14 +49,12 @@ import com.davidgrath.expensetracker.RecyclerInputTextItemAction
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.clickRecyclerViewItem
-import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.di.TimeHandler
-import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItemInstrumented
@@ -53,19 +63,16 @@ import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import org.hamcrest.CoreMatchers.allOf
-import org.hamcrest.CoreMatchers.not
 import javax.inject.Inject
 import org.hamcrest.Description
 import org.hamcrest.TypeSafeMatcher
 import org.junit.After
-import org.junit.Assert
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -91,11 +98,13 @@ class AddDetailedTransactionActivityInstrumentedTest {
     @Inject
     lateinit var timeHandler: TimeHandler
     lateinit var app: InstrumentedTestExpenseTracker
+    lateinit var uiDevice: UiDevice
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
         (app.appComponent as InstrumentedTestComponent).inject(this)
+        uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
 
     @After
@@ -367,6 +376,162 @@ class AddDetailedTransactionActivityInstrumentedTest {
         assertEquals("transportation", categoryTwo)
         assertEquals("entertainment", categoryThree)
 
+    }
+
+    val LAUNCH_TIMEOUT = 5_000L
+    @Test
+    @SdkSuppress(minSdkVersion = 24)
+    fun simpleCameraIntentTestApiFileProvider() {
+
+        uiDevice.pressHome()
+
+        val launcherPackage = getLauncherPackageName()
+        assertNotNull(launcherPackage)
+        uiDevice.wait(Until.hasObject(By.pkg(launcherPackage!!).depth(0)), LAUNCH_TIMEOUT)
+
+        val packageName = "com.davidgrath.expensetracker"
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val intent = context.packageManager.getLaunchIntentForPackage(packageName)!!.also {
+            it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        context.startActivity(intent)
+        uiDevice.wait(Until.hasObject(By.pkg(packageName).depth(0)), LAUNCH_TIMEOUT)
+
+        val fab = uiDevice.findObject(UiSelector().resourceIdMatches(".*fab_transactions"))
+        fab.longClick()
+
+        val showDetails = uiDevice.findObject(UiSelector().resourceIdMatches(".*text_view_add_detailed_transaction_show_details"))
+        showDetails.click()
+
+        val addImage = uiDevice.findObject(UiSelector().resourceIdMatches(".*image_view_add_detailed_transaction_item_add_image"))
+        addImage.click()
+
+        val useCamera = uiDevice.findObject(UiSelector().resourceIdMatches(".*image_view_add_external_media_camera"))
+        useCamera.click()
+
+        val ok = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+
+        uiDevice.performActionAndWait( {ok.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
+        val shutterId = if(Build.MANUFACTURER.contains("samsung", true)) {
+            "com.sec.android.app.camera:id/normal_center_button"
+        } else {
+            "com.android.camera:id/shutter_button"
+        }
+        val shutter = uiDevice.findObject(UiSelector().resourceId(shutterId))
+        shutter.click()
+        val doneButtonId = if(Build.MANUFACTURER.contains("samsung", true)) {
+            "com.sec.android.app.camera:id/okay"
+        } else {
+            "com.android.camera:id/btn_done"
+        }
+        val done = uiDevice.findObject(UiSelector().resourceId(doneButtonId))
+        uiDevice.performActionAndWait( {done.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        val items = draft.items
+        val itemImages = items[0].images
+        assertEquals(1, itemImages.size)
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 23, maxSdkVersion = 23)
+    fun simpleCameraIntentTestNoRuntimePermissions() {
+        uiDevice.pressHome()
+
+        val launcherPackage = getLauncherPackageName()
+        assertNotNull(launcherPackage)
+        uiDevice.wait(Until.hasObject(By.pkg(launcherPackage!!).depth(0)), LAUNCH_TIMEOUT)
+
+        val packageName = "com.davidgrath.expensetracker"
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val intent = context.packageManager.getLaunchIntentForPackage(packageName)!!.also {
+            it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        context.startActivity(intent)
+        uiDevice.wait(Until.hasObject(By.pkg(packageName).depth(0)), LAUNCH_TIMEOUT)
+
+        val fab = uiDevice.findObject(UiSelector().resourceIdMatches(".*fab_transactions"))
+        fab.longClick()
+
+        val showDetails = uiDevice.findObject(UiSelector().resourceIdMatches(".*text_view_add_detailed_transaction_show_details"))
+        showDetails.click()
+
+        val addImage = uiDevice.findObject(By.desc("Add image to item"))
+        addImage.click()
+
+        val useCamera = uiDevice.findObject(UiSelector().resourceIdMatches(".*image_view_add_external_media_camera"))
+        useCamera.click()
+
+        val ok = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+        val action = Runnable {
+            ok.click()
+        }
+        uiDevice.performActionAndWait(action, Until.newWindow(), LAUNCH_TIMEOUT)
+        val shutter = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/shutter_button"))
+        shutter.click()
+
+        val done = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/btn_done"))
+        done.click()
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        val items = draft.items
+        val itemImages = items[0].images
+        assertEquals(1, itemImages.size)
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 21, maxSdkVersion = 22)
+    fun simpleCameraIntentTest() {
+        uiDevice.pressHome()
+
+        val launcherPackage = getLauncherPackageName()
+        assertNotNull(launcherPackage)
+        uiDevice.wait(Until.hasObject(By.pkg(launcherPackage!!).depth(0)), LAUNCH_TIMEOUT)
+
+        val packageName = "com.davidgrath.expensetracker"
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val intent = context.packageManager.getLaunchIntentForPackage(packageName)!!.also {
+            it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        context.startActivity(intent)
+        uiDevice.wait(Until.hasObject(By.pkg(packageName).depth(0)), LAUNCH_TIMEOUT)
+
+        val fab = uiDevice.findObject(UiSelector().resourceIdMatches(".*fab_transactions"))
+        fab.longClick()
+
+        val showDetails = uiDevice.findObject(UiSelector().resourceIdMatches(".*text_view_add_detailed_transaction_show_details"))
+        showDetails.click()
+
+        val addImage = uiDevice.findObject(By.desc("Add image to item"))
+        addImage.click()
+
+        val useCamera = uiDevice.findObject(UiSelector().resourceIdMatches(".*image_view_add_external_media_camera"))
+        useCamera.click()
+
+        val ok = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+        val action = Runnable {
+            ok.click()
+        }
+        uiDevice.performActionAndWait(action, Until.newWindow(), LAUNCH_TIMEOUT)
+        val shutter = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/shutter_button"))
+        shutter.click()
+
+        val done = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/btn_done"))
+        done.click()
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+        val items = draft.items
+        val itemImages = items[0].images
+        assertEquals(1, itemImages.size)
+    }
+
+    fun getLauncherPackageName(): String? {
+        val intent = Intent(Intent.ACTION_MAIN).also {
+            it.addCategory(Intent.CATEGORY_HOME)
+        }
+        val packageManager = app.packageManager
+        val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo?.activityInfo?.packageName
     }
 
     class TagMatcher(private val tag: Long): TypeSafeMatcher<View>() {

@@ -8,6 +8,11 @@ A basic app for me to track my expenses
 * `./data` for the main app files, `./draft` for the `AddDetailedTransaction` screen, under each of them, `./images` for all images, `./documents` for all documents
 * Tests that open other activities should use `androidTest`: https://github.com/robolectric/robolectric/issues/5104
 * For RxJava, generally, `subscribeOn` should be called in Repositories for consistency
+* I did something similar to this to run uiautomatorviewer:
+```
+set swt_path=<appdatapath>Local\Android\Sdk\tools\lib\x86_64
+"C:\Program Files\Java\jdk1.8.0_341\bin\java.exe" "-Djava.ext.dirs=..\lib\x86_64;..\lib" "-Dcom.android.uiautomator.bindir=<appdatapath>\Local\Android\Sdk\tools" -jar <appdatapath>\Local\Android\Sdk\tools\lib\uiautomatorviewer-26.0.0-dev.jar
+```
 
 ## To-Do
 * Jenkins Testing Pipeline

@@ -96,6 +96,7 @@
             android:id="@+id/image_view_add_detailed_transaction_item_add_image"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:contentDescription="Add image to item"
             android:src="@drawable/baseline_add_photo_alternate_24"/>
     </LinearLayout>
     </LinearLayout>
