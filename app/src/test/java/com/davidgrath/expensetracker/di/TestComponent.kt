@@ -1,12 +1,14 @@
 package com.davidgrath.expensetracker.di
 
 import com.davidgrath.expensetracker.ExpenseTrackerTest
+import com.davidgrath.expensetracker.db.dao.AccountDaoTest
 import com.davidgrath.expensetracker.db.dao.TransactionDaoTest
 import com.davidgrath.expensetracker.db.dao.TransactionItemDaoTest
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepositoryTest
 import com.davidgrath.expensetracker.repositories.TransactionRepositoryTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragmentTest
+import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragmentTest
 import dagger.Component
 import javax.inject.Singleton
 
@@ -20,6 +22,7 @@ interface TestComponent: MainComponent {
 
     fun inject(addDetailedTransactionActivityTest: AddDetailedTransactionActivityTest)
     fun inject(addDetailedTransactionOtherDetailsFragmentTest: AddDetailedTransactionOtherDetailsFragmentTest)
+    fun inject(accountsFragmentTest: AccountsFragmentTest)
     //endregion
 
     //region Repository
@@ -32,6 +35,6 @@ interface TestComponent: MainComponent {
     //region DAO
     fun inject(transactionItemDaoTest: TransactionItemDaoTest)
     fun inject(transactionDaoTest: TransactionDaoTest)
-
+    fun inject(accountDaoTest: AccountDaoTest)
     //endregion
 }

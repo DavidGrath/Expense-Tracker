@@ -32,16 +32,18 @@ interface TransactionItemDao {
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
             "WHERE date(t.datedAt) >= date(:fromDate) " +
+            "AND t.debitOrCredit " +
             "GROUP BY ti.primaryCategoryId")
-    fun getSumByCategoryFrom(fromDate: String): Observable<List<ItemSumByCategory>>
+    fun getDebitSumByCategoryFrom(fromDate: String): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT c.id as categoryId, c.stringID, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " +
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
             "WHERE date(t.datedAt) >= date(:fromDate) " +
             "AND date(t.datedAt) <= date(:toDate) " +
+            "AND t.debitOrCredit " +
             "GROUP BY ti.primaryCategoryId")
-    fun getSumByCategoryFromTo(fromDate: String, toDate: String): Observable<List<ItemSumByCategory>>
+    fun getDebitSumByCategoryFromTo(fromDate: String, toDate: String): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
             "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.debitOrCredit, " +
@@ -73,6 +75,14 @@ interface TransactionItemDao {
     fun getItemsWithTransactionsAndCategoryFromTo(fromDate: String, toDate: String): Observable<List<TransactionWithItemAndCategory>>
     @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
     fun getByIdSingle(id: Long): Single<TransactionItemDb>
+
+    @Query("SELECT count(ti.id) " +
+            "FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds))"
+    )
+    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<Int>
     // endregion
 
     //region Update

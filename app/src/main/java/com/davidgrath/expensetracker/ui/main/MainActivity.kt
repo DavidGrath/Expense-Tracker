@@ -11,7 +11,7 @@ import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.google.android.material.tabs.TabLayoutMediator
 
-class MainActivity : FragmentActivity() {
+class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListener {
 
     lateinit var activityMainBinding: ActivityMainBinding
     lateinit var viewModel: MainViewModel
@@ -37,6 +37,10 @@ class MainActivity : FragmentActivity() {
             }
         }.attach()
         setContentView(activityMainBinding.root)
+    }
+
+    override fun onNavigateToStats() {
+        activityMainBinding.viewpagerMain.setCurrentItem(1, true)
     }
 
     class MainFragmentStateAdapter(mainActivity: MainActivity): FragmentStateAdapter(mainActivity) {

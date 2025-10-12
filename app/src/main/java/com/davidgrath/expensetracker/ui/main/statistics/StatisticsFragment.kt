@@ -1,7 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.statistics
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
@@ -12,7 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
-import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
+import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.ui.SpinnerStatisticModeAdapter
 import com.davidgrath.expensetracker.ui.main.MainViewModel
 import com.github.mikephil.charting.components.AxisBase
@@ -29,7 +28,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
 
     lateinit var binding: FragmentStatisticsBinding
     lateinit var viewModel: MainViewModel
-    val modes = TempStatisticsConfig.Mode.values()
+    val modes = StatisticsConfig.Mode.values()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentStatisticsBinding.inflate(layoutInflater, null, false)
@@ -41,55 +40,58 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         super.onViewCreated(view, savedInstanceState)
         viewModel.statisticsConfigLiveData.observe(viewLifecycleOwner) { stats ->
             when(stats.mode) {
-                TempStatisticsConfig.Mode.Daily -> {
+                StatisticsConfig.Mode.Daily -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                TempStatisticsConfig.Mode.PastXDays -> {
+                StatisticsConfig.Mode.PastXDays -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                TempStatisticsConfig.Mode.PastWeek -> {
+                StatisticsConfig.Mode.PastWeek -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = false
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                TempStatisticsConfig.Mode.Weekly -> {
+                StatisticsConfig.Mode.Weekly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                TempStatisticsConfig.Mode.PastMonth -> {
+                StatisticsConfig.Mode.PastMonth -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = false
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                TempStatisticsConfig.Mode.Monthly -> {
+                StatisticsConfig.Mode.Monthly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                TempStatisticsConfig.Mode.PastYear -> {
+                StatisticsConfig.Mode.PastYear -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = false
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                TempStatisticsConfig.Mode.Yearly -> {
+                StatisticsConfig.Mode.Yearly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                TempStatisticsConfig.Mode.Range -> {
+                StatisticsConfig.Mode.Range -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
-                    binding.buttonStatisticsConfigureCurrentMode.isEnabled = true
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
             }
         }
-        viewModel.statsTotalSpent.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTotal.text = it.toString()
+        viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
+            binding.textViewStatisticsTotalIncome.text = it.toString()
+        }
+        viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
+            binding.textViewStatisticsTotalExpenses.text = it.toString()
         }
         binding.barChartStatisticsCategories.legend.isEnabled = false
         binding.barChartStatisticsCategories.description.isEnabled = false
@@ -99,7 +101,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.barChartStatisticsCategories.axisRight.axisMinimum = 0f
 //        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { list ->
         viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
-            LOGGER.info("Item Count: ${list.size}")
+            LOGGER.info("statsPastXByCategory: Item Count: ${list.size}")
             val dataSet = BarDataSet(list, null)
             dataSet.colors = MaterialColors.Palette.map { it.value }
             dataSet.setDrawIcons(true)
@@ -116,7 +118,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.lineChartStatisticsTotal.axisLeft.setDrawLabels(false)
         binding.lineChartStatisticsTotal.axisLeft.axisMinimum = 0f
         binding.lineChartStatisticsTotal.axisRight.axisMinimum = 0f
-        viewModel.statsTotalByDay.observe(viewLifecycleOwner) { list ->
+        viewModel.statsTotalExpensesByDay.observe(viewLifecycleOwner) { list -> //TODO Combine with income
             LOGGER.info("Item Count: ${list.size}")
             val entries = list.mapIndexed { i, summary ->
                 Entry(i.toFloat(), summary.sum.toFloat())
@@ -132,8 +134,16 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
             binding.lineChartStatisticsTotal.data = data
             binding.lineChartStatisticsTotal.invalidate()
         }
+        viewModel.statsTransactionCount.observe(viewLifecycleOwner) {
+            binding.textViewStatisticsTransactionCount.text = "${it} transactions"
+        }
+        viewModel.statsTransactionItemCount.observe(viewLifecycleOwner) {
+            binding.textViewStatisticsItemCount.text = "${it} items"
+        }
 
-        binding.buttonStatisticsConfigureCurrentMode.setOnClickListener(this)
+        binding.imageViewStatisticsConfigureCurrentMode.setOnClickListener(this)
+        binding.imageViewStatisticsFilter.setOnClickListener(this)
+        binding.imageViewStatisticsViewItems.setOnClickListener(this)
         binding.spinnerStatisticsCurrentMode.adapter = SpinnerStatisticModeAdapter(viewModel.statisticsConfig.xDays, requireContext(), modes)
         binding.spinnerStatisticsCurrentMode.onItemSelectedListener = this
     }
@@ -142,7 +152,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         val selectedMode = modes[position]
         LOGGER.info("onItemSelected: {}", selectedMode)
         viewModel.setConfig(viewModel.statisticsConfig.copy(mode = selectedMode))
-        if(selectedMode == TempStatisticsConfig.Mode.Range) {
+        if(selectedMode == StatisticsConfig.Mode.Range) {
             //Open Dialog
         }
     }
@@ -154,32 +164,38 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
     override fun onClick(v: View?) {
         v?.let { view ->
             when(view) {
-                binding.buttonStatisticsConfigureCurrentMode -> {
+                binding.imageViewStatisticsConfigureCurrentMode -> {
                     when(viewModel.statisticsConfig.mode) {
-                        TempStatisticsConfig.Mode.Daily -> {
+                        StatisticsConfig.Mode.Daily -> {
 
                         }
-                        TempStatisticsConfig.Mode.PastXDays -> {
+                        StatisticsConfig.Mode.PastXDays -> {
 
                         }
-                        TempStatisticsConfig.Mode.Weekly -> {
+                        StatisticsConfig.Mode.Weekly -> {
 
                         }
-                        TempStatisticsConfig.Mode.Monthly -> {
+                        StatisticsConfig.Mode.Monthly -> {
 
                         }
-                        TempStatisticsConfig.Mode.Yearly -> {
+                        StatisticsConfig.Mode.Yearly -> {
 
                         }
-                        TempStatisticsConfig.Mode.Range -> {
+                        StatisticsConfig.Mode.Range -> {
 
                         }
-                        TempStatisticsConfig.Mode.PastWeek,
-                        TempStatisticsConfig.Mode.PastMonth,
-                        TempStatisticsConfig.Mode.PastYear -> {
+                        StatisticsConfig.Mode.PastWeek,
+                        StatisticsConfig.Mode.PastMonth,
+                        StatisticsConfig.Mode.PastYear -> {
 
                         }
                     }
+                }
+                binding.imageViewStatisticsFilter -> {
+
+                }
+                binding.imageViewStatisticsViewItems -> {
+
                 }
             }
         }

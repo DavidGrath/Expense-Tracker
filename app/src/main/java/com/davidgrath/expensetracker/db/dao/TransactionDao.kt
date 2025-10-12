@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
+import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import java.math.BigDecimal
@@ -52,17 +53,39 @@ interface TransactionDao {
             "date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) <= date(:toDate) ")
     fun getAllFromToTransactionOffsetSingle(fromDate: String, toDate: String): Single<List<TransactionDb>>
 
-    @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb WHERE aggregateDate >= date(:fromDate) GROUP BY aggregateDate ORDER BY aggregateDate")
-    fun getTransactionSumByDateFrom(fromDate: String): Observable<List<DateAmountSummary>>
+    @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb " +
+            "WHERE (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR aggregateDate <= date(:toDate)) " +
+            "AND debitOrCredit " +
+            "GROUP BY aggregateDate ORDER BY aggregateDate")
+    fun getTransactionDebitSumByDate(fromDate: String? = null, toDate: String? = null): Observable<List<DateAmountSummary>>
 
-    @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb WHERE aggregateDate >= date(:fromDate) AND aggregateDate <= date(:toDate) GROUP BY aggregateDate ORDER BY aggregateDate")
-    fun getTransactionSumByDateFromTo(fromDate: String, toDate: String): Observable<List<DateAmountSummary>>
+    @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb " +
+            "WHERE (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR aggregateDate <= date(:toDate)) " +
+            "AND not(debitOrCredit) " +
+            "GROUP BY aggregateDate ORDER BY aggregateDate")
+    fun getTransactionCreditSumByDate(fromDate: String? = null, toDate: String? = null): Observable<List<DateAmountSummary>>
 
-    @Query("SELECT sum(amount) FROM TransactionDb WHERE date(datedAt) >= date(:fromDate)")
-    fun getTransactionSumFrom(fromDate: String): Observable<BigDecimal>
+    @Query("SELECT sum(amount) FROM TransactionDb " +
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND debitOrCredit")
+    fun getTransactionDebitSum(fromDate: String? = null, toDate: String? = null): Observable<BigDecimal>
 
-    @Query("SELECT sum(amount) FROM TransactionDb WHERE date(datedAt) >= date(:fromDate) AND date(datedAt) <= date(:toDate)")
-    fun getTransactionSumFromTo(fromDate: String, toDate: String): Observable<BigDecimal>
+    @Query("SELECT sum(amount) FROM TransactionDb " +
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND not(debitOrCredit)")
+    fun getTransactionCreditSum(fromDate: String? = null, toDate: String? = null): Observable<BigDecimal>
+
+    @Query("SELECT count(t.id) " +
+            "FROM TransactionDb t " +
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) "
+    )
+    fun getTransactionCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<Int>
     //endregion
 
     //region Update

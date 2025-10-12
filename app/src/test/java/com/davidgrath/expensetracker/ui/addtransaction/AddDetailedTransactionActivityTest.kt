@@ -49,6 +49,7 @@ import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
 import com.davidgrath.expensetracker.longClickRecyclerViewItem
@@ -193,7 +194,7 @@ class AddDetailedTransactionActivityTest {
         val basicAmount = "300.00"
         val basicDescription = "Dumbbells"
         val categoryId = dumbbellCategory.id!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         mainActivityScenario.onActivity {
             val intent = Intent(it, AddDetailedTransactionActivity::class.java).also {
                 it.putExtra(AddDetailedTransactionActivity.ARG_INITIAL_ACCOUNT_ID, accountId)
@@ -550,7 +551,7 @@ class AddDetailedTransactionActivityTest {
         addDetailedTransactionRepository.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).subscribe()
         //Existing item
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
         val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
@@ -583,7 +584,7 @@ class AddDetailedTransactionActivityTest {
 
     @Test
     fun givenNoDraftExistsWhenExistingTransactionOpenedForEditThenDraftFileNotCreated() {
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
         val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
@@ -643,14 +644,9 @@ class AddDetailedTransactionActivityTest {
 
     }
 
-    fun getDefaultAccountId(): Long {
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
-        return accountId!!
-    }
 
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()

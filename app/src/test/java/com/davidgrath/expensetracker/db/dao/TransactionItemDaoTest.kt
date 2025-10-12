@@ -6,6 +6,7 @@ import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
+import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -45,7 +46,7 @@ class TransactionItemDaoTest {
 
         val fromDate = LocalDate.parse("2025-01-01")
         val toDate = LocalDate.parse("2025-01-02")
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transactionDb = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(4_000.00)).datedAt(fromDate.toString()).build()
         val id = transactionDao.insertTransaction(transactionDb).subscribeOn(Schedulers.io()).blockingGet()
         val bread = TransactionItemDb(null, id, BigDecimal(1_500), null, 1, "Bread", "", null, food.id!!, transactionDb.createdAt, transactionDb.createdAtOffset, transactionDb.createdAtTimezone)
@@ -62,14 +63,14 @@ class TransactionItemDaoTest {
         val jumpRope = TransactionItemDb(null, id3, BigDecimal(5_000), null, 1, "Jump Rope", "", null, fitness.id!!, transactionDb3.createdAt, transactionDb3.createdAtOffset, transactionDb3.createdAtTimezone)
 
         transactionItemDao.insertTransactionItemMultiple(listOf(bread, dumbbells, water, sweatpants, fish, jumpRope)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        val sumList = transactionItemDao.getSumByCategoryFrom(fromDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumList = transactionItemDao.getDebitSumByCategoryFrom(fromDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
         var foodSum = sumList.find { it.categoryId == food.id }!!.sum
         var fitnessSum = sumList.find { it.categoryId == fitness.id }!!.sum
 
         assertEquals(0, BigDecimal(5_500).compareTo(foodSum))
         assertEquals(0, BigDecimal(12_500).compareTo(fitnessSum))
 
-        val sumListTo = transactionItemDao.getSumByCategoryFromTo(fromDate.toString(), toDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumListTo = transactionItemDao.getDebitSumByCategoryFromTo(fromDate.toString(), toDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
         foodSum = sumListTo.find { it.categoryId == food.id }!!.sum
         fitnessSum = sumListTo.find { it.categoryId == fitness.id }!!.sum
 
@@ -77,9 +78,4 @@ class TransactionItemDaoTest {
         assertEquals("Expected 7500 but was $fitnessSum", 0, BigDecimal(7_500).compareTo(fitnessSum))
     }
 
-    fun getDefaultAccountId(): Long {
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()?.id
-        return accountId!!
-    }
 }

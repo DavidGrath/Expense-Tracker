@@ -172,11 +172,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                 if(cameraFile.exists()) {
                     LOGGER.info("Camera Intent file already exists")
                     val delete = cameraFile.delete()
-                    if(delete) {
-                        LOGGER.info("Existing camera file deleted")
-                    } else {
-                        LOGGER.warn("Existing camera file not deleted")
-                    }
+                    LOGGER.info("Delete existing camera file: $delete")
                 }
                 val uri = FileProvider.getUriForFile(requireContext().applicationContext, requireContext().applicationContext.packageName + ".provider", cameraFile)
                 intent.putExtra(MediaStore.EXTRA_OUTPUT, uri)

@@ -21,7 +21,10 @@ import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.repositories.AccountRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.google.android.material.tabs.TabLayout
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CustomTypeSafeMatcher
 import org.hamcrest.Matcher
 import org.hamcrest.Matchers
@@ -280,4 +283,10 @@ fun addContentProviderResourcesInstrumented(context: Context, vararg images: Tes
 
 fun assertEqualsBD(expected: BigDecimal, actual: BigDecimal) {
     assertEquals("Expected $expected but was $actual",0, expected.compareTo(actual))
+}
+
+fun getDefaultAccountId(profileRepository: ProfileRepository, accountRepository: AccountRepository): Long {
+    val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+    val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
+    return accountId!!
 }

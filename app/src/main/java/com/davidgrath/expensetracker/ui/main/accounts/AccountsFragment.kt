@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.accounts
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,19 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
     private lateinit var binding: FragmentAccountsBinding
     private var addAccountDialogFragment: AddAccountDialogFragment? = null
     private var editAccountDialogFragment: EditAccountDialogFragment? = null
+    private var listener: AccountsFragmentListener? = null
+
+    interface AccountsFragmentListener {
+        fun onNavigateToStats()
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        LOGGER.info("onAttach")
+        if(context is AccountsFragmentListener) {
+            listener = context
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentAccountsBinding.inflate(layoutInflater, null, false)
@@ -73,6 +87,12 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
             )
             LOGGER.info("Showed editAccountDialog")
         }
+    }
+
+    override fun onViewStatsClicked(accountId: Long) {
+        LOGGER.info("onViewStatsClicked: $accountId") //TODO Move this log statement to the call site
+        viewModel.setAccountFilter(accountId)
+        listener?.onNavigateToStats()
     }
 
     override fun onAddAccount(name: String, currency: Currency) {

@@ -10,9 +10,11 @@ import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
+import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
+import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
@@ -236,6 +238,18 @@ fun accountDbToAccountUi(accountDb: AccountDb): AccountUi {
         LOGGER.warn("Currency not recognized", e)
     }
     val accountUi = AccountUi(accountDb.id!!, accountDb.profileId, accountDb.currencyCode, currencyDisplayName, accountDb.name)
+    return accountUi
+}
+
+fun accountWithStatsDbToAccountWithStatsUi(accountWithStats: AccountWithStats): AccountWithStatsUi {
+    var currencyDisplayName: String = "Unknown currency" // TODO Context and string IDs
+    try {
+        val currency = Currency.getInstance(accountWithStats.currencyCode)
+        currencyDisplayName = currency.getDisplayName(Locale.getDefault())
+    } catch (e: IllegalArgumentException) {
+        LOGGER.warn("Currency not recognized", e)
+    }
+    val accountUi = AccountWithStatsUi(accountWithStats.id, accountWithStats.profileId, accountWithStats.currencyCode, currencyDisplayName, accountWithStats.name, accountWithStats.expenses, accountWithStats.income, accountWithStats.transactionCount, accountWithStats.itemCount)
     return accountUi
 }
 fun getSha256(inputStream: InputStream): Single<String> {

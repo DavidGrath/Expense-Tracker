@@ -23,7 +23,7 @@ class TransactionItemRepository
  ){
 
     fun getTotalSpentByCategory(): Observable<List<ItemSumByCategory>> {
-        return transactionItemDao.getSumByCategoryFrom(LocalDate.now(timeHandler.getClock()).toString())
+        return transactionItemDao.getDebitSumByCategoryFrom(LocalDate.now(timeHandler.getClock()).toString())
             .map {
                 LOGGER.info("getTotalSpentByCategory: Item count: {} items", it.size)
                 it
@@ -47,6 +47,15 @@ class TransactionItemRepository
     fun addTransactionItem(item: TransactionItemDb): Single<Long> {
         return transactionItemDao.insertTransactionItem(item)
             .subscribeOn(Schedulers.io())
+    }
+
+    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, accountIds: List<Long>): Observable<Int> {
+        val emptyAccounts = accountIds.isEmpty()
+        return transactionItemDao.getTransactionItemCount(fromDate, toDate, emptyAccounts, accountIds)
+            .subscribeOn(Schedulers.io())
+            .doOnNext {
+                LOGGER.debug("getTransactionItemCount: {}", it)
+            }
     }
 
     companion object {

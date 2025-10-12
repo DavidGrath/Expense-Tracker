@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
+import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -73,6 +74,14 @@ class AccountRepository
                     }
             }
         }.subscribeOn(Schedulers.io())
+    }
+
+    fun getAccountsWithStatsForProfile(profileId: Long): Observable<List<AccountWithStats>> {
+        return accountDao.getAllByProfileIdWithStats(profileId)
+            .subscribeOn(Schedulers.io())
+            .doOnNext {
+                LOGGER.info("getAccountsWithStatsForProfile: {} items", it.size)
+            }
     }
 
     companion object {

@@ -22,6 +22,7 @@ import com.github.mikephil.charting.data.BarDataSet
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import java.util.Locale
 
 class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
 
@@ -46,7 +47,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             LOGGER.info("Transactions Item Count: {}", list.size)
             adapter.setItems(list)
         }
-        binding.barChartMain.legend.isEnabled = false
+        /*binding.barChartMain.legend.isEnabled = false
         binding.barChartMain.description.isEnabled = false
         binding.barChartMain.xAxis.setDrawLabels(false)
         binding.barChartMain.axisLeft.setDrawLabels(false)
@@ -62,6 +63,12 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             binding.barChartMain.isLogEnabled = true
             binding.barChartMain.data = data
             binding.barChartMain.invalidate()
+        }*/
+        viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
+            binding.textViewTransactionsTotalIncome.text = String.format(Locale.getDefault(), "%.2f", it)
+        }
+        viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
+            binding.textViewTransactionsTotalExpense.text = String.format(Locale.getDefault(), "%.2f", it)
         }
 
         binding.fabTransactions.setOnClickListener(this)

@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.getDefaultAccountId
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -59,19 +60,19 @@ class TransactionRepositoryTest {
 //        val fifthTransactionDate = LocalDate.parse("2025-01-11")
         val fifthTransactionDate = LocalDate.parse("2025-07-11")
 
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val builder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal.ZERO)
         //Empty Set
-        var transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-07-01").blockingFirst()
+        var transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-07-01").blockingFirst()
         assertEquals(0, transactionSumByDates.size)
 
         //Today and empty
-        transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-06-30").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-06-30").blockingFirst()
         assertEquals(1, transactionSumByDates.size)
         assertEquals(0, BigDecimal.ZERO.compareTo(transactionSumByDates.first().sum))
 
         //Multiple days and empty
-        transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-06-01").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-06-01").blockingFirst()
         val daysInJune = 30
         val grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
         assertEquals(daysInJune, transactionSumByDates.size)
@@ -81,7 +82,7 @@ class TransactionRepositoryTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(300.00)).createdAt(secondTransactionDate.atTime(time).toString()).datedAt(secondTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
         //Just 1 transaction
-        transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-01-02").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-01-02").blockingFirst()
         val daysBetweenJan2AndJun30Inclusive = 180
         assertEquals(daysBetweenJan2AndJun30Inclusive, transactionSumByDates.size)
 
@@ -89,7 +90,7 @@ class TransactionRepositoryTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt(fourthTransactionDate.atTime(time).toString()).datedAt(fourthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt(fifthTransactionDate.atTime(time).toString()).datedAt(fifthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-        transactionSumByDates = transactionRepository.getTotalSpentByDate("2025-01-02").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-01-02").blockingFirst()
         val sum1 = transactionSumByDates.find { it.aggregateDate == firstTransactionDate }!!
         val missingSum1 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-03") }!!
         val missingSum2 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-08") }!!
@@ -98,12 +99,6 @@ class TransactionRepositoryTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum1.sum))
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum2.sum))
         assertEquals(0, BigDecimal.ZERO.compareTo(missingSum3.sum))
-    }
-
-    fun getDefaultAccountId(): Long {
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
-        return accountId!!
     }
 
 }

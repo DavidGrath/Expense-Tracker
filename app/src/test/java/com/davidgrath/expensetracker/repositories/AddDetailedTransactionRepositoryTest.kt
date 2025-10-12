@@ -31,6 +31,7 @@ import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.test.TestContentProvider
 import com.squareup.rx3.idler.Rx3Idler
@@ -131,7 +132,7 @@ class AddDetailedTransactionRepositoryTest {
         //Enter valid input
 
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), accountId = accountId)
 
         fileHandler.saveDraft(draft).blockingSubscribe()
@@ -152,7 +153,7 @@ class AddDetailedTransactionRepositoryTest {
         val resource = TestData.Resource.Images.BREAD
         val map = mapOf(resource.sha256 to uri)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description", images = listOf(
             AddEditTransactionFile(null, uri, "image/jpeg", resource.sha256, 0L)
@@ -177,7 +178,7 @@ class AddDetailedTransactionRepositoryTest {
         val bread = TestData.Resource.Images.BREAD
         copyResourceToFile(classLoader, bread.resourceName, draftEvidence)
         getHashCount(bread.sha256, draftImagesFolder).blockingGet()
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val map = mapOf(bread.sha256 to draftEvidence.toUri())
         val draft = AddEditDetailedTransactionDraft(listOf(basicItem(0)), imageHashes = map, accountId = accountId)
         fileHandler.createDraft().blockingSubscribe()
@@ -392,7 +393,7 @@ class AddDetailedTransactionRepositoryTest {
     @Test //E
     fun givenModeIsEditAndItemImageInDbAndImageNotLinkedWhenSaveEditThenLinkExists() {
         val total = BigDecimal(35)
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, total)
         val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryDao.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
@@ -566,7 +567,7 @@ class AddDetailedTransactionRepositoryTest {
         val uri = draftEvidence.toUri()
         val map = mapOf(TestData.Resource.Documents.EVIDENCE_IMAGE.sha256 to uri)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = emptyList(), accountId = accountId)
         fileHandler.createDraft().blockingSubscribe()
@@ -612,7 +613,7 @@ class AddDetailedTransactionRepositoryTest {
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
             AddEditTransactionFile(null, uri, "image/jpeg", resource.sha256, 0L)
@@ -638,7 +639,7 @@ class AddDetailedTransactionRepositoryTest {
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
             AddEditTransactionFile(null, uri, "image/jpeg", resource.sha256, 0L)),
@@ -803,7 +804,7 @@ class AddDetailedTransactionRepositoryTest {
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
         val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
             AddEditTransactionFile(null, uri, "image/jpeg", resource.sha256, 0L)
@@ -1146,7 +1147,7 @@ class AddDetailedTransactionRepositoryTest {
     @Test
     fun givenAccountDeletedWhenRestoreDraftThenDefaultAccountUsed() {
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val defaultAccountId = getDefaultAccountId()
+        val defaultAccountId = getDefaultAccountId(profileRepository, accountRepository)
         val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous").copy(accountId = accountId)
         fileHandler.createDraft().blockingSubscribe()
@@ -1162,7 +1163,7 @@ class AddDetailedTransactionRepositoryTest {
     @Test
     fun givenOneAccountLeftForProfileWhenDeleteThenFail() { //TODO Care about cascading delete later
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val defaultAccountId = getDefaultAccountId()
+        val defaultAccountId = getDefaultAccountId(profileRepository, accountRepository)
 
         val result = accountRepository.deleteAccount(profile.id!!, defaultAccountId).onErrorReturn { -1 } .blockingGet()
 
@@ -1226,7 +1227,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, amount)
         val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
@@ -1240,7 +1241,7 @@ class AddDetailedTransactionRepositoryTest {
      * Total amount is `amount` * 2
      */
     fun saveBasicTwoItemTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Triple<Long, Long, Long>> {
-        val transaction = TestBuilder.defaultTransaction(getDefaultAccountId(), amount.times(BigDecimal(2)))
+        val transaction = TestBuilder.defaultTransactionBuilder(getDefaultAccountId(profileRepository, accountRepository), amount.times(BigDecimal(2))).debitOrCredit(false).build()
         val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
@@ -1253,12 +1254,6 @@ class AddDetailedTransactionRepositoryTest {
         }
     }
 
-    fun getDefaultAccountId(): Long {
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
-        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
-        return accountId!!
-    }
-
     fun saveDraftImage() {
 
     }
@@ -1268,7 +1263,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
-        val accountId = getDefaultAccountId()
+        val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()

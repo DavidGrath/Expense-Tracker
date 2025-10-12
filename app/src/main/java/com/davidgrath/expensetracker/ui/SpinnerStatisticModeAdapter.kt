@@ -5,13 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.ImageView
 import android.widget.TextView
-import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.entities.ui.CategoryUi
-import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
+import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 
-class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val objects: Array<TempStatisticsConfig.Mode>): ArrayAdapter<TempStatisticsConfig.Mode>(context, android.R.layout.simple_spinner_item, objects) {
+class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val objects: Array<StatisticsConfig.Mode>): ArrayAdapter<StatisticsConfig.Mode>(context, android.R.layout.simple_spinner_item, objects) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = super.getView(position, convertView, parent) as TextView
@@ -22,38 +19,38 @@ class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val o
         return view
     }
 
-    fun modeToText(mode: TempStatisticsConfig.Mode): String {
+    fun modeToText(mode: StatisticsConfig.Mode): String {
         //TODO Context and string ids
         return when(mode) {
-            TempStatisticsConfig.Mode.Daily -> {
+            StatisticsConfig.Mode.Daily -> {
                 "Daily"
             }
-            TempStatisticsConfig.Mode.PastXDays -> {
+            StatisticsConfig.Mode.PastXDays -> {
                 if(currentXDays == 1) {
                     "Past $currentXDays day"
                 } else {
                     "Past $currentXDays days"
                 }
             }
-            TempStatisticsConfig.Mode.PastWeek -> {
+            StatisticsConfig.Mode.PastWeek -> {
                 "Past week"
             }
-            TempStatisticsConfig.Mode.Weekly -> {
+            StatisticsConfig.Mode.Weekly -> {
                 "Weekly"
             }
-            TempStatisticsConfig.Mode.PastMonth -> {
+            StatisticsConfig.Mode.PastMonth -> {
                 "Past month"
             }
-            TempStatisticsConfig.Mode.Monthly -> {
+            StatisticsConfig.Mode.Monthly -> {
                 "Monthly"
             }
-            TempStatisticsConfig.Mode.PastYear -> {
+            StatisticsConfig.Mode.PastYear -> {
                 "Past year"
             }
-            TempStatisticsConfig.Mode.Yearly -> {
+            StatisticsConfig.Mode.Yearly -> {
                 "Yearly"
             }
-            TempStatisticsConfig.Mode.Range -> {
+            StatisticsConfig.Mode.Range -> {
                 "Range"
             }
         }

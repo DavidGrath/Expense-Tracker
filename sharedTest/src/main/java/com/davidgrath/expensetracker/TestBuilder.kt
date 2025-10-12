@@ -12,6 +12,7 @@ class TestBuilder {
             val builder = TransactionDbBuilder()
                 .amount(amount)
                 .accountId(accountId).currencyCode("USD")
+                .debitOrCredit(true)
                 .note(null)
                 .sellerID(null)
                 .sellerLocationId(null)

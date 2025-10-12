@@ -7,19 +7,22 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.switchMap
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.accountDbToAccountUi
-import com.davidgrath.expensetracker.db.dao.ProfileDao
+import com.davidgrath.expensetracker.accountWithStatsDbToAccountWithStatsUi
 import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.itemSumToCategoryUi
 import com.davidgrath.expensetracker.transactionWithCategoryToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
+import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
+import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
-import com.davidgrath.expensetracker.entities.ui.TempStatisticsConfig
+import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.offsetTimeToLocalTime
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -32,14 +35,10 @@ import com.davidgrath.expensetracker.transactionsToTransactionItems
 import com.github.mikephil.charting.data.BarEntry
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
-import io.reactivex.rxjava3.subjects.BehaviorSubject
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
-import org.threeten.bp.ZoneOffset
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -58,20 +57,24 @@ constructor(
 
     val listLiveData: LiveData<List<GeneralTransactionListItem>>
     val statsPastXByCategory: LiveData<List<BarEntry>>
-    val statsTotalSpent: LiveData<BigDecimal>
+    val statsTotalIncome: LiveData<BigDecimal>
+    val statsTotalExpense: LiveData<BigDecimal>
 //    val statsTotalByCategory: LiveData<List<BarEntry>>
-    val statsTotalByDay: LiveData<List<DateAmountSummary>>
+    val statsTotalIncomeByDay: LiveData<List<DateAmountSummary>>
+    val statsTotalExpensesByDay: LiveData<List<DateAmountSummary>>
+    val statsTransactionCount: LiveData<Int>
+    val statsTransactionItemCount: LiveData<Int>
     //TODO For refreshing at midnight
 //    private val minuteTicker = Observable.interval(1, TimeUnit.MINUTES)
 
-    var statisticsConfig = TempStatisticsConfig()
+    var statisticsConfig = StatisticsConfig()
         private set
-    private val _statisticsConfigLiveData = MutableLiveData<TempStatisticsConfig>(statisticsConfig)
-    val statisticsConfigLiveData: LiveData<TempStatisticsConfig> = _statisticsConfigLiveData
-    val accountsLiveData: LiveData<List<AccountUi>>
+    private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>(statisticsConfig)
+    val statisticsConfigLiveData: LiveData<StatisticsConfig> = _statisticsConfigLiveData
+    val accountsLiveData: LiveData<List<AccountWithStatsUi>>
     private var currentProfile = -1L
 
-    fun setConfig(statisticsConfig: TempStatisticsConfig) {
+    fun setConfig(statisticsConfig: StatisticsConfig) {
         this.statisticsConfig = statisticsConfig
         _statisticsConfigLiveData.postValue(statisticsConfig)
     }
@@ -107,9 +110,10 @@ constructor(
             }
             mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTotalSpent =
-            transactionRepository.getTotalSpent().toFlowable(BackpressureStrategy.BUFFER)
-                .toLiveData()
+        statsTotalIncome = transactionRepository.getTotalIncome()
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        statsTotalExpense = transactionRepository.getTotalExpense()
+            .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         /*statsTotalByCategory = transactionRepository.getTotalSpentByCategory().map { list ->
             val mapped = list.mapIndexed { i, it ->
                 val cat = categoryDbToCategoryUi(it.first)
@@ -122,14 +126,27 @@ constructor(
             }
             mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()*/
-        statsTotalByDay = transactionRepository.getTotalSpentByDate(LocalDate.now(timeHandler.getClock()).toString())
+        statsTotalExpensesByDay = transactionRepository.getTotalExpensesByDate(LocalDate.now(timeHandler.getClock()).toString())
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        statsTotalIncomeByDay = transactionRepository.getTotalIncomeByDate(LocalDate.now(timeHandler.getClock()).toString())
+            .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        statsTransactionCount = statisticsConfigLiveData.switchMap {
+            val accountIds = statisticsConfig.filter.accountIds
+            transactionRepository.getTransactionCount(LocalDate.now(timeHandler.getClock()).toString(), null, accountIds)
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+        statsTransactionItemCount = statisticsConfigLiveData.switchMap {
+            val accountIds = statisticsConfig.filter.accountIds
+            transactionItemRepository.getTransactionItemCount(LocalDate.now(timeHandler.getClock()).toString(), null, accountIds)
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+
         val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
         val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
         val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
         currentProfile = profile.id!!
-        accountsLiveData = accountRepository.getAccountsForProfile(currentProfile).map { list ->
-            list.map { accountDbToAccountUi(it) }
+        accountsLiveData = accountRepository.getAccountsWithStatsForProfile(currentProfile).map { list ->
+            list.map { accountWithStatsDbToAccountWithStatsUi(it) }
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 
@@ -172,6 +189,13 @@ constructor(
         val utcTime = LocalTime.parse(transactionWithItemAndCategory.transactionDatedAtTime)
         val utcDateTime = utcDate.atTime(utcTime)
         return offsetTimeToLocalTime(timeHandler, utcDateTime.toString(), transactionWithItemAndCategory.transactionDatedAtOffset!!)
+    }
+
+    fun setAccountFilter(accountId: Long) {
+        val filter = this.statisticsConfig.filter.copy(accountIds = listOf(accountId))
+        this.statisticsConfig = statisticsConfig.copy(filter = filter)
+        _statisticsConfigLiveData.postValue(this.statisticsConfig)
+        LOGGER.info("setAccountFilter: Used single account ID")
     }
 
     companion object {
