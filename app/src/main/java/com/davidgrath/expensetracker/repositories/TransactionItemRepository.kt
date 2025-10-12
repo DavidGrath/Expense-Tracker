@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
+import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -49,13 +50,10 @@ class TransactionItemRepository
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, accountIds: List<Long>): Observable<Int> {
+    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, accountIds: List<Long>): Observable<TransactionAndItemCount> {
         val emptyAccounts = accountIds.isEmpty()
         return transactionItemDao.getTransactionItemCount(fromDate, toDate, emptyAccounts, accountIds)
             .subscribeOn(Schedulers.io())
-            .doOnNext {
-                LOGGER.debug("getTransactionItemCount: {}", it)
-            }
     }
 
     companion object {

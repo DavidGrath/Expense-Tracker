@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
+import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
@@ -76,13 +77,13 @@ interface TransactionItemDao {
     @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
     fun getByIdSingle(id: Long): Single<TransactionItemDb>
 
-    @Query("SELECT count(ti.id) " +
+    @Query("SELECT count(distinct(t.id)) as transactionCount, count(ti.id) as itemCount " +
             "FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
             "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds))"
     )
-    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<Int>
+    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<TransactionAndItemCount>
     // endregion
 
     //region Update

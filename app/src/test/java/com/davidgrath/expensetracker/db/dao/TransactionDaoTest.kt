@@ -125,7 +125,7 @@ class TransactionDaoTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fourthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fifthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-        val sums = transactionDao.getTransactionDebitSumByDate(firstTransactionDate.toString()).blockingFirst()
+        val sums = transactionDao.getTransactionSumByDate(true, firstTransactionDate.toString()).blockingFirst()
         val firstSum = sums.find { it.aggregateDate == firstTransactionDate }!!
         val secondSum = sums.find { it.aggregateDate == secondTransactionDate }!!
         val thirdSum = sums.find { it.aggregateDate == thirdTransactionDate }!!
@@ -133,7 +133,7 @@ class TransactionDaoTest {
         assertEquals(0, BigDecimal(300.00).compareTo(secondSum.sum))
         assertEquals(0, BigDecimal(1200.00).compareTo(thirdSum.sum))
 
-        val boundSums = transactionDao.getTransactionDebitSumByDate(firstTransactionDate.toString(), fourthTransactionDate.toString()).blockingFirst()
+        val boundSums = transactionDao.getTransactionSumByDate(true, firstTransactionDate.toString(), fourthTransactionDate.toString()).blockingFirst()
         val fourthSum = boundSums.find { it.aggregateDate == fifthTransactionDate }
         assertNull(fourthSum)
     }

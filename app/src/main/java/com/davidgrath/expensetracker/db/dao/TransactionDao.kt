@@ -56,16 +56,9 @@ interface TransactionDao {
     @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb " +
             "WHERE (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR aggregateDate <= date(:toDate)) " +
-            "AND debitOrCredit " +
+            "AND debitOrCredit = :debitOrCredit " +
             "GROUP BY aggregateDate ORDER BY aggregateDate")
-    fun getTransactionDebitSumByDate(fromDate: String? = null, toDate: String? = null): Observable<List<DateAmountSummary>>
-
-    @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb " +
-            "WHERE (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
-            "AND (:toDate IS NULL OR aggregateDate <= date(:toDate)) " +
-            "AND not(debitOrCredit) " +
-            "GROUP BY aggregateDate ORDER BY aggregateDate")
-    fun getTransactionCreditSumByDate(fromDate: String? = null, toDate: String? = null): Observable<List<DateAmountSummary>>
+    fun getTransactionSumByDate(debitOrCredit: Boolean, fromDate: String? = null, toDate: String? = null): Observable<List<DateAmountSummary>>
 
     @Query("SELECT sum(amount) FROM TransactionDb " +
             "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
@@ -79,13 +72,6 @@ interface TransactionDao {
             "AND not(debitOrCredit)")
     fun getTransactionCreditSum(fromDate: String? = null, toDate: String? = null): Observable<BigDecimal>
 
-    @Query("SELECT count(t.id) " +
-            "FROM TransactionDb t " +
-            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
-            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
-            "AND (:emptyAccounts OR t.accountId in (:accountIds)) "
-    )
-    fun getTransactionCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<Int>
     //endregion
 
     //region Update

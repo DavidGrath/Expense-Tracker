@@ -1,34 +1,25 @@
 package com.davidgrath.expensetracker.repositories
 
-import android.util.Log
 import com.davidgrath.expensetracker.db.dao.CategoryDao
-import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.TimeHandler
-import com.davidgrath.expensetracker.entities.db.CategoryDb
-import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
-import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
-import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import javax.inject.Inject
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.math.BigDecimal
-import java.util.SortedMap
-import java.util.TreeMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -116,19 +107,23 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalExpensesByDate(fromDate: String, toDate: String? = null): Observable<List<DateAmountSummary>> {
-        val originalSummary = transactionDao.getTransactionDebitSumByDate(fromDate, toDate)
+    fun getTotalAmountByDate(debitOrCredit: Boolean, fromDate: String, toDate: String? = null): Observable<List<DateAmountSummary>> {
+        val originalSummary = transactionDao.getTransactionSumByDate(debitOrCredit, fromDate, toDate)
         val filledSummary = originalSummary.map { list ->
             var zeroCount = 0
             val start = LocalDate.parse(fromDate)
-            val now = LocalDate.now(timeHandler.getClock()) //TODO Refactor to use toDate in next commit. Test accordingly
+            val end = if(toDate == null) {
+                LocalDate.now(timeHandler.getClock())
+            } else {
+                LocalDate.parse(toDate)
+            }
             var currentDate = start
 
             val newList = arrayListOf<DateAmountSummary>()
 
             val listSize = list.size
             var existingDateIndex = if (listSize > 0) 0 else -1
-            while(currentDate <= now) {
+            while(currentDate <= end) {
                 if(existingDateIndex != -1) {
                     if(existingDateIndex < listSize) {
                         val summary = list[existingDateIndex]
@@ -156,58 +151,6 @@ constructor(
             newList.toList()
         }
         return filledSummary.subscribeOn(Schedulers.io())
-    }
-
-    fun getTotalIncomeByDate(fromDate: String, toDate: String? = null): Observable<List<DateAmountSummary>> {
-        val originalSummary = transactionDao.getTransactionCreditSumByDate(fromDate, toDate)
-        val filledSummary = originalSummary.map { list ->
-            var zeroCount = 0
-            val start = LocalDate.parse(fromDate)
-            val now = LocalDate.now(timeHandler.getClock())
-            var currentDate = start
-
-            val newList = arrayListOf<DateAmountSummary>()
-
-            val listSize = list.size
-            var existingDateIndex = if (listSize > 0) 0 else -1
-            while(currentDate <= now) {
-                if(existingDateIndex != -1) {
-                    if(existingDateIndex < listSize) {
-                        val summary = list[existingDateIndex]
-                        if (summary.aggregateDate == currentDate) {
-                            newList.add(summary)
-                            existingDateIndex += 1
-                        } else {
-                            newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                            zeroCount++
-                        }
-                    } else {
-                        newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                        zeroCount++
-                    }
-                } else {
-                    newList.add(DateAmountSummary(currentDate, BigDecimal.ZERO))
-                    zeroCount++
-                }
-                currentDate = currentDate.plusDays(1)
-            }
-            if(zeroCount > 0) {
-                LOGGER.info("getTotalSpentByDate: Filled {} empty dates with zeroes", zeroCount)
-            }
-            LOGGER.info("getTotalSpentByDate: Item Count: {}", newList.size)
-            newList.toList()
-        }
-        return filledSummary.subscribeOn(Schedulers.io())
-    }
-
-    fun getTransactionCount(fromDate: String? = null, toDate: String? = null, accountIds: List<Long>): Observable<Int> {
-        val emptyAccounts = accountIds.isEmpty()
-        return transactionDao.getTransactionCount(fromDate, toDate, emptyAccounts, accountIds)
-        .subscribeOn(Schedulers.io())
-            .doOnNext {
-                LOGGER.debug("getTransactionCount: {}", it)
-                LOGGER.debug("getTransactionCount: {}", transactionDao.getAllTemp().subscribeOn(Schedulers.io()).blockingGet())
-            }
     }
 
     fun updateTransaction(transactionDb: TransactionDb): Single<Int> {

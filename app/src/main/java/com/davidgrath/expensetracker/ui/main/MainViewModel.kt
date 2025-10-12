@@ -62,8 +62,7 @@ constructor(
 //    val statsTotalByCategory: LiveData<List<BarEntry>>
     val statsTotalIncomeByDay: LiveData<List<DateAmountSummary>>
     val statsTotalExpensesByDay: LiveData<List<DateAmountSummary>>
-    val statsTransactionCount: LiveData<Int>
-    val statsTransactionItemCount: LiveData<Int>
+    val statsTransactionAndItemCount: LiveData<TransactionAndItemCount>
     //TODO For refreshing at midnight
 //    private val minuteTicker = Observable.interval(1, TimeUnit.MINUTES)
 
@@ -126,16 +125,11 @@ constructor(
             }
             mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()*/
-        statsTotalExpensesByDay = transactionRepository.getTotalExpensesByDate(LocalDate.now(timeHandler.getClock()).toString())
+        statsTotalExpensesByDay = transactionRepository.getTotalAmountByDate(true, LocalDate.now(timeHandler.getClock()).toString())
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTotalIncomeByDay = transactionRepository.getTotalIncomeByDate(LocalDate.now(timeHandler.getClock()).toString())
+        statsTotalIncomeByDay = transactionRepository.getTotalAmountByDate(false, LocalDate.now(timeHandler.getClock()).toString())
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTransactionCount = statisticsConfigLiveData.switchMap {
-            val accountIds = statisticsConfig.filter.accountIds
-            transactionRepository.getTransactionCount(LocalDate.now(timeHandler.getClock()).toString(), null, accountIds)
-                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        }
-        statsTransactionItemCount = statisticsConfigLiveData.switchMap {
+        statsTransactionAndItemCount = statisticsConfigLiveData.switchMap {
             val accountIds = statisticsConfig.filter.accountIds
             transactionItemRepository.getTransactionItemCount(LocalDate.now(timeHandler.getClock()).toString(), null, accountIds)
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()

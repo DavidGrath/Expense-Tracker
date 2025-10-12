@@ -134,11 +134,9 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
             binding.lineChartStatisticsTotal.data = data
             binding.lineChartStatisticsTotal.invalidate()
         }
-        viewModel.statsTransactionCount.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTransactionCount.text = "${it} transactions"
-        }
-        viewModel.statsTransactionItemCount.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsItemCount.text = "${it} items"
+        viewModel.statsTransactionAndItemCount.observe(viewLifecycleOwner) {
+            binding.textViewStatisticsTransactionCount.text = "${it.transactionCount} transactions"
+            binding.textViewStatisticsItemCount.text = "${it.itemCount} items"
         }
 
         binding.imageViewStatisticsConfigureCurrentMode.setOnClickListener(this)

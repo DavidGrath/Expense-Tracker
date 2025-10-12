@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.repositories
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
+import com.davidgrath.expensetracker.assertEqualsBD
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.getDefaultAccountId
@@ -63,26 +64,26 @@ class TransactionRepositoryTest {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val builder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal.ZERO)
         //Empty Set
-        var transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-07-01").blockingFirst()
+        var transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-07-01").blockingFirst()
         assertEquals(0, transactionSumByDates.size)
 
         //Today and empty
-        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-06-30").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-30").blockingFirst()
         assertEquals(1, transactionSumByDates.size)
-        assertEquals(0, BigDecimal.ZERO.compareTo(transactionSumByDates.first().sum))
+        assertEqualsBD(BigDecimal.ZERO, transactionSumByDates.first().sum)
 
         //Multiple days and empty
-        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-06-01").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-01").blockingFirst()
         val daysInJune = 30
-        val grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+        var grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
         assertEquals(daysInJune, transactionSumByDates.size)
-        assertEquals(0, BigDecimal.ZERO.compareTo(grandSum))
+        assertEqualsBD(BigDecimal.ZERO, grandSum)
 
         transactionDao.insertTransaction(builder.amount(BigDecimal(110.00)).createdAt(firstTransactionDate.atTime(time).toString()).datedAt(firstTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(300.00)).createdAt(secondTransactionDate.atTime(time).toString()).datedAt(secondTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
         //Just 1 transaction
-        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-01-02").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02").blockingFirst()
         val daysBetweenJan2AndJun30Inclusive = 180
         assertEquals(daysBetweenJan2AndJun30Inclusive, transactionSumByDates.size)
 
@@ -90,15 +91,25 @@ class TransactionRepositoryTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt(fourthTransactionDate.atTime(time).toString()).datedAt(fourthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt(fifthTransactionDate.atTime(time).toString()).datedAt(fifthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-        transactionSumByDates = transactionRepository.getTotalExpensesByDate("2025-01-02").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02").blockingFirst()
         val sum1 = transactionSumByDates.find { it.aggregateDate == firstTransactionDate }!!
-        val missingSum1 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-03") }!!
+        var missingSum1 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-03") }!!
         val missingSum2 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-08") }!!
         val missingSum3 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-10") }!!
-        assertEquals(0, BigDecimal(410).compareTo(sum1.sum))
-        assertEquals(0, BigDecimal.ZERO.compareTo(missingSum1.sum))
-        assertEquals(0, BigDecimal.ZERO.compareTo(missingSum2.sum))
-        assertEquals(0, BigDecimal.ZERO.compareTo(missingSum3.sum))
+        assertEqualsBD(BigDecimal(410), sum1.sum)
+        assertEqualsBD(BigDecimal.ZERO, missingSum1.sum)
+        assertEqualsBD(BigDecimal.ZERO, missingSum2.sum)
+        assertEqualsBD(BigDecimal.ZERO, missingSum3.sum)
+
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, firstTransactionDate.toString(), thirdTransactionDate.toString()).blockingFirst()
+        val daysBetweenFirstAndThirdTransactionInclusive = 6
+
+        grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+        missingSum1 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-03") }!!
+
+        assertEquals(daysBetweenFirstAndThirdTransactionInclusive, transactionSumByDates.size)
+        assertEqualsBD(BigDecimal(860), grandSum)
+        assertEqualsBD(BigDecimal.ZERO, missingSum1.sum)
     }
 
 }
