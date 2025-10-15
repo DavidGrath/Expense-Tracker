@@ -16,9 +16,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
@@ -27,6 +29,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.Locale
+import javax.inject.Inject
 
 class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
 
@@ -39,6 +42,8 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     lateinit var binding: FragmentAddDetailedTransactionMainBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
     lateinit var adapter: AddTransactionItemRecyclerAdapter
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -50,6 +55,9 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentAddDetailedTransactionMainBinding.inflate(inflater, container, false)
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
+        val app = requireContext().applicationContext as ExpenseTracker
+        val appComponent = app.appComponent
+        appComponent.inject(this)
         return binding.root
     }
 
@@ -59,7 +67,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             .subscribeOn(Schedulers.io())
             .blockingGet()
         val c = categories.map { categoryDbToCategoryUi(it) }
-        adapter = AddTransactionItemRecyclerAdapter(c, this)
+        adapter = AddTransactionItemRecyclerAdapter(c, timeAndLocaleHandler, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
         binding.imageViewAddDetailedTransactionDebitOrCredit.setOnClickListener(this)
@@ -104,7 +112,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
 
         viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
             val currencyCode = account.currencyCode
-            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(Locale.getDefault(), "%.2f", total) //TODO General number formatting, UCUM/UOM
+            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(timeAndLocaleHandler.getLocale(), "%.2f", total) //TODO General number formatting, UCUM/UOM
         }
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
 

@@ -13,8 +13,6 @@ import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
-import android.view.View.OnLongClickListener
-import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.CompoundButton
@@ -29,10 +27,9 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
-import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.AccountAdapter
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
 import com.google.android.material.datepicker.CalendarConstraints
@@ -46,9 +43,7 @@ import org.slf4j.LoggerFactory
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
-import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
-import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import java.io.File
@@ -66,7 +61,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
@@ -115,7 +110,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                 if(mode == "edit") {
                     binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.dbOriginalDate!!)
                     val zone = draft.dbOriginalZoneId
-                    if(zone != timeHandler.getZone()) {
+                    if(zone != timeAndLocaleHandler.getZone()) {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
                     } else {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
@@ -129,7 +124,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                 binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.VISIBLE
                 if(mode == "edit") {
                     val zone = draft.dbOriginalZoneId
-                    if(zone != timeHandler.getZone()) {
+                    if(zone != timeAndLocaleHandler.getZone()) {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
                     } else {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
@@ -140,7 +135,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                 if(mode == "edit") {
                     binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.dbOriginalTime!!)
                     val zone = draft.dbOriginalZoneId
-                    if(zone != timeHandler.getZone()) {
+                    if(zone != timeAndLocaleHandler.getZone()) {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
                     } else {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
@@ -154,7 +149,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.VISIBLE
                 if(mode == "edit") {
                     val zone = draft.dbOriginalZoneId
-                    if(zone != timeHandler.getZone()) {
+                    if(zone != timeAndLocaleHandler.getZone()) {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
                     } else {
                         binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
@@ -179,7 +174,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
 
 //        viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
         viewModel.mediator.observe(viewLifecycleOwner) { (accounts, account, total) ->
-            accountAdapter.setItems(accounts.map { accountDbToAccountUi(it) })
+            accountAdapter.setItems(accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) })
             if(binding.spinnerAddDetailedTransactionAccount.selectedItemPosition == Spinner.INVALID_POSITION) {
                 binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
                 binding.spinnerAddDetailedTransactionAccount.setSelection(0)
@@ -378,7 +373,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         selection?.let {
             LOGGER.info("datePicker date picked")
             val instant = Instant.ofEpochMilli(it)
-            val localDate = instant.atZone(timeHandler.getZone()).toLocalDate()
+            val localDate = instant.atZone(timeAndLocaleHandler.getZone()).toLocalDate()
             viewModel.setCustomDate(localDate)
         }
     }

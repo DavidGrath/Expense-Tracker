@@ -2,10 +2,8 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.util.Log
 import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -15,19 +13,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
 import com.davidgrath.expensetracker.db.dao.ProfileDao
-import com.davidgrath.expensetracker.di.TimeHandler
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
 import com.google.android.material.tabs.TabLayoutMediator
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import java.io.File
 import java.math.BigDecimal
 import javax.inject.Inject

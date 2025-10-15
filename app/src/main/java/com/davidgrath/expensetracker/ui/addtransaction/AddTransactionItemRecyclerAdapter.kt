@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
@@ -22,7 +23,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
 
-class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
+class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, val timeAndLocaleHandler: TimeAndLocaleHandler, var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
 
     var _items = listOf<AddTransactionItem>()
 
@@ -68,7 +69,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldAmountWatcher != null) {
                     binding.editTextAddDetailedTransactionItemAmount.removeTextChangedListener(oldAmountWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(Locale.getDefault(), "%.2f", cachedItem.amount))
+                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(timeAndLocaleHandler.getLocale(), "%.2f", cachedItem.amount))
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
 //                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
                     var latestItem = _items[absPosition]

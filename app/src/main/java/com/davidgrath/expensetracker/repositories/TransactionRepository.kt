@@ -4,7 +4,7 @@ import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
@@ -31,12 +31,12 @@ constructor(
     private val transactionItemDao: TransactionItemDao,
     private val transactionItemImagesDao: TransactionItemImagesDao,
     private val categoryDao: CategoryDao,
-    private val timeHandler: TimeHandler,
+    private val timeAndLocaleHandler: TimeAndLocaleHandler,
     private val accountRepository: AccountRepository
 ) {
 
     fun addTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
-        val date = ZonedDateTime.now(timeHandler.getClock())
+        val date = ZonedDateTime.now(timeAndLocaleHandler.getClock())
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -78,7 +78,7 @@ constructor(
     }
 
     fun getTransactions(): Flowable<List<TransactionWithItemAndCategory>> {
-        return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(timeHandler.getClock()).toString())
+        return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(timeAndLocaleHandler.getClock()).toString())
             .subscribeOn(Schedulers.io())
             .timeInterval()
             .map {
@@ -98,12 +98,12 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalExpense(): Observable<BigDecimal> {
-        return transactionDao.getTransactionDebitSum(LocalDate.now(timeHandler.getClock()).toString())
+    fun getTotalExpense(fromDate: String?, toDate: String?): Observable<BigDecimal> {
+        return transactionDao.getTransactionDebitSum(fromDate, toDate)
             .subscribeOn(Schedulers.io())
     }
-    fun getTotalIncome(): Observable<BigDecimal> {
-        return transactionDao.getTransactionCreditSum(LocalDate.now(timeHandler.getClock()).toString())
+    fun getTotalIncome(fromDate: String?, toDate: String?): Observable<BigDecimal> {
+        return transactionDao.getTransactionCreditSum(fromDate, toDate)
             .subscribeOn(Schedulers.io())
     }
 
@@ -113,7 +113,7 @@ constructor(
             var zeroCount = 0
             val start = LocalDate.parse(fromDate)
             val end = if(toDate == null) {
-                LocalDate.now(timeHandler.getClock())
+                LocalDate.now(timeAndLocaleHandler.getClock())
             } else {
                 LocalDate.parse(toDate)
             }

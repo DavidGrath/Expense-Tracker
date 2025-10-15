@@ -6,8 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -35,13 +33,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.BySelector
-import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
-import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
@@ -54,16 +49,14 @@ import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
-import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItemInstrumented
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import org.hamcrest.CoreMatchers.allOf
 import javax.inject.Inject
 import org.hamcrest.Description
@@ -71,12 +64,10 @@ import org.hamcrest.TypeSafeMatcher
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class AddDetailedTransactionActivityInstrumentedTest {
@@ -96,7 +87,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     lateinit var app: InstrumentedTestExpenseTracker
     lateinit var uiDevice: UiDevice
 

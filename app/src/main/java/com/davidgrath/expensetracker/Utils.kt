@@ -4,7 +4,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.core.net.toFile
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
@@ -23,7 +23,6 @@ import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
 import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModel
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
@@ -32,6 +31,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
+import org.threeten.bp.DayOfWeek
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
@@ -174,10 +174,10 @@ fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
     return category
 }
 
-fun transactionDbToTransactionUi(timeHandler: TimeHandler, transactionDb: TransactionDb): TransactionUi {
-    val createdDateTime = offsetTimeToLocalTime(timeHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
+fun transactionDbToTransactionUi(timeAndLocaleHandler: TimeAndLocaleHandler, transactionDb: TransactionDb): TransactionUi {
+    val createdDateTime = offsetTimeToLocalTime(timeAndLocaleHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
     var datedDate = LocalDate.parse(transactionDb.datedAt)
-    val datedDateTime = transactionDb.getDatedLocalDateTime(timeHandler)
+    val datedDateTime = transactionDb.getDatedLocalDateTime(timeAndLocaleHandler)
     if(datedDateTime != null) {
         datedDate = datedDateTime.toLocalDate()
     }
@@ -185,11 +185,11 @@ fun transactionDbToTransactionUi(timeHandler: TimeHandler, transactionDb: Transa
     return transactionUi
 }
 
-fun transactionDbToTransactionDetailedUi(timeHandler: TimeHandler, transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
-    val createdDateTime = offsetTimeToLocalTime(timeHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
+fun transactionDbToTransactionDetailedUi(timeAndLocaleHandler: TimeAndLocaleHandler, transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
+    val createdDateTime = offsetTimeToLocalTime(timeAndLocaleHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
     var datedDate = LocalDate.parse(transactionDb.datedAt)
     LOGGER.debug("transactionDb: {}", transactionDb)
-    val datedDateTime = transactionDb.getDatedLocalDateTime(timeHandler)
+    val datedDateTime = transactionDb.getDatedLocalDateTime(timeAndLocaleHandler)
     if(datedDateTime != null) {
         datedDate = datedDateTime.toLocalDate()
     }
@@ -200,13 +200,13 @@ fun transactionDbToTransactionDetailedUi(timeHandler: TimeHandler, transactionDb
 
 
 val instantFormatter = DateTimeFormatter.ISO_INSTANT
-fun offsetTimeToLocalTime(timeHandler: TimeHandler, dateTimeString: String, offsetString: String): LocalDateTime {
+fun offsetTimeToLocalTime(timeAndLocaleHandler: TimeAndLocaleHandler, dateTimeString: String, offsetString: String): LocalDateTime {
     val parsedDateTime = LocalDateTime.parse(dateTimeString)
     val instantString = instantFormatter.format(parsedDateTime.toInstant(ZoneOffset.UTC))
     val instant = Instant.parse(instantString)
     val offset = ZoneOffset.of(offsetString)
     val originalOffsetDateTime = instant.atOffset(offset)
-    val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeHandler.getZone().rules.getOffset(Instant.now())))
+    val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeAndLocaleHandler.getZone().rules.getOffset(Instant.now())))
     val localDateTime = localOffsetDateTime.toLocalDateTime()
     return localDateTime
 }
@@ -229,11 +229,11 @@ fun evidenceDbToEvidenceUi(evidence: EvidenceDb): EvidenceUi {
     return EvidenceUi(evidence.id!!, evidence.transactionId, evidence.sizeBytes, evidence.sha256, evidence.mimeType, uri, localDateTime)
 }
 
-fun accountDbToAccountUi(accountDb: AccountDb): AccountUi {
+fun accountDbToAccountUi(accountDb: AccountDb, locale: Locale): AccountUi {
     var currencyDisplayName: String = "Unknown currency" // TODO Context and string IDs
     try {
         val currency = Currency.getInstance(accountDb.currencyCode)
-        currencyDisplayName = currency.getDisplayName(Locale.getDefault())
+        currencyDisplayName = currency.getDisplayName(locale)
     } catch (e: IllegalArgumentException) {
         LOGGER.warn("Currency not recognized", e)
     }
@@ -241,11 +241,11 @@ fun accountDbToAccountUi(accountDb: AccountDb): AccountUi {
     return accountUi
 }
 
-fun accountWithStatsDbToAccountWithStatsUi(accountWithStats: AccountWithStats): AccountWithStatsUi {
+fun accountWithStatsDbToAccountWithStatsUi(accountWithStats: AccountWithStats, locale: Locale): AccountWithStatsUi {
     var currencyDisplayName: String = "Unknown currency" // TODO Context and string IDs
     try {
         val currency = Currency.getInstance(accountWithStats.currencyCode)
-        currencyDisplayName = currency.getDisplayName(Locale.getDefault())
+        currencyDisplayName = currency.getDisplayName(locale)
     } catch (e: IllegalArgumentException) {
         LOGGER.warn("Currency not recognized", e)
     }
@@ -285,6 +285,23 @@ class UriTypeAdapter: TypeAdapter<Uri>() {
     }
 }
 
+class DayOfWeekGsonAdapter: TypeAdapter<DayOfWeek>() {
+    override fun write(out: JsonWriter?, value: DayOfWeek?) {
+        out!!.value(value?.toString())
+    }
+
+    override fun read(`in`: JsonReader?): DayOfWeek {
+        return try {
+            DayOfWeek.valueOf(`in`?.nextString()!!)
+        } catch (e: NullPointerException) {
+            LOGGER.warn("Could not parse DayOfWeek", e)
+            DayOfWeek.MONDAY
+        } catch (e: IllegalArgumentException) {
+            LOGGER.warn("Could not parse DayOfWeek", e)
+            DayOfWeek.MONDAY
+        }
+    }
+}
 fun file(vararg segments: String): File {
     val sep = File.separator
     val fullPath = segments.joinToString(sep)

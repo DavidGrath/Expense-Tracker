@@ -9,12 +9,15 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentAccountsBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
 import com.davidgrath.expensetracker.ui.dialogs.EditAccountDialogFragment
 import com.davidgrath.expensetracker.ui.main.MainViewModel
 import org.slf4j.LoggerFactory
 import java.util.Currency
+import javax.inject.Inject
 
 class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.AccountClickListener, AddAccountDialogFragment.AddAccountListener, EditAccountDialogFragment.EditAccountListener {
 
@@ -23,6 +26,8 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
     private var addAccountDialogFragment: AddAccountDialogFragment? = null
     private var editAccountDialogFragment: EditAccountDialogFragment? = null
     private var listener: AccountsFragmentListener? = null
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     interface AccountsFragmentListener {
         fun onNavigateToStats()
@@ -44,7 +49,9 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val adapter = AccountsRecyclerAdapter(emptyList(), this)
+        val app = requireContext().applicationContext as ExpenseTracker
+        app.appComponent.inject(this)
+        val adapter = AccountsRecyclerAdapter(emptyList(), timeAndLocaleHandler, this)
         val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerviewAccounts.adapter = adapter
         binding.recyclerviewAccounts.layoutManager = layoutManager

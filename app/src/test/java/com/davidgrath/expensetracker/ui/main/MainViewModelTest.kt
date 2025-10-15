@@ -1,0 +1,345 @@
+package com.davidgrath.expensetracker.ui.main
+
+import androidx.test.espresso.Espresso
+import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.TabLayoutItemClick
+import com.davidgrath.expensetracker.TestExpenseTracker
+import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Ignore
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.threeten.bp.Clock
+import org.threeten.bp.DayOfWeek
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.MonthDay
+import org.threeten.bp.ZoneId
+import org.threeten.bp.ZoneOffset
+import java.util.Locale
+import javax.inject.Inject
+
+@RunWith(RobolectricTestRunner::class)
+class MainViewModelTest {
+
+    @get:Rule
+    val mainActivityScenario = ActivityScenarioRule(MainActivity::class.java)
+
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    lateinit var app: TestExpenseTracker
+
+    @Before
+    fun setUp() {
+
+        app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        (app.appComponent as TestComponent).inject(this)
+    }
+
+    @After
+    fun tearDown() {
+        timeAndLocaleHandler.changeLocale(Locale.US)
+        timeAndLocaleHandler.changeClock(Clock.fixed(LocalDateTime.parse("2025-06-30T08:00:00.000").toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+    }
+
+    @Test
+    fun dateModeTestDaily() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+            // Daily - assert StartDate == EndDate, consider xLyoffset
+            viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
+            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+
+            viewModel.setXLyOffset(-6)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeEndDay)
+        }
+    }
+
+    @Test
+    fun dateModeTestPastXDays() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+            // PastXDays - assert StartDate is correct
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastXDays)
+            viewModel.setXDaysPast(-1) //Should default to 1
+            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            viewModel.setXDaysPast(7)
+            assertEquals(
+                LocalDate.parse("2025-06-24"), //"Today" is counted as a day, so only 6 is subtracted
+                viewModel.statisticsConfig.rangeStartDay
+            )
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+        }
+    }
+
+    @Test
+    fun dateModeTestPastWeek() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+
+            // PastWeek - assert StartDate is correct, DayOfWeek is correct
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastWeek)
+            assertEquals(DayOfWeek.MONDAY, today.getDayOfWeek())
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(DayOfWeek.TUESDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+        }
+    }
+
+    @Test
+    fun dateModeTestWeekly() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+            // Weekly - assert StartDate is correct, DayOfWeek is correct, consider useLocalFirstDay, consider xLyOffset
+            timeAndLocaleHandler.changeLocale(Locale.FRANCE) //Monday
+            viewModel.setDateMode(StatisticsConfig.DateMode.Weekly)
+            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+
+            timeAndLocaleHandler.changeLocale(Locale.US) //Sunday
+            viewModel.setDateMode(StatisticsConfig.DateMode.Weekly)
+            assertEquals(LocalDate.parse("2025-06-29"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+
+            viewModel.setXLyOffset(-1)
+            assertEquals(LocalDate.parse("2025-06-22"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-28"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(DayOfWeek.SATURDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+        }
+    }
+
+    @Test
+    fun dateModeTestPastMonth() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            // PastMonth - assert StartDate is correct, account for when the previous month has unequal days to the current month
+            //Jul and June - greater pair
+            //August and July - equal pair
+            //June and May - lesser pair
+
+            val todayWhereMonthDaysLessThanPreviousMonthDays = LocalDate.parse("2025-06-30")
+            var todayWhereMonthDaysEqualToPreviousMonthDays = LocalDate.parse("2025-08-31")
+            var todayWhereMonthDaysGreaterThanPreviousMonthDays = LocalDate.parse("2025-07-16")
+
+
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
+            assertEquals(LocalDate.parse("2025-05-31"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--05-31"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+            ) //Redundant, I know
+            assertEquals(todayWhereMonthDaysLessThanPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(MonthDay.parse("--06-30"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+
+            timeAndLocaleHandler.changeClock(Clock.fixed(todayWhereMonthDaysEqualToPreviousMonthDays.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
+            assertEquals(LocalDate.parse("2025-08-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--08-01"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+            )
+            assertEquals(todayWhereMonthDaysEqualToPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(MonthDay.parse("--08-31"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+
+            timeAndLocaleHandler.changeClock(Clock.fixed(todayWhereMonthDaysGreaterThanPreviousMonthDays.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
+            assertEquals(LocalDate.parse("2025-06-17"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--06-17"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+            )
+            assertEquals(todayWhereMonthDaysGreaterThanPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(MonthDay.parse("--07-16"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+
+        }
+    }
+
+    @Test
+    fun dateModeTestMonthly() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+
+            // Monthly - assert StartDate is correct, consider monthlyDayOfMonth, consider xLyOffset TODO account for months less than 31 days
+            viewModel.setXLyOffset(0)
+            viewModel.setDateMode(StatisticsConfig.DateMode.Monthly)
+            assertEquals(LocalDate.parse("2025-06-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                1,
+                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+            ) //Redundant, I know
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(30, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+
+            // Assert same day if first day
+
+            val newToday = LocalDate.parse("2025-05-01")
+            timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+            viewModel.setDateMode(StatisticsConfig.DateMode.Monthly)
+            assertEquals(newToday, viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                1,
+                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+            )
+            assertEquals(newToday, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(1, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+
+            timeAndLocaleHandler.changeClock(Clock.fixed(LocalDateTime.parse("2025-06-30T08:00:00.000").toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+
+            viewModel.setXLyOffset(-3)
+            assertEquals(LocalDate.parse("2025-03-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(1, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-03-31"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(31, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+
+            viewModel.setMonthlyDayOfMonth(15)
+            assertEquals(LocalDate.parse("2025-03-15"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(15, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-04-14"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(14, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+        }
+    }
+
+    @Test
+    fun dateModeTestPastYear() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+            // PastYear - assert StartDate is correct, MonthDay is correct. Ignore Feb 29th for now
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastYear)
+            assertEquals(LocalDate.parse("2024-07-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--07-01"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+            )
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(
+                MonthDay.parse("--06-30"),
+                MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!)
+            )
+        }
+    }
+
+    @Test
+    fun dateModeTestYearly() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+
+            // Yearly -  assert StartDate is correct, MonthDay is correct, consider xLyOffset, monthDayOfYear. Disregard --02-29 for the time being
+            viewModel.setXLyOffset(0)
+            viewModel.setDateMode(StatisticsConfig.DateMode.Yearly)
+            assertEquals(LocalDate.parse("2025-01-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--01-01"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+            )
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(
+                MonthDay.parse("--06-30"),
+                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+            )
+
+            viewModel.setMonthDayOfYear(MonthDay.parse("--02-15"))
+
+            assertEquals(LocalDate.parse("2025-02-15"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--02-15"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+            )
+            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(
+                MonthDay.parse("--06-30"),
+                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+            )
+
+            viewModel.setXLyOffset(-1)
+
+            assertEquals(LocalDate.parse("2024-02-15"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                MonthDay.parse("--02-15"),
+                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+            )
+            assertEquals(LocalDate.parse("2025-02-14"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(
+                MonthDay.parse("--02-14"),
+                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+            )
+        }
+    }
+
+    @Test
+    @Ignore("I have no test cases for now")
+    fun dateModeTestRange() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+
+            // Range - if user can somehow unselect both dates from the Material Dialog, then set to All
+        }
+    }
+
+    @Test
+    fun dateModeTestAll() {
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+            val today = LocalDate.parse("2025-06-30")
+
+
+            // All - assert both dates null, but try and take note of the earliest date from the user's transactions and use to offset visualisations
+            viewModel.setDateMode(StatisticsConfig.DateMode.All)
+            assertNull(viewModel.statisticsConfig.rangeStartDay)
+            assertNull(viewModel.statisticsConfig.rangeEndDay)
+        }
+    }
+
+    @Test
+    fun givenPreviousXLyNotSameWhenSetDateModeToXLyThenOffsetReset() {
+        mainActivityScenario.scenario.onActivity {
+            val originalOffset = -2
+            val resetOffset = 0
+            val viewModel = it.viewModel
+            viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
+            viewModel.setXLyOffset(originalOffset)
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
+            viewModel.setDateMode(StatisticsConfig.DateMode.Yearly)
+            assertEquals(resetOffset, viewModel.statisticsConfig.xLyOffset)
+        }
+    }
+
+    @Test
+    fun givenPreviousXLySameWhenSetDateModeToXLyThenOffsetSame() {
+        mainActivityScenario.scenario.onActivity {
+            val originalOffset = -2
+            val viewModel = it.viewModel
+            viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
+            viewModel.setXLyOffset(originalOffset)
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
+            viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
+            assertEquals(originalOffset, viewModel.statisticsConfig.xLyOffset)
+        }
+    }
+}

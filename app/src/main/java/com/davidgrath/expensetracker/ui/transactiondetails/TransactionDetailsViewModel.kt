@@ -1,17 +1,13 @@
 package com.davidgrath.expensetracker.ui.transactiondetails
 
-import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
-import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
-import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.evidenceDbToEvidenceUi
 import com.davidgrath.expensetracker.imageDbToImageUi
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -21,9 +17,7 @@ import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionDbToTransactionDetailedUi
-import com.davidgrath.expensetracker.transactionDbToTransactionUi
 import io.reactivex.rxjava3.core.BackpressureStrategy
-import javax.inject.Inject
 
 class TransactionDetailsViewModel(
     private val transactionId: Long,
@@ -33,7 +27,7 @@ class TransactionDetailsViewModel(
     private val categoryRepository: CategoryRepository,
     private val evidenceRepository: EvidenceRepository,
     private val accountRepository: AccountRepository,
-    private val timeHandler: TimeHandler
+    private val timeAndLocaleHandler: TimeAndLocaleHandler
 ) : ViewModel() {
 
     val transaction: LiveData<TransactionDetailsUi>
@@ -44,7 +38,7 @@ class TransactionDetailsViewModel(
         transaction = transactionRepository.getTransactionById(transactionId) //TODO Replace with Join query
             .map {
                 val account = accountRepository.getAccountByIdSingle(it.accountId).blockingGet()!!
-                transactionDbToTransactionDetailedUi(timeHandler, it, account)
+                transactionDbToTransactionDetailedUi(timeAndLocaleHandler, it, account)
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         items = transactionItemRepository.getTransactionItems(transactionId)

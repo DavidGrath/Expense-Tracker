@@ -13,6 +13,7 @@ import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.ui.SpinnerStatisticModeAdapter
+import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
 import com.davidgrath.expensetracker.ui.main.MainViewModel
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.data.BarData
@@ -24,11 +25,11 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 
-class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
+class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, NumberDialogFragment.NumberDialogListener {
 
     lateinit var binding: FragmentStatisticsBinding
     lateinit var viewModel: MainViewModel
-    val modes = StatisticsConfig.Mode.values()
+    val dateModes = StatisticsConfig.DateMode.values()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentStatisticsBinding.inflate(layoutInflater, null, false)
@@ -39,51 +40,56 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.statisticsConfigLiveData.observe(viewLifecycleOwner) { stats ->
-            when(stats.mode) {
-                StatisticsConfig.Mode.Daily -> {
+            when(stats.dateMode) {
+                StatisticsConfig.DateMode.Daily -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                StatisticsConfig.Mode.PastXDays -> {
+                StatisticsConfig.DateMode.PastXDays -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                StatisticsConfig.Mode.PastWeek -> {
+                StatisticsConfig.DateMode.PastWeek -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                StatisticsConfig.Mode.Weekly -> {
+                StatisticsConfig.DateMode.Weekly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                StatisticsConfig.Mode.PastMonth -> {
+                StatisticsConfig.DateMode.PastMonth -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                StatisticsConfig.Mode.Monthly -> {
+                StatisticsConfig.DateMode.Monthly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                StatisticsConfig.Mode.PastYear -> {
+                StatisticsConfig.DateMode.PastYear -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
-                StatisticsConfig.Mode.Yearly -> {
+                StatisticsConfig.DateMode.Yearly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = true
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                 }
-                StatisticsConfig.Mode.Range -> {
+                StatisticsConfig.DateMode.Range -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
+                }
+                StatisticsConfig.DateMode.All -> {
+                    binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
+                    binding.imageButtonStatisticsCycleModeRight.isEnabled = false
+                    binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
                 }
             }
         }
@@ -142,15 +148,15 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         binding.imageViewStatisticsConfigureCurrentMode.setOnClickListener(this)
         binding.imageViewStatisticsFilter.setOnClickListener(this)
         binding.imageViewStatisticsViewItems.setOnClickListener(this)
-        binding.spinnerStatisticsCurrentMode.adapter = SpinnerStatisticModeAdapter(viewModel.statisticsConfig.xDays, requireContext(), modes)
+        binding.spinnerStatisticsCurrentMode.adapter = SpinnerStatisticModeAdapter(viewModel.statisticsConfig.xDays, requireContext(), dateModes)
         binding.spinnerStatisticsCurrentMode.onItemSelectedListener = this
     }
 
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-        val selectedMode = modes[position]
+        val selectedMode = dateModes[position]
         LOGGER.info("onItemSelected: {}", selectedMode)
-        viewModel.setConfig(viewModel.statisticsConfig.copy(mode = selectedMode))
-        if(selectedMode == StatisticsConfig.Mode.Range) {
+        viewModel.setConfig(viewModel.statisticsConfig.copy(dateMode = selectedMode))
+        if(selectedMode == StatisticsConfig.DateMode.Range) {
             //Open Dialog
         }
     }
@@ -163,28 +169,32 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         v?.let { view ->
             when(view) {
                 binding.imageViewStatisticsConfigureCurrentMode -> {
-                    when(viewModel.statisticsConfig.mode) {
-                        StatisticsConfig.Mode.Daily -> {
+                    when(viewModel.statisticsConfig.dateMode) {
+                        StatisticsConfig.DateMode.Daily -> {
 
                         }
-                        StatisticsConfig.Mode.PastXDays -> {
+                        StatisticsConfig.DateMode.PastXDays -> {
+                            val x = viewModel.statisticsConfig.xDays
+                            val numberDialogFragment = NumberDialogFragment.newInstance(x)
+                            numberDialogFragment.listener = this
+                            numberDialogFragment.show(childFragmentManager, DIALOG_TAG_NUMBER)
+                        }
+                        StatisticsConfig.DateMode.Weekly -> {
 
                         }
-                        StatisticsConfig.Mode.Weekly -> {
+                        StatisticsConfig.DateMode.Monthly -> {
 
                         }
-                        StatisticsConfig.Mode.Monthly -> {
+                        StatisticsConfig.DateMode.Yearly -> {
 
                         }
-                        StatisticsConfig.Mode.Yearly -> {
+                        StatisticsConfig.DateMode.Range -> {
 
                         }
-                        StatisticsConfig.Mode.Range -> {
-
-                        }
-                        StatisticsConfig.Mode.PastWeek,
-                        StatisticsConfig.Mode.PastMonth,
-                        StatisticsConfig.Mode.PastYear -> {
+                        StatisticsConfig.DateMode.PastWeek,
+                        StatisticsConfig.DateMode.PastMonth,
+                        StatisticsConfig.DateMode.PastYear,
+                        StatisticsConfig.DateMode.All, -> {
 
                         }
                     }
@@ -199,12 +209,16 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener {
         }
     }
 
+    override fun onNumberPicked(number: Int) {
+        viewModel.setConfig(viewModel.statisticsConfig.copy(xDays = number))
+    }
+
     companion object {
         fun newInstance(): StatisticsFragment {
             val statisticsFragment = StatisticsFragment()
             return statisticsFragment
         }
-
+        private const val DIALOG_TAG_NUMBER = "number"
         private val LOGGER = LoggerFactory.getLogger(StatisticsFragment::class.java)
     }
 

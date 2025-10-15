@@ -4,14 +4,12 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.db.dao.ProfileDao
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
-import org.threeten.bp.Clock
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -37,11 +35,13 @@ class AddDetailedTransactionViewModelFactory(
         lateinit var profileRepository: ProfileRepository
         @Inject
         lateinit var imageRepository: ImageRepository
+        @Inject
+        lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     init {
         (application as ExpenseTracker).appComponent.inject(this)
     }
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return AddDetailedTransactionViewModel(application, mode, addDetailedTransactionRepository, categoryRepository, accountRepository, profileRepository,
-            imageRepository, profileStringId, transactionId, initialAccountId, initialAmount, initialDescription, initialCategoryId) as T
+            imageRepository, timeAndLocaleHandler, profileStringId, transactionId, initialAccountId, initialAmount, initialDescription, initialCategoryId) as T
     }
 }

@@ -28,20 +28,18 @@ class ExpenseTrackerTest {
     lateinit var profileDao: ProfileDao
     @Inject
     lateinit var accountDao: AccountDao
-    val defaultLocale = Locale.getDefault()
     lateinit var app: TestExpenseTracker
 
     @Before
     fun setUp() {
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
-        Locale.setDefault(Locale.US)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
     }
 
     @After
     fun tearDown() {
-        Locale.setDefault(defaultLocale)
+
     }
 
     @Test

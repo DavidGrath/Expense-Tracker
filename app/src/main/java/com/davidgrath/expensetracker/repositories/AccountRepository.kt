@@ -1,9 +1,8 @@
 package com.davidgrath.expensetracker.repositories
 
-import android.util.Log
 import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.AccountDao
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
 import io.reactivex.rxjava3.core.Maybe
@@ -11,7 +10,6 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,7 +17,7 @@ import javax.inject.Singleton
 class AccountRepository
 @Inject constructor(
     private val accountDao: AccountDao,
-    private val timeHandler: TimeHandler
+    private val timeAndLocaleHandler: TimeAndLocaleHandler
 ) {
     fun getAccountByIdSingle(id: Long): Maybe<AccountDb> {
         return accountDao.findByIdSingle(id)
@@ -42,7 +40,7 @@ class AccountRepository
     }
 
     fun createAccount(profileId: Long, name: String, currencyCode: String): Single<Long> { //TODO ISO 4217 validation
-        val (dateTime, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
+        val (dateTime, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
         val account = AccountDb(
             null,
             profileId,

@@ -8,7 +8,7 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 
-class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val objects: Array<StatisticsConfig.Mode>): ArrayAdapter<StatisticsConfig.Mode>(context, android.R.layout.simple_spinner_item, objects) {
+class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val objects: Array<StatisticsConfig.DateMode>): ArrayAdapter<StatisticsConfig.DateMode>(context, android.R.layout.simple_spinner_item, objects) {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = super.getView(position, convertView, parent) as TextView
@@ -19,39 +19,42 @@ class SpinnerStatisticModeAdapter(var currentXDays: Int, context: Context, val o
         return view
     }
 
-    fun modeToText(mode: StatisticsConfig.Mode): String {
+    fun modeToText(dateMode: StatisticsConfig.DateMode): String {
         //TODO Context and string ids
-        return when(mode) {
-            StatisticsConfig.Mode.Daily -> {
+        return when(dateMode) {
+            StatisticsConfig.DateMode.Daily -> {
                 "Daily"
             }
-            StatisticsConfig.Mode.PastXDays -> {
+            StatisticsConfig.DateMode.PastXDays -> {
                 if(currentXDays == 1) {
                     "Past $currentXDays day"
                 } else {
-                    "Past $currentXDays days"
+                    "Past $currentXDays days" //TODO Pluralization
                 }
             }
-            StatisticsConfig.Mode.PastWeek -> {
+            StatisticsConfig.DateMode.PastWeek -> {
                 "Past week"
             }
-            StatisticsConfig.Mode.Weekly -> {
+            StatisticsConfig.DateMode.Weekly -> {
                 "Weekly"
             }
-            StatisticsConfig.Mode.PastMonth -> {
+            StatisticsConfig.DateMode.PastMonth -> {
                 "Past month"
             }
-            StatisticsConfig.Mode.Monthly -> {
+            StatisticsConfig.DateMode.Monthly -> {
                 "Monthly"
             }
-            StatisticsConfig.Mode.PastYear -> {
+            StatisticsConfig.DateMode.PastYear -> {
                 "Past year"
             }
-            StatisticsConfig.Mode.Yearly -> {
+            StatisticsConfig.DateMode.Yearly -> {
                 "Yearly"
             }
-            StatisticsConfig.Mode.Range -> {
+            StatisticsConfig.DateMode.Range -> {
                 "Range"
+            }
+            StatisticsConfig.DateMode.All -> {
+                "All"
             }
         }
     }

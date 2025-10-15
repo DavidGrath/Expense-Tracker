@@ -6,19 +6,16 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityTransactionDetailsBinding
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.repositories.AccountRepository
-import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.EvidenceRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
@@ -27,11 +24,6 @@ import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.google.android.material.tabs.TabLayoutMediator
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Instant
-import org.threeten.bp.LocalDate
-import org.threeten.bp.LocalTime
-import org.threeten.bp.ZoneId
-import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import org.threeten.bp.temporal.ChronoUnit
@@ -54,7 +46,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
     @Inject
     lateinit var accountRepository: AccountRepository
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
@@ -72,7 +64,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
         viewModel = ViewModelProvider.create(viewModelStore,
             TransactionDetailsViewModelFactory(transactionId, transactionRepository,
                 transactionItemRepository, imageRepository, categoryRepository, evidenceRepository,
-                accountRepository, timeHandler
+                accountRepository, timeAndLocaleHandler
             )
         ).get(TransactionDetailsViewModel::class)
         setSupportActionBar(binding.toolbarTransactionDetails)
@@ -107,7 +99,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
             val zone = transaction.datedZone
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
             binding.textViewTransactionDetailsTime.text = timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS)) //TODO ordinals, ignore, we must, for now
-            if(zone != timeHandler.getZone()) {
+            if(zone != timeAndLocaleHandler.getZone()) {
                 LOGGER.info("Transaction {} has different time zone from the system", transactionId)
                 binding.textViewTransactionDetailsZoneDifferenceNotice.visibility = View.VISIBLE
             } else {

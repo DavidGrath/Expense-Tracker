@@ -2,7 +2,6 @@ package com.davidgrath.expensetracker.di
 
 import android.app.Application
 import androidx.room.Room
-import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.TestExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
@@ -16,11 +15,6 @@ import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import dagger.Module
 import dagger.Provides
-import org.threeten.bp.Clock
-import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
-import org.threeten.bp.ZoneOffset
-import javax.inject.Inject
 import javax.inject.Singleton
 
 @Module
@@ -96,7 +90,7 @@ class TestModule(private val application: Application, private val fileHandler: 
 
     @Singleton
     @Provides
-    fun timeHandler(): TimeHandler {
-        return TestTimeHandler()
+    fun timeHandler(): TimeAndLocaleHandler {
+        return TestTimeAndLocaleHandler()
     }
 }

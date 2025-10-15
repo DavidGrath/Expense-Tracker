@@ -17,7 +17,7 @@ import java.math.BigDecimal
 class AddTransactionDialogFragment : DialogFragment() {
 
     interface AddTransactionListener {
-        fun onAddTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long)
+        fun onAddTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long) //TODO debitOrCredit
         fun onGoToDetails(accountId: Long, amount: BigDecimal?, description: String?, categoryId: Long?)
     }
 

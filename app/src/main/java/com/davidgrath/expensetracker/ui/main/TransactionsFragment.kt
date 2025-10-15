@@ -11,9 +11,11 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
@@ -23,6 +25,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.util.Locale
+import javax.inject.Inject
 
 class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
 
@@ -31,10 +34,15 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
     lateinit var adapter: TransactionItemsAdapter
 
     var addTransactionDialog: AddTransactionDialogFragment? = null
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentTransactionsBinding.inflate(inflater, null, false)
         viewModel = ViewModelProvider.create(requireActivity()).get(MainViewModel::class.java)
+        val app = requireContext().applicationContext as ExpenseTracker
+        val appComponent = app.appComponent
+        appComponent.inject(this)
         addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         adapter = TransactionItemsAdapter(emptyList(), this)
         return binding.root
@@ -65,10 +73,10 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             binding.barChartMain.invalidate()
         }*/
         viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
-            binding.textViewTransactionsTotalIncome.text = String.format(Locale.getDefault(), "%.2f", it)
+            binding.textViewTransactionsTotalIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
         }
         viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
-            binding.textViewTransactionsTotalExpense.text = String.format(Locale.getDefault(), "%.2f", it)
+            binding.textViewTransactionsTotalExpense.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
         }
 
         binding.fabTransactions.setOnClickListener(this)

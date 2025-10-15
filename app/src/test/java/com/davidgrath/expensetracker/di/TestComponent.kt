@@ -8,7 +8,9 @@ import com.davidgrath.expensetracker.repositories.AddDetailedTransactionReposito
 import com.davidgrath.expensetracker.repositories.TransactionRepositoryTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragmentTest
+import com.davidgrath.expensetracker.ui.main.MainViewModelTest
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragmentTest
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragmentTest
 import dagger.Component
 import javax.inject.Singleton
 
@@ -23,6 +25,8 @@ interface TestComponent: MainComponent {
     fun inject(addDetailedTransactionActivityTest: AddDetailedTransactionActivityTest)
     fun inject(addDetailedTransactionOtherDetailsFragmentTest: AddDetailedTransactionOtherDetailsFragmentTest)
     fun inject(accountsFragmentTest: AccountsFragmentTest)
+    fun inject(mainViewModelTest: MainViewModelTest)
+    fun inject(statisticsFragmentTest: StatisticsFragmentTest)
     //endregion
 
     //region Repository

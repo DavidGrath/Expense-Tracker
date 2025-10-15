@@ -16,7 +16,7 @@ import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
@@ -41,7 +41,7 @@ class TransactionDetailsActivityInstrumentedTest {
     lateinit var transactionDetailsActivityScenario: ActivityScenario<TransactionDetailsActivity>
 //    lateinit var transactionDetailsActivityScenario: ActivityScenario<AddDetailedTransactionActivity>
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     @Inject
     lateinit var transactionRepository: TransactionRepository
     @Inject
@@ -78,14 +78,14 @@ class TransactionDetailsActivityInstrumentedTest {
 
     @After
     fun tearDown() {
-        timeHandler.changeZone(ZoneId.systemDefault())
+        timeAndLocaleHandler.changeZone(ZoneId.systemDefault())
         Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
     }
 
     @Test
     fun givenTransactionZoneIsNotSameAsSystemZoneWhenLoadEditThenOriginalZoneDisplayedAndNoticeDisplayed() {
 
-        timeHandler.changeZone(ZoneId.of("Pacific/Honolulu")) //-10 hours changes the date as well
+        timeAndLocaleHandler.changeZone(ZoneId.of("Pacific/Honolulu")) //-10 hours changes the date as well
         transactionDetailsActivityScenario.recreate()
 
         val customDate = LocalDate.of(2025, 6, 29)

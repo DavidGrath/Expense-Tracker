@@ -1,6 +1,6 @@
 package com.davidgrath.expensetracker
 
-import com.davidgrath.expensetracker.di.TestTimeHandler
+import com.davidgrath.expensetracker.di.TestTimeAndLocaleHandler
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +13,7 @@ class UtilsTest {
 
     @Test
     fun timezoneConversionTest() {
-        val timeHandler = TestTimeHandler()
+        val timeHandler = TestTimeAndLocaleHandler()
         timeHandler.changeZone(ZoneId.of("Pacific/Honolulu"))
         val transactionDateTime = "2025-06-30T08:00"
         val offset = "Z"

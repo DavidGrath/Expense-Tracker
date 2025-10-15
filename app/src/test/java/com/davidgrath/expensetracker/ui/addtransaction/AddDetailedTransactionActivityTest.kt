@@ -4,8 +4,6 @@ import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
 import android.net.Uri
-import android.os.Environment
-import android.provider.MediaStore
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -26,7 +24,6 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
-import com.davidgrath.expensetracker.ExpenseTrackerTest
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestConstants
@@ -43,19 +40,16 @@ import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.di.TestComponent
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getDefaultAccountId
-import com.davidgrath.expensetracker.getHashCount
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
-import com.davidgrath.expensetracker.longClickRecyclerViewItem
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepositoryTest
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
@@ -66,13 +60,10 @@ import com.squareup.rx3.idler.Rx3Idler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
-import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.not
 import javax.inject.Inject
 import org.junit.After
-import org.junit.Assert
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -111,7 +102,7 @@ class AddDetailedTransactionActivityTest {
     @Inject
     lateinit var accountRepository: AccountRepository
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     lateinit var app: TestExpenseTracker
 
     companion object {
@@ -568,7 +559,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, String.format(Locale.getDefault(), "%.2f", transactionItem.amount)
+            R.id.edit_text_add_detailed_transaction_item_amount, String.format(timeAndLocaleHandler.getLocale(), "%.2f", transactionItem.amount)
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -673,7 +664,7 @@ class AddDetailedTransactionActivityTest {
         }
         val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
         copyResourceToFile(classLoader, resource.resourceName, mainImage)
-        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeHandler.getClock())
+        val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
         val image = ImageDb(null, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
         return imageDao.insertImage(image).subscribeOn(Schedulers.io())
     }

@@ -6,11 +6,12 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.davidgrath.expensetracker.databinding.FragmentAccountsBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewAccountBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import java.util.Locale
 
-class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, var listener: AccountClickListener? = null): RecyclerView.Adapter<AccountsRecyclerAdapter.AccountsViewHolder>() {
+class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, val timeAndLocaleHandler: TimeAndLocaleHandler, var listener: AccountClickListener? = null): RecyclerView.Adapter<AccountsRecyclerAdapter.AccountsViewHolder>() {
 
     interface AccountClickListener {
         fun onEditClicked(accountId: Long, accountName: String)
@@ -33,8 +34,8 @@ class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, var 
                 } else {
                     binding.textViewAccountCurrencyCode.text = "${account.currencyDisplayName} (${account.currencyCode})"
                 }
-                binding.textViewAccountIncome.text = String.format(Locale.getDefault(), "%.2f", account.income)
-                binding.textViewAccountExpenses.text = String.format(Locale.getDefault(), "%.2f", account.expenses)
+                binding.textViewAccountIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", account.income)
+                binding.textViewAccountExpenses.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", account.expenses)
                 binding.textViewAccountTransactionCount.text = "${account.transactionCount} transactions"
                 binding.textViewAccountItemCount.text = "${account.itemCount} items"
                 binding.imageViewAccountEdit.setOnClickListener {

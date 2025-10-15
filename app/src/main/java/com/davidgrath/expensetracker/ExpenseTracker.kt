@@ -241,7 +241,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val accountDao = appComponent.accountDao()
             val accounts = accountDao.getAllByProfileIdSingle(profileDb.id!!).blockingGet()
             var defaultAccount = accounts.firstOrNull()
-            val locale = Locale.getDefault()
+            val locale = appComponent.timeHandler().getLocale()
             val currency = Currency.getInstance(locale)?.currencyCode ?: "USD"
 
             LOGGER.info("Picked default locale and currency: {}, {}", locale, currency)

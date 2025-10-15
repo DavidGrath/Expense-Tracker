@@ -6,14 +6,17 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.widget.Spinner
 import androidx.fragment.app.DialogFragment
+import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
 import com.davidgrath.expensetracker.databinding.DialogFragmentCreateAccountBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.CurrencyAdapter
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import java.math.BigDecimal
 import java.util.Currency
+import javax.inject.Inject
 
 class AddAccountDialogFragment : DialogFragment() {
 
@@ -21,6 +24,8 @@ class AddAccountDialogFragment : DialogFragment() {
         fun onAddAccount(name: String, currency: Currency)
     }
 
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     var listener: AddAccountListener? = null
     lateinit var binding: DialogFragmentCreateAccountBinding
     lateinit var currencies: List<Currency>
@@ -31,9 +36,12 @@ class AddAccountDialogFragment : DialogFragment() {
             null,
             false
         )
+        val app = requireContext().applicationContext as ExpenseTracker
+        app.appComponent.inject(this)
         val spinnerAdapter = CurrencyAdapter(
             binding.root.context,
-            currencies.toTypedArray()
+            currencies.toTypedArray(),
+            timeAndLocaleHandler
         )
         binding.spinnerCreateAccountCurrency.adapter = spinnerAdapter
         return AlertDialog.Builder(requireContext())

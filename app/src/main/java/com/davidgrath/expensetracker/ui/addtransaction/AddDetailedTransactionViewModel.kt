@@ -18,6 +18,7 @@ import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.db.dao.ProfileDao
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
@@ -53,6 +54,7 @@ class AddDetailedTransactionViewModel(
     private val accountRepository: AccountRepository,
     private val profileRepository: ProfileRepository,
     private val imageRepository: ImageRepository,
+    private val timeAndLocaleHandler: TimeAndLocaleHandler,
     private val profileStringId: String,
     private val transactionId: Long?,
     private val initialAccountId: Long?,
@@ -84,7 +86,7 @@ class AddDetailedTransactionViewModel(
                 it.amount ?: BigDecimal.ZERO
             }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
                 ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-            Triple(accounts, accountDbToAccountUi(accountDb), total)
+            Triple(accounts, accountDbToAccountUi(accountDb, timeAndLocaleHandler.getLocale()), total)
         }
     }
 

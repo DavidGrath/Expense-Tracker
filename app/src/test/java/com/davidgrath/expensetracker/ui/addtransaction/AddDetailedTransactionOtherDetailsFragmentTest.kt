@@ -3,9 +3,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
-import android.view.View
 import android.widget.EditText
-import android.widget.ImageView
 import androidx.core.net.toUri
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -15,9 +13,7 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeTextIntoFocusedView
 import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intending
-import androidx.test.espresso.intent.matcher.IntentMatchers
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -37,12 +33,11 @@ import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
-import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.di.TestComponent
-import com.davidgrath.expensetracker.di.TimeHandler
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.file
@@ -57,7 +52,6 @@ import com.davidgrath.expensetracker.test.TestContentProvider
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
-import org.hamcrest.Matchers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -67,7 +61,6 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.shadows.ShadowAlertDialog
 import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLooper
 import org.slf4j.LoggerFactory
@@ -103,7 +96,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     @Inject
     lateinit var evidenceDao: EvidenceDao
     @Inject
-    lateinit var timeHandler: TimeHandler
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     lateinit var app: TestExpenseTracker
 
@@ -125,7 +118,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     @After
     fun tearDown() {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        timeHandler.changeZone(ZoneId.of("UTC"))
+        timeAndLocaleHandler.changeZone(ZoneId.of("UTC"))
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
         draftFolder.deleteRecursively()
         val contentFolder = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
@@ -451,7 +444,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
 
     @Test
     fun givenTransactionZoneIsNotSameAsSystemZoneWhenLoadEditThenOriginalZoneDisplayedAndNoticeDisplayed() {
-        timeHandler.changeZone(ZoneId.of("Pacific/Honolulu"))
+        timeAndLocaleHandler.changeZone(ZoneId.of("Pacific/Honolulu"))
         startInEditMode()
         onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
         onView(withId(R.id.text_view_add_detailed_transaction_zone_difference_notice)).check(matches(isDisplayed()))
