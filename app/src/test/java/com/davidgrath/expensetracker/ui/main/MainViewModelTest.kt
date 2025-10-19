@@ -1,14 +1,28 @@
 package com.davidgrath.expensetracker.ui.main
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.IdlingRegistry
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.idling.CountingIdlingResource
 import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.TestExpenseTracker
+import com.davidgrath.expensetracker.assertEqualsBD
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
+import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -18,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.DayOfWeek
 import org.threeten.bp.LocalDate
@@ -25,6 +40,7 @@ import org.threeten.bp.LocalDateTime
 import org.threeten.bp.MonthDay
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
+import java.math.BigDecimal
 import java.util.Locale
 import javax.inject.Inject
 
@@ -35,7 +51,11 @@ class MainViewModelTest {
     val mainActivityScenario = ActivityScenarioRule(MainActivity::class.java)
 
     @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
+    @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    @Inject
+    lateinit var categoryDao: CategoryDao
     lateinit var app: TestExpenseTracker
 
     @Before
@@ -341,5 +361,203 @@ class MainViewModelTest {
             viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
             assertEquals(originalOffset, viewModel.statisticsConfig.xLyOffset)
         }
+    }
+
+
+    @Test
+    fun weekdaysFilterTest() {
+        val totalMondaysAndSundaysInJune2025 = 10
+        val monthlySum = BigDecimal(12750)
+        val sundaySum = BigDecimal(1850)
+        val mondaySum = BigDecimal(2400)
+        val expectedSum = mondaySum + sundaySum
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(150))
+            .atDate(LocalDate.parse("2025-06-15"))
+            .repeatIntoDateRange(LocalDate.parse("2025-06-01"), LocalDate.parse("2025-06-14"))
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem("Description 2", "utilities", BigDecimal(700))
+            .atDate(LocalDate.parse("2025-06-30"))
+            .repeatIntoDateRange(LocalDate.parse("2025-06-16"), LocalDate.parse("2025-06-29"))
+            .commit()
+
+        val countingResource = CountingIdlingResource("ViewModel stats weekdaysFilterTest")
+        IdlingRegistry.getInstance().register(countingResource)
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+
+            countingResource.increment()
+            countingResource.increment()
+
+            viewModel.statsTransactionAndItemCount.observe(it) {
+                LOGGER.debug("Q: {}", it)
+                countingResource.decrement()
+            }
+            viewModel.statsTotalExpense.observe(it) {
+                LOGGER.debug("R: {}", it)
+                countingResource.decrement()
+            }
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) //Dirty workaround to make sure the LiveData value is updated
+
+            var transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            var transactionCount = transactionAndItemCount.transactionCount
+            var debitSum = viewModel.statsTotalExpense.value!!
+            assertEquals(30, transactionCount)
+            assertEqualsBD(monthlySum, debitSum)
+
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setDateMode(StatisticsConfig.DateMode.PastXDays)
+            viewModel.setXDaysPast(30)
+            viewModel.setWeekDays(listOf(DayOfWeek.SUNDAY, DayOfWeek.MONDAY))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(totalMondaysAndSundaysInJune2025, transactionCount)
+            assertEqualsBD(expectedSum, debitSum)
+        }
+    }
+
+    @Test
+    fun categoriesFilterTest() {
+
+        val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val misc = categoryDao.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
+        val util = categoryDao.findByStringId("utilities").subscribeOn(Schedulers.io()).blockingGet()!!
+        val entertainment = categoryDao.findByStringId("entertainment").subscribeOn(Schedulers.io()).blockingGet()!!
+
+        val totalTransactionCount = 4
+        val miscCount = 2
+        val utilCount = 2
+        val miscUtilCount = 3
+        val foodCount = 1
+        val entertainmentCount = 0
+        val miscSum = BigDecimal(1550)
+        val utilSum = BigDecimal(1432)
+        val miscUtilSum = BigDecimal(1582)
+        val foodSum = BigDecimal(100)
+        val grandSum = BigDecimal(1682)
+        val entertainmentSum = BigDecimal.ZERO
+
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(150))
+//            .withItem("Desc", "transportation", BigDecimal(150))
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem("Description 2", "miscellaneous", BigDecimal(700))
+            .withItem("Desc 2", "utilities", BigDecimal(700))
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem("Description 3", "utilities", BigDecimal(32))
+//            .withItem("Desc 2", "utilities", BigDecimal(700))
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem("Description 4", "food", BigDecimal(100))
+            .commit()
+
+        val countingResource = CountingIdlingResource("ViewModel stats categoriesFilterTest")
+        IdlingRegistry.getInstance().register(countingResource)
+        mainActivityScenario.scenario.onActivity {
+            val viewModel = it.viewModel
+
+            countingResource.increment()
+            countingResource.increment()
+
+            viewModel.statsTransactionAndItemCount.observe(it) {
+                countingResource.decrement()
+            }
+            viewModel.statsTotalExpense.observe(it) {
+                countingResource.decrement()
+            }
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) //Dirty workaround to make sure the LiveData value is updated
+
+            var transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            var transactionCount = transactionAndItemCount.transactionCount
+            var debitSum = viewModel.statsTotalExpense.value!!
+            assertEquals(totalTransactionCount, transactionCount)
+            assertEqualsBD(grandSum, debitSum)
+
+            //Misc
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setCategories(listOf(misc.id!!))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(miscCount, transactionCount)
+            assertEqualsBD(miscSum, debitSum)
+
+
+            //Util
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setCategories(listOf(util.id!!))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(utilCount, transactionCount)
+            assertEqualsBD(utilSum, debitSum)
+
+
+            //Misc and Util
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setCategories(listOf(misc.id!!, util.id!!))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(miscUtilCount, transactionCount)
+            assertEqualsBD(miscUtilSum, debitSum)
+
+            //Food
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setCategories(listOf(food.id!!))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(foodCount, transactionCount)
+            assertEqualsBD(foodSum, debitSum)
+
+
+            //Entertainment
+            countingResource.increment()
+            countingResource.increment()
+            viewModel.setCategories(listOf(entertainment.id!!))
+            onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) // Workaround
+
+            transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
+            transactionCount = transactionAndItemCount.transactionCount
+            debitSum = viewModel.statsTotalExpense.value!!
+
+            assertEquals(entertainmentCount, transactionCount)
+            assertEqualsBD(entertainmentSum, debitSum)
+        }
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(MainViewModelTest::class.java)
     }
 }

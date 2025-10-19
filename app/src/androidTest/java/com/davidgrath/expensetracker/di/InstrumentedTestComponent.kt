@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.di
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityInstrumentedTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragmentInstrumentedTest
 import com.davidgrath.expensetracker.ui.main.MainActivityInstrumentedTest
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivityInstrumentedTest
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragmentInstrumentedTest
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivityInstrumentedTest
 import dagger.Component
@@ -16,4 +17,5 @@ interface InstrumentedTestComponent: MainComponent {
     fun inject(addDetailedTransactionOtherDetailsFragmentInstrumentedTest: AddDetailedTransactionOtherDetailsFragmentInstrumentedTest)
     fun inject(transactionDetailsActivityTest: TransactionDetailsActivityInstrumentedTest)
     fun inject(statisticsFragmentInstrumentedTest: StatisticsFragmentInstrumentedTest)
+    fun inject(statisticsFilterActivityInstrumentedTest: StatisticsFilterActivityInstrumentedTest)
 }

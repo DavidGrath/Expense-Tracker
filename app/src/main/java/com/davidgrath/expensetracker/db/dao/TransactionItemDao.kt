@@ -32,19 +32,36 @@ interface TransactionItemDao {
     @Query("SELECT c.id as categoryId, c.stringID, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " +
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
-            "WHERE date(t.datedAt) >= date(:fromDate) " +
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) " + //TODO Profile Ids
+            "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
             "AND t.debitOrCredit " +
-            "GROUP BY ti.primaryCategoryId")
-    fun getDebitSumByCategoryFrom(fromDate: String): Observable<List<ItemSumByCategory>>
+            "GROUP BY ti.primaryCategoryId " +
+            "ORDER BY ti.primaryCategoryId ")
+    fun getDebitSumByCategory(fromDate: String?, toDate: String?,
+                              emptyAccounts: Boolean, accountIds: List<Long>,
+                              datesEmpty: Boolean, dates: List<String>,
+                              categoriesEmpty: Boolean, categories: List<Long>
+                              ): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT c.id as categoryId, c.stringID, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " +
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
-            "WHERE date(t.datedAt) >= date(:fromDate) " +
-            "AND date(t.datedAt) <= date(:toDate) " +
-            "AND t.debitOrCredit " +
-            "GROUP BY ti.primaryCategoryId")
-    fun getDebitSumByCategoryFromTo(fromDate: String, toDate: String): Observable<List<ItemSumByCategory>>
+            "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) " + //TODO Profile Ids
+            "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "AND not(t.debitOrCredit) " +
+            "GROUP BY ti.primaryCategoryId " +
+            "ORDER BY ti.primaryCategoryId ")
+    fun getCreditSumByCategory(fromDate: String?, toDate: String?,
+                              emptyAccounts: Boolean, accountIds: List<Long>,
+                              datesEmpty: Boolean, dates: List<String>,
+                              categoriesEmpty: Boolean, categories: List<Long>
+    ): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
             "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.debitOrCredit, " +
@@ -81,9 +98,14 @@ interface TransactionItemDao {
             "FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
             "WHERE (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
-            "AND (:emptyAccounts OR t.accountId in (:accountIds))"
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) " + //TODO Profile Ids
+            "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) "
     )
-    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>): Observable<TransactionAndItemCount>
+    fun getTransactionItemCount(fromDate: String? = null, toDate: String? = null,
+                                emptyAccounts: Boolean, accountIds: List<Long>,
+                                datesEmpty: Boolean, dates: List<String>,
+                                categoriesEmpty: Boolean, categories: List<Long>): Observable<TransactionAndItemCount>
     // endregion
 
     //region Update

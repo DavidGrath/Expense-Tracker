@@ -1,11 +1,14 @@
 package com.davidgrath.expensetracker.repositories
 
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.assertEqualsBD
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.getDefaultAccountId
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.assertEquals
@@ -23,7 +26,7 @@ import javax.inject.Inject
 @RunWith(RobolectricTestRunner::class)
 class TransactionRepositoryTest {
 
-    //TODO Inject properly, setup dummy data
+    //TODO Inject properly
     @Inject
     lateinit var transactionRepository: TransactionRepository
     @Inject
@@ -32,27 +35,23 @@ class TransactionRepositoryTest {
     lateinit var profileRepository: ProfileRepository
     @Inject
     lateinit var accountRepository: AccountRepository
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    lateinit var app: TestExpenseTracker
 
     @Before
     fun setUp() {
-        val app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
     }
 
     @Test
-    @Ignore("Maybe move to Activity Test(s)")
-    fun givenTransactionIsOneDayBeforeWhenSelectByLastNDaysThenTransactionNotSelected() {
-
-    }
-
-    @Test
-    @Ignore("Maybe move to Activity Test(s)")
-    fun givenTransactionIsOneDayBeforeWhenFetchByPastMonthThenTransactionNotSelected() {
-
-    }
-
-    @Test
     fun givenTransactionRangeDoesNotHaveDatesInIntervalWhenFetchTotalThenDatesIntervalHaveZeroes() {
+
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+
         val time = LocalTime.of(8, 0, 0)
         val firstTransactionDate = LocalDate.parse("2025-01-02")
         val secondTransactionDate = LocalDate.parse("2025-01-02")
@@ -64,34 +63,50 @@ class TransactionRepositoryTest {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val builder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal.ZERO)
         //Empty Set
-        var transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-07-01").blockingFirst()
+        var transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-07-01", null, emptyList(), emptyList(), emptyList()).blockingFirst()
         assertEquals(0, transactionSumByDates.size)
 
         //Today and empty
-        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-30").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-30", null, emptyList(), emptyList(), emptyList()).blockingFirst()
         assertEquals(1, transactionSumByDates.size)
         assertEqualsBD(BigDecimal.ZERO, transactionSumByDates.first().sum)
 
         //Multiple days and empty
-        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-01").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-06-01", null, emptyList(), emptyList(), emptyList()).blockingFirst()
         val daysInJune = 30
         var grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
         assertEquals(daysInJune, transactionSumByDates.size)
         assertEqualsBD(BigDecimal.ZERO, grandSum)
 
-        transactionDao.insertTransaction(builder.amount(BigDecimal(110.00)).createdAt(firstTransactionDate.atTime(time).toString()).datedAt(firstTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(builder.amount(BigDecimal(300.00)).createdAt(secondTransactionDate.atTime(time).toString()).datedAt(secondTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(110.00))
+            .atDate(firstTransactionDate)
+            .commit()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(300.00))
+            .atDate(secondTransactionDate)
+            .commit()
 
         //Just 1 transaction
-        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02").blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02", null, emptyList(), emptyList(), emptyList()).blockingFirst()
         val daysBetweenJan2AndJun30Inclusive = 180
         assertEquals(daysBetweenJan2AndJun30Inclusive, transactionSumByDates.size)
 
-        transactionDao.insertTransaction(builder.amount(BigDecimal(450.00)).createdAt(thirdTransactionDate.atTime(time).toString()).datedAt(thirdTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt(fourthTransactionDate.atTime(time).toString()).datedAt(fourthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
-        transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt(fifthTransactionDate.atTime(time).toString()).datedAt(fifthTransactionDate.toString()).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(450.00))
+            .atDate(thirdTransactionDate)
+            .commit()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(750.00))
+            .atDate(fourthTransactionDate)
+            .commit()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(1000.00))
+            .atDate(fifthTransactionDate)
+            .commit()
 
-        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02").blockingFirst()
+
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, "2025-01-02", null, emptyList(), emptyList(), emptyList()).blockingFirst()
         val sum1 = transactionSumByDates.find { it.aggregateDate == firstTransactionDate }!!
         var missingSum1 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-03") }!!
         val missingSum2 = transactionSumByDates.find { it.aggregateDate == LocalDate.parse("2025-01-08") }!!
@@ -101,7 +116,7 @@ class TransactionRepositoryTest {
         assertEqualsBD(BigDecimal.ZERO, missingSum2.sum)
         assertEqualsBD(BigDecimal.ZERO, missingSum3.sum)
 
-        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, firstTransactionDate.toString(), thirdTransactionDate.toString()).blockingFirst()
+        transactionSumByDates = transactionRepository.getTotalAmountByDate(true, firstTransactionDate.toString(), thirdTransactionDate.toString(), emptyList(), emptyList(), emptyList()).blockingFirst()
         val daysBetweenFirstAndThirdTransactionInclusive = 6
 
         grandSum = transactionSumByDates.map { it.sum }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
@@ -110,6 +125,13 @@ class TransactionRepositoryTest {
         assertEquals(daysBetweenFirstAndThirdTransactionInclusive, transactionSumByDates.size)
         assertEqualsBD(BigDecimal(860), grandSum)
         assertEqualsBD(BigDecimal.ZERO, missingSum1.sum)
+    }
+
+    @Test
+    fun multipleDistinctCurrencyStatisticsTest() {
+        //Insert new accounts - 1 USD, 1 GBP
+        //1 transaction per account
+        //When try to fetch any stats then pick anyone and only filter by that
     }
 
 }

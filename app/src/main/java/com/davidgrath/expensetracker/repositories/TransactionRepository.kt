@@ -10,6 +10,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -98,20 +99,33 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalExpense(fromDate: String?, toDate: String?): Observable<BigDecimal> {
-        return transactionDao.getTransactionDebitSum(fromDate, toDate)
+    fun getTotalExpense(fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+        val emptyAccounts = accountIds.isEmpty()
+        val datesEmpty = dates.isEmpty()
+        val categoriesEmpty = categories.isEmpty()
+        return transactionDao.getTransactionDebitSum(fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
             .subscribeOn(Schedulers.io())
     }
-    fun getTotalIncome(fromDate: String?, toDate: String?): Observable<BigDecimal> {
-        return transactionDao.getTransactionCreditSum(fromDate, toDate)
+    fun getTotalIncome(fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+        val emptyAccounts = accountIds.isEmpty()
+        val datesEmpty = dates.isEmpty()
+        val categoriesEmpty = categories.isEmpty()
+        return transactionDao.getTransactionCreditSum(fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalAmountByDate(debitOrCredit: Boolean, fromDate: String, toDate: String? = null): Observable<List<DateAmountSummary>> {
-        val originalSummary = transactionDao.getTransactionSumByDate(debitOrCredit, fromDate, toDate)
+    fun getTotalAmountByDate(debitOrCredit: Boolean, fromDate: String?, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<List<DateAmountSummary>> {
+        val emptyAccounts = accountIds.isEmpty()
+        val datesEmpty = dates.isEmpty()
+        val categoriesEmpty = categories.isEmpty()
+        val originalSummary = transactionDao.getTransactionSumByDate(debitOrCredit, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
         val filledSummary = originalSummary.map { list ->
             var zeroCount = 0
-            val start = LocalDate.parse(fromDate)
+            val start = if(fromDate == null) {
+                LocalDate.now(timeAndLocaleHandler.getClock())
+            } else {
+                LocalDate.parse(fromDate)
+            }
             val end = if(toDate == null) {
                 LocalDate.now(timeAndLocaleHandler.getClock())
             } else {
@@ -155,6 +169,12 @@ constructor(
 
     fun updateTransaction(transactionDb: TransactionDb): Single<Int> {
         return transactionDao.updateTransaction(transactionDb)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getEarliestTransactionDate(accountIds: List<Long>): Maybe<LocalDate> {
+        val emptyAccounts = accountIds.isEmpty()
+        return transactionDao.getEarliestTransactionDate(emptyAccounts, accountIds)
             .subscribeOn(Schedulers.io())
     }
 

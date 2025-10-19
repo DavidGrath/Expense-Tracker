@@ -1,15 +1,24 @@
 package com.davidgrath.expensetracker.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
+import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModel
 import com.google.android.material.tabs.TabLayoutMediator
+import com.google.gson.GsonBuilder
+import org.slf4j.LoggerFactory
+import org.threeten.bp.DayOfWeek
+import java.io.File
 
 class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListener {
 
@@ -64,5 +73,33 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
                 }
             }
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when(requestCode) {
+            REQUEST_CODE_OPEN_FILTER -> {
+                if(resultCode == RESULT_OK) {
+                    val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
+                    if(file.exists()) {
+                        val size = file.length()
+                        val reader = file.bufferedReader()
+                        val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
+                        val statisticsFilter = gson.fromJson(reader, StatisticsFilter::class.java)
+                        LOGGER.info("Read {} bytes from existing statistics JSON file", size)
+                        viewModel.setFilter(statisticsFilter)
+                        val b = file.delete()
+                        LOGGER.info("Delete statistics JSON file: {}", b)
+                    } else {
+                        LOGGER.info("No statistics JSON file found")
+                    }
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val REQUEST_CODE_OPEN_FILTER = 100
+        private val LOGGER = LoggerFactory.getLogger(MainActivity::class.java)
     }
 }

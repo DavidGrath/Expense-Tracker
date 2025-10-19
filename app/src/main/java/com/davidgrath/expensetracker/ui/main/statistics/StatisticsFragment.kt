@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.statistics
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,13 +15,16 @@ import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.ui.SpinnerStatisticModeAdapter
 import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
+import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.davidgrath.expensetracker.ui.main.MainViewModel
 import com.github.mikephil.charting.components.AxisBase
+import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.DefaultValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
 import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
@@ -40,6 +44,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.statisticsConfigLiveData.observe(viewLifecycleOwner) { stats ->
+            LOGGER.debug("config: {}", stats)
             when(stats.dateMode) {
                 StatisticsConfig.DateMode.Daily -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
@@ -105,37 +110,64 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
         binding.barChartStatisticsCategories.axisLeft.setDrawLabels(false)
         binding.barChartStatisticsCategories.axisLeft.axisMinimum = 0f
         binding.barChartStatisticsCategories.axisRight.axisMinimum = 0f
-//        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { list ->
-        viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
-            LOGGER.info("statsPastXByCategory: Item Count: ${list.size}")
-            val dataSet = BarDataSet(list, null)
-            dataSet.colors = MaterialColors.Palette.map { it.value }
-            dataSet.setDrawIcons(true)
-            dataSet.setDrawValues(true)
-            val data = BarData(dataSet)
+        val barWidth = 0.44f
+        val groupSpace = 0f
+        val barSpace = 0.03f
+        viewModel.statsTotalByCategory.observe(viewLifecycleOwner) { pair ->
+            val expenseDataSet = BarDataSet(pair.first, null)
+//            expenseDataSet.colors = MaterialColors.Palette.map { it.value }
+            expenseDataSet.colors = listOf(MaterialColors.Red600.value)
+            expenseDataSet.setDrawIcons(true)
+            expenseDataSet.setDrawValues(true)
+
+            val incomeDataSet = BarDataSet(pair.second, null)
+//            incomeDataSet.colors = MaterialColors.Palette.map { it.value }
+            incomeDataSet.colors = listOf(MaterialColors.Green600.value)
+            incomeDataSet.setDrawIcons(true)
+            incomeDataSet.setDrawValues(true)
+
+            val data = BarData(expenseDataSet, incomeDataSet)
+
+            data.barWidth = barWidth
+
             binding.barChartStatisticsCategories.isLogEnabled = true
             binding.barChartStatisticsCategories.data = data
+            binding.barChartStatisticsCategories.groupBars(0f, groupSpace, barSpace)
+            binding.barChartStatisticsCategories.xAxis.axisMinimum = 0f
+            binding.barChartStatisticsCategories.xAxis.axisMaximum = pair.first.size.toFloat()
+//            binding.barChartStatisticsCategories.xAxis.setCenterAxisLabels(true)
             binding.barChartStatisticsCategories.invalidate()
         }
 
         binding.lineChartStatisticsTotal.legend.isEnabled = false
         binding.lineChartStatisticsTotal.description.isEnabled = false
-        binding.lineChartStatisticsTotal.xAxis.setDrawLabels(false)
+        binding.lineChartStatisticsTotal.xAxis.position = XAxis.XAxisPosition.BOTTOM
         binding.lineChartStatisticsTotal.axisLeft.setDrawLabels(false)
         binding.lineChartStatisticsTotal.axisLeft.axisMinimum = 0f
         binding.lineChartStatisticsTotal.axisRight.axisMinimum = 0f
-        viewModel.statsTotalExpensesByDay.observe(viewLifecycleOwner) { list -> //TODO Combine with income
-            LOGGER.info("Item Count: ${list.size}")
-            val entries = list.mapIndexed { i, summary ->
+        viewModel.statsTotalByDay.observe(viewLifecycleOwner) { pair ->
+            val (expenses, income) = pair
+            val expensesEntries = expenses.mapIndexed { i, summary ->
                 Entry(i.toFloat(), summary.sum.toFloat())
             }
-            val dataSet = LineDataSet(entries, null)
-            dataSet.colors = MaterialColors.Palette.map { it.value }
-            dataSet.setDrawIcons(true)
-            dataSet.setDrawValues(true)
-            val data = LineData(dataSet)
-            val dates = list.map { summary -> summary.aggregateDate }
-            data.setValueFormatter(DateValuesFormatter(dates))
+            val expensesDataSet = LineDataSet(expensesEntries, null)
+            expensesDataSet.colors = listOf(MaterialColors.Red600.value)
+            expensesDataSet.setDrawCircles(false)
+            expensesDataSet.setDrawValues(true)
+
+            val incomeEntries = income.mapIndexed { i, summary ->
+                Entry(i.toFloat(), summary.sum.toFloat())
+            }
+            val incomeDataSet = LineDataSet(incomeEntries, null)
+            incomeDataSet.colors = listOf(MaterialColors.Green600.value)
+            incomeDataSet.setDrawCircles(false)
+            incomeDataSet.setDrawValues(true)
+
+
+            val data = LineData(expensesDataSet, incomeDataSet)
+            data.setValueFormatter(NoZeroValueFormatter())
+            val dates = expenses.map { summary -> summary.aggregateDate }
+            binding.lineChartStatisticsTotal.xAxis.setValueFormatter(DateValuesFormatter(dates))
             binding.lineChartStatisticsTotal.isLogEnabled = true
             binding.lineChartStatisticsTotal.data = data
             binding.lineChartStatisticsTotal.invalidate()
@@ -146,7 +178,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
         }
 
         binding.imageViewStatisticsConfigureCurrentMode.setOnClickListener(this)
-        binding.imageViewStatisticsFilter.setOnClickListener(this)
+        binding.imageViewStatisticsOpenFilter.setOnClickListener(this)
         binding.imageViewStatisticsViewItems.setOnClickListener(this)
         binding.spinnerStatisticsCurrentMode.adapter = SpinnerStatisticModeAdapter(viewModel.statisticsConfig.xDays, requireContext(), dateModes)
         binding.spinnerStatisticsCurrentMode.onItemSelectedListener = this
@@ -155,7 +187,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
         val selectedMode = dateModes[position]
         LOGGER.info("onItemSelected: {}", selectedMode)
-        viewModel.setConfig(viewModel.statisticsConfig.copy(dateMode = selectedMode))
+        viewModel.setDateMode(selectedMode)
         if(selectedMode == StatisticsConfig.DateMode.Range) {
             //Open Dialog
         }
@@ -199,8 +231,10 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                         }
                     }
                 }
-                binding.imageViewStatisticsFilter -> {
-
+                binding.imageViewStatisticsOpenFilter -> {
+                    viewModel.saveStatisticsFilterToFile().blockingSubscribe()
+                    val intent = Intent(requireContext(), StatisticsFilterActivity::class.java)
+                    requireActivity().startActivityForResult(intent, MainActivity.REQUEST_CODE_OPEN_FILTER)
                 }
                 binding.imageViewStatisticsViewItems -> {
 
@@ -210,7 +244,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
     }
 
     override fun onNumberPicked(number: Int) {
-        viewModel.setConfig(viewModel.statisticsConfig.copy(xDays = number))
+        viewModel.setXDaysPast(number)
     }
 
     companion object {
@@ -227,6 +261,16 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
             val index = value.toInt()
             val localDate = dates[index]
             return localDate.toString()
+        }
+    }
+
+    class NoZeroValueFormatter: DefaultValueFormatter(0) {
+        override fun getFormattedValue(value: Float): String {
+            if(value == 0f) {
+                return ""
+            } else {
+                return super.getFormattedValue(value)
+            }
         }
     }
 }

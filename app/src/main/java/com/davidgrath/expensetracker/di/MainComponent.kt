@@ -12,6 +12,8 @@ import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
 import com.davidgrath.expensetracker.ui.main.TransactionsFragment
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModelFactory
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
 import dagger.Component
 import javax.inject.Singleton
@@ -33,4 +35,6 @@ interface MainComponent {
     fun inject(addDetailedTransactionMainFragment: AddDetailedTransactionMainFragment)
     fun inject(addAccountDialogFragment: AddAccountDialogFragment)
     fun inject(accountsFragment: AccountsFragment)
+    fun inject(statisticsViewModelFactory: StatisticsViewModelFactory)
+    fun inject(statisticsFilterActivity: StatisticsFilterActivity)
 }

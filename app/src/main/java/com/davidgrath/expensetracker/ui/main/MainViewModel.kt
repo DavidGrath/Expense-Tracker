@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.accountWithStatsDbToAccountWithStatsUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -23,6 +24,7 @@ import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.offsetTimeToLocalTime
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -33,15 +35,20 @@ import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionsToTransactionItems
 import com.github.mikephil.charting.data.BarEntry
+import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.BackpressureStrategy
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
+import org.threeten.bp.DayOfWeek
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
 import org.threeten.bp.MonthDay
 import org.threeten.bp.temporal.TemporalAdjusters
 import org.threeten.bp.temporal.WeekFields
+import java.io.File
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -58,13 +65,16 @@ constructor(
     private val profileRepository: ProfileRepository
 ) : AndroidViewModel(application) {
 
-    val listLiveData: LiveData<List<GeneralTransactionListItem>>
-    val statsPastXByCategory: LiveData<List<BarEntry>>
+    val statsTotalByCategory: LiveData<Pair<List<BarEntry>, List<BarEntry>>>
+    val homeListLiveData: LiveData<List<GeneralTransactionListItem>>
+    private var homeAccountId: Long = -1
+    private val _homeAccountIdLiveData = MutableLiveData<Long>(homeAccountId)
+    val homeAccountIdLiveData : LiveData<Long> = _homeAccountIdLiveData
+    val homeTotalIncome: LiveData<BigDecimal>
+    val homeTotalExpense: LiveData<BigDecimal>
     val statsTotalIncome: LiveData<BigDecimal>
     val statsTotalExpense: LiveData<BigDecimal>
-//    val statsTotalByCategory: LiveData<List<BarEntry>>
-    val statsTotalIncomeByDay: LiveData<List<DateAmountSummary>>
-    val statsTotalExpensesByDay: LiveData<List<DateAmountSummary>>
+    val statsTotalByDay: LiveData<Pair<List<DateAmountSummary>, List<DateAmountSummary>>>
     val statsTransactionAndItemCount: LiveData<TransactionAndItemCount>
     //TODO For refreshing at midnight
 //    private val minuteTicker = Observable.interval(1, TimeUnit.MINUTES)
@@ -75,10 +85,21 @@ constructor(
     private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>(statisticsConfig)
     val statisticsConfigLiveData: LiveData<StatisticsConfig> = _statisticsConfigLiveData
     val accountsLiveData: LiveData<List<AccountWithStatsUi>>
+    private val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
     private var currentProfile = -1L
 
     init {
-        listLiveData = transactionRepository.getTransactions().map{ transactionsAndItems ->
+        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
+        val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
+        val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
+        currentProfile = profile.id!!
+        val profilePreferences = application.getSharedPreferences(profile.stringId, Context.MODE_PRIVATE)
+        homeAccountId = profilePreferences.getLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, -1) //TODO Use Spinner
+        _homeAccountIdLiveData.postValue(homeAccountId)
+        LOGGER.debug("homeAccountId: {}", homeAccountId)
+        statisticsConfig = statisticsConfig.copy(filter = statisticsConfig.filter.copy(accountIds = listOf(homeAccountId)))
+        _statisticsConfigLiveData.postValue(statisticsConfig)
+        homeListLiveData = transactionRepository.getTransactions().map{ transactionsAndItems ->
             val list = arrayListOf<TransactionWithItemAndCategoryUi>()
             for (item in transactionsAndItems) {
                 val createdDateTime = offsetTimeToLocalTime(timeAndLocaleHandler, item.transactionCreatedAt, item.transactionCreatedAtOffset)
@@ -96,22 +117,104 @@ constructor(
             }
             transactionsToTransactionItems(list)
         }.toLiveData()
-        statsPastXByCategory = transactionItemRepository.getTotalSpentByCategory().map { list ->
-            val mapped = list.mapIndexed { i, it ->
-                val cat = itemSumToCategoryUi(it)
-//                BarEntry(i.toFloat(), it.second.toFloat(), ResourcesCompat.getDrawable(application.resources, cat.iconId, null))
-                BarEntry(
-                    i.toFloat(),
-                    it.sum.toFloat(),
-                    ResourcesCompat.getDrawable(application.resources, cat.iconId, null)
-                )
-            }
-            mapped
-        }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTotalIncome = transactionRepository.getTotalIncome(statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString())
+        statsTotalByCategory = statisticsConfigLiveData.switchMap {
+            val accountIds = it.filter.accountIds
+            val dates = getFilteredWeekDays(it)
+            val categories = it.filter.categories
+            Observable.combineLatest(
+                transactionItemRepository.getTotalExpenseByCategory(it.rangeStartDay?.toString(), it.rangeEndDay?.toString(), accountIds, dates, categories),
+                transactionItemRepository.getTotalIncomeByCategory(it.rangeStartDay?.toString(), it.rangeEndDay?.toString(), accountIds, dates, categories)
+            ) { expenseList, incomeList ->
+                val categoryIds =
+                    (expenseList.map { it.categoryId } + incomeList.map { it.categoryId })
+                        .distinct().sorted()
+                val size = categoryIds.size
+                LOGGER.info("statsTotalByCategory: using {} distinct categories", size)
+                val expenseEntries = ArrayList<BarEntry>(size)
+                val incomeEntries = ArrayList<BarEntry>(size)
+                categoryIds.forEachIndexed { index, id ->
+                    val expenseIndex = expenseList.indexOfFirst { it.categoryId == id }
+                    val incomeIndex = incomeList.indexOfFirst { it.categoryId == id }
+                    val expenseSum = if(expenseIndex >= 0) {
+                        expenseList[expenseIndex].sum.toFloat()
+                    } else {
+                        0f
+                    }
+                    val incomeSum = if(incomeIndex >= 0) {
+                        incomeList[incomeIndex].sum.toFloat()
+                    } else {
+                        0f
+                    }
+                    val cat = itemSumToCategoryUi(if(expenseIndex >= 0) {
+                        expenseList[expenseIndex]
+                    } else {
+                        incomeList[incomeIndex]
+                    })
+                    LOGGER.debug("cat: {}", cat)
+                    expenseEntries.add(BarEntry(index.toFloat(), expenseSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                    incomeEntries.add(BarEntry(index.toFloat(), incomeSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                }
+                LOGGER.debug("expenseList: {}", expenseList)
+                LOGGER.debug("incomeList: {}", incomeList)
+                LOGGER.debug("expenseEntries: {}", expenseEntries)
+                LOGGER.debug("incomeEntries: {}", incomeEntries)
+                /*val expenseMapped = expenseList.mapIndexed { i, it ->
+                    val cat = itemSumToCategoryUi(it)
+                    BarEntry(
+                        i.toFloat(),
+                        it.sum.toFloat(),
+                        ResourcesCompat.getDrawable(application.resources, cat.iconId, null)
+                    )
+                }
+                val incomeMapped = incomeList.mapIndexed { i, it ->
+                    val cat = itemSumToCategoryUi(it)
+                    BarEntry(
+                        i.toFloat(),
+                        it.sum.toFloat(),
+                        ResourcesCompat.getDrawable(application.resources, cat.iconId, null)
+                    )
+                }*/
+//                expenseMapped to incomeMapped
+                (expenseEntries as List<BarEntry>) to (incomeEntries as List<BarEntry>)
+            }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+
+        homeTotalIncome = homeAccountIdLiveData.switchMap {
+            val accountIds = listOf(it)
+            transactionRepository.getTotalIncome(
+                LocalDate.now(timeAndLocaleHandler.getClock()).toString(),
+                LocalDate.now(timeAndLocaleHandler.getClock()).toString(),
+                accountIds, emptyList(), emptyList()
+            )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTotalExpense = transactionRepository.getTotalExpense(statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString())
-            .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+        homeTotalExpense = homeAccountIdLiveData.switchMap {
+            val accountIds = listOf(it)
+            transactionRepository.getTotalExpense(
+                LocalDate.now(timeAndLocaleHandler.getClock()).toString(),
+                LocalDate.now(timeAndLocaleHandler.getClock()).toString(),
+                accountIds, emptyList(), emptyList()
+            )
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+        statsTotalIncome = statisticsConfigLiveData.switchMap {
+            val accountIds = it.filter.accountIds
+            val dates = getFilteredWeekDays(it)
+            val categories = it.filter.categories
+            transactionRepository.getTotalIncome(it.rangeStartDay?.toString(),
+                it.rangeEndDay?.toString(), accountIds, dates, categories
+            )
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+        statsTotalExpense = statisticsConfigLiveData.switchMap {
+            val accountIds = it.filter.accountIds
+            val dates = getFilteredWeekDays(it)
+            val categories = it.filter.categories
+            transactionRepository.getTotalExpense(it.rangeStartDay?.toString(),
+                it.rangeEndDay?.toString(), accountIds, dates, categories
+            )
+                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
         /*statsTotalByCategory = transactionRepository.getTotalSpentByCategory().map { list ->
             val mapped = list.mapIndexed { i, it ->
                 val cat = categoryDbToCategoryUi(it.first)
@@ -124,20 +227,28 @@ constructor(
             }
             mapped
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()*/
-        statsTotalExpensesByDay = transactionRepository.getTotalAmountByDate(true, statisticsConfig.rangeStartDay?.toString()?: LocalDate.now(timeAndLocaleHandler.getClock()).toString(), statisticsConfig.rangeEndDay?.toString())
-            .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        statsTotalIncomeByDay = transactionRepository.getTotalAmountByDate(false, statisticsConfig.rangeStartDay?.toString()?: LocalDate.now(timeAndLocaleHandler.getClock()).toString(), statisticsConfig.rangeEndDay?.toString())
-            .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        statsTotalByDay = statisticsConfigLiveData.switchMap {
+
+            val accountIds = it.filter.accountIds
+            val dates = getFilteredWeekDays(it)
+            val categories = it.filter.categories
+            Observable.combineLatest(
+                transactionRepository.getTotalAmountByDate(true, statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories),
+                transactionRepository.getTotalAmountByDate(false, statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories)
+            ) { expenses, income ->
+                expenses to income
+            }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
         statsTransactionAndItemCount = statisticsConfigLiveData.switchMap {
-            val accountIds = statisticsConfig.filter.accountIds
-            transactionItemRepository.getTransactionItemCount(statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds)
+            val accountIds = it.filter.accountIds
+            val dates = getFilteredWeekDays(it)
+            val categories = it.filter.categories
+            transactionItemRepository.getTransactionItemCount(statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories)
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
 
-        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
-        val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
-        val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
-        currentProfile = profile.id!!
+
+
         accountsLiveData = accountRepository.getAccountsWithStatsForProfile(currentProfile).map { list ->
             list.map { accountWithStatsDbToAccountWithStatsUi(it, timeAndLocaleHandler.getLocale()) }
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
@@ -193,6 +304,11 @@ constructor(
 
     fun setConfig(statisticsConfig: StatisticsConfig) {
         this.statisticsConfig = statisticsConfig
+        _statisticsConfigLiveData.postValue(statisticsConfig)
+    }
+
+    fun setFilter(statisticsFilter: StatisticsFilter) {
+        this.statisticsConfig = statisticsConfig.copy(filter = statisticsFilter)
         _statisticsConfigLiveData.postValue(statisticsConfig)
     }
 
@@ -340,6 +456,60 @@ constructor(
     fun setDateRange(startDate: LocalDate?, endDate: LocalDate?) {
         this.statisticsConfig = this.statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
         setDateMode(this.statisticsConfig.dateMode)
+    }
+
+    fun setWeekDays(weekdays: List<DayOfWeek>) {
+        val filter = this.statisticsConfig.filter.copy(weekdays = weekdays)
+        this.statisticsConfig = statisticsConfig.copy(filter = filter)
+        _statisticsConfigLiveData.postValue(this.statisticsConfig)
+        setDateMode(this.statisticsConfig.dateMode)
+        LOGGER.info("setWeekDays")
+    }
+
+
+    fun setCategories(categories: List<Long>) {
+        val filter = this.statisticsConfig.filter.copy(categories = categories)
+        this.statisticsConfig = statisticsConfig.copy(filter = filter)
+        _statisticsConfigLiveData.postValue(this.statisticsConfig)
+        setDateMode(this.statisticsConfig.dateMode)
+        LOGGER.info("setWeekDays")
+    }
+
+    fun saveStatisticsFilterToFile(): Single<Unit> {
+        return Single.fromCallable {
+            val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
+            val json = gson.toJson(this.statisticsConfig.filter)
+            file.writeText(json)
+        }.subscribeOn(Schedulers.io())
+    }
+
+    private fun getFilteredWeekDays(config: StatisticsConfig): List<String> {
+        val dates = mutableListOf<String>()
+        val accountIds = config.filter.accountIds
+        if(config.dateMode != StatisticsConfig.DateMode.Daily) {
+            if(config.filter.weekdays.isNotEmpty()) {
+                val earliestDate =
+                    transactionRepository.getEarliestTransactionDate(accountIds).blockingGet()
+                if (earliestDate != null) {
+                    val today = LocalDate.now(timeAndLocaleHandler.getClock())
+                    val startDate = config.rangeStartDay ?: earliestDate
+                    val endDate = config.rangeEndDay?: today
+                    if (startDate <= endDate) {
+                        var runningDate = startDate
+                        while (runningDate <= endDate) {
+                            if(runningDate.dayOfWeek in config.filter.weekdays) {
+                                dates.add(runningDate.toString())
+                            }
+                            runningDate = runningDate.plusDays(1)
+                        }
+                    }
+                } else {
+
+                }
+            }
+        }
+        LOGGER.info("Picked out {} days from weekdays filter", dates.size)
+        return dates
     }
 
     companion object {

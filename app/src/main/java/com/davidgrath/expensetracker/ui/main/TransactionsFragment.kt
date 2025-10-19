@@ -2,7 +2,6 @@ package com.davidgrath.expensetracker.ui.main
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
@@ -12,19 +11,14 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
-import com.github.mikephil.charting.data.BarData
-import com.github.mikephil.charting.data.BarDataSet
-import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
-import java.util.Locale
 import javax.inject.Inject
 
 class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
@@ -51,7 +45,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.recyclerviewTransactions.adapter = adapter
         binding.recyclerviewTransactions.layoutManager = LinearLayoutManager(requireContext())
-        viewModel.listLiveData.observe(viewLifecycleOwner) { list ->
+        viewModel.homeListLiveData.observe(viewLifecycleOwner) { list ->
             LOGGER.info("Transactions Item Count: {}", list.size)
             adapter.setItems(list)
         }
@@ -72,10 +66,10 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             binding.barChartMain.data = data
             binding.barChartMain.invalidate()
         }*/
-        viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
+        viewModel.homeTotalIncome.observe(viewLifecycleOwner) {
             binding.textViewTransactionsTotalIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
         }
-        viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
+        viewModel.homeTotalExpense.observe(viewLifecycleOwner) {
             binding.textViewTransactionsTotalExpense.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
         }
 
@@ -92,7 +86,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
                             .blockingGet()
                         val accounts = viewModel.getAccounts().blockingGet()
                         addTransactionDialog = AddTransactionDialogFragment()
-                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) }
+                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) } //TODO Refresh this
                         addTransactionDialog!!.accounts = accounts.toMutableList()
                     }
                     if(!(addTransactionDialog?.dialog?.isShowing?:false)) {

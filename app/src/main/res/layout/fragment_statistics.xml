@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-        <com.github.mikephil.charting.charts.HorizontalBarChart
+        <com.github.mikephil.charting.charts.BarChart
             android:id="@+id/bar_chart_statistics_categories"
             android:layout_width="match_parent"
             android:layout_height="320dp"/>
@@ -128,7 +128,7 @@
             android:contentDescription="Configure"
             android:src="@drawable/baseline_settings_24"/>
         <ImageView
-            android:id="@+id/image_view_statistics_filter"
+            android:id="@+id/image_view_statistics_open_filter"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:contentDescription="Filter"

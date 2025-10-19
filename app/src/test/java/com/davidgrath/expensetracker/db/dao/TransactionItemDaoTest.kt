@@ -2,9 +2,13 @@ package com.davidgrath.expensetracker.db.dao
 
 import androidx.test.core.app.ApplicationProvider
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
+import com.davidgrath.expensetracker.assertEqualsBD
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -16,6 +20,7 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -33,49 +38,64 @@ class TransactionItemDaoTest {
     lateinit var profileRepository: ProfileRepository
     @Inject
     lateinit var accountRepository: AccountRepository
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    lateinit var app: TestExpenseTracker
 
     @Before
     fun setUp() {
-        (ApplicationProvider.getApplicationContext<TestExpenseTracker>().appComponent as TestComponent).inject(this)
+        app = ApplicationProvider.getApplicationContext<TestExpenseTracker>()
+        (app.appComponent as TestComponent).inject(this)
     }
 
     @Test
     fun sumByCategoryTest() {
+
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
         val fitness = categoryDao.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
 
         val fromDate = LocalDate.parse("2025-01-01")
+        val id = dataBuilder.createTransaction()
+            .atDate(fromDate)
+            .withItem("Bread", "food", BigDecimal(1_500))
+            .withItem("Dumbbells", "fitness", BigDecimal(2_500))
+            .commit().first()
         val toDate = LocalDate.parse("2025-01-02")
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val transactionDb = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(4_000.00)).datedAt(fromDate.toString()).build()
-        val id = transactionDao.insertTransaction(transactionDb).subscribeOn(Schedulers.io()).blockingGet()
-        val bread = TransactionItemDb(null, id, BigDecimal(1_500), null, 1, "Bread", "", null, food.id!!, transactionDb.createdAt, transactionDb.createdAtOffset, transactionDb.createdAtTimezone)
-        val dumbbells = TransactionItemDb(null, id, BigDecimal(2_500), null, 1, "Dumbbells", "", null, fitness.id!!, transactionDb.createdAt, transactionDb.createdAtOffset, transactionDb.createdAtTimezone)
 
-        val transactionDb2 = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(6_000.00)).datedAt(toDate.toString()).build()
-        val id2 = transactionDao.insertTransaction(transactionDb2).subscribeOn(Schedulers.io()).blockingGet()
-        val water = TransactionItemDb(null, id2, BigDecimal(1_000), null, 1, "Water", "", null, food.id!!, transactionDb2.createdAt, transactionDb2.createdAtOffset, transactionDb2.createdAtTimezone)
-        val sweatpants = TransactionItemDb(null, id2, BigDecimal(5_000), null, 1, "Sweatpants", "", null, fitness.id!!, transactionDb2.createdAt, transactionDb2.createdAtOffset, transactionDb2.createdAtTimezone)
+        val id2 = dataBuilder.createTransaction()
+            .atDate(toDate)
+            .withItem("Water", "food", BigDecimal(1_000))
+            .withItem("Sweatpants", "fitness", BigDecimal(5_000))
+            .commit().first()
 
-        val transactionDb3 = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(8_000.00)).datedAt(toDate.plusDays(1).toString()).build()
-        val id3 = transactionDao.insertTransaction(transactionDb3).subscribeOn(Schedulers.io()).blockingGet()
-        val fish = TransactionItemDb(null, id3, BigDecimal(3_000), null, 1, "Fish", "", null, food.id!!, transactionDb3.createdAt, transactionDb3.createdAtOffset, transactionDb3.createdAtTimezone)
-        val jumpRope = TransactionItemDb(null, id3, BigDecimal(5_000), null, 1, "Jump Rope", "", null, fitness.id!!, transactionDb3.createdAt, transactionDb3.createdAtOffset, transactionDb3.createdAtTimezone)
+        val id3 = dataBuilder.createTransaction()
+            .atDate(toDate.plusDays(1))
+            .withItem("Fish", "food", BigDecimal(3_000))
+            .withItem("Jump Rope", "fitness", BigDecimal(5_000))
+            .commit()
 
-        transactionItemDao.insertTransactionItemMultiple(listOf(bread, dumbbells, water, sweatpants, fish, jumpRope)).subscribeOn(Schedulers.io()).blockingSubscribe()
-        val sumList = transactionItemDao.getDebitSumByCategoryFrom(fromDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
+
+        val sumList = transactionItemDao.getDebitSumByCategory(fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         var foodSum = sumList.find { it.categoryId == food.id }!!.sum
         var fitnessSum = sumList.find { it.categoryId == fitness.id }!!.sum
+        LOGGER.debug("sumList: {}", sumList)
+        assertEqualsBD(BigDecimal(5_500), foodSum)
+        assertEqualsBD(BigDecimal(12_500), fitnessSum)
 
-        assertEquals(0, BigDecimal(5_500).compareTo(foodSum))
-        assertEquals(0, BigDecimal(12_500).compareTo(fitnessSum))
-
-        val sumListTo = transactionItemDao.getDebitSumByCategoryFromTo(fromDate.toString(), toDate.toString()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumListTo = transactionItemDao.getDebitSumByCategory(fromDate.toString(), toDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         foodSum = sumListTo.find { it.categoryId == food.id }!!.sum
         fitnessSum = sumListTo.find { it.categoryId == fitness.id }!!.sum
 
-        assertEquals("Expected 2500 but was $foodSum",0, BigDecimal(2_500).compareTo(foodSum))
-        assertEquals("Expected 7500 but was $fitnessSum", 0, BigDecimal(7_500).compareTo(fitnessSum))
+        assertEqualsBD(BigDecimal(2_500), foodSum)
+        assertEqualsBD(BigDecimal(7_500), fitnessSum)
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(TransactionItemDaoTest::class.java)
     }
 
 }

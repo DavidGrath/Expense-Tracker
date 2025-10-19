@@ -2,10 +2,14 @@ package com.davidgrath.expensetracker.db.dao
 
 import androidx.test.core.app.ApplicationProvider
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
+import com.davidgrath.expensetracker.TransactionBuilder
 import com.davidgrath.expensetracker.assertEqualsBD
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
@@ -35,6 +39,10 @@ class AccountDaoTest {
     lateinit var transactionItemDao: TransactionItemDao
     @Inject
     lateinit var accountDao: AccountDao
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     lateinit var app: TestExpenseTracker
 
     @Before
@@ -89,20 +97,16 @@ class AccountDaoTest {
         val totalTransactions = 2
         val totalItems = 3
 
-        val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val category = categoryRepository.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
-        val transactionBuilder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(100))
-        val id = transactionDao.insertTransaction(transactionBuilder.build()).subscribeOn(Schedulers.io()).blockingGet()
-        val itemBuilder = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal(100), category.id!!)
-        val itemId = transactionItemDao.insertTransactionItem(itemBuilder.build()).subscribeOn(Schedulers.io()).blockingGet()
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .commit()
 
-        val secondTransaction = transactionBuilder.amount(BigDecimal(200)).debitOrCredit(false).build()
-        val id2 = transactionDao.insertTransaction(secondTransaction).subscribeOn(Schedulers.io()).blockingGet()
-        transactionItemDao.insertTransactionItemMultiple(listOf(
-            itemBuilder.transactionId(id2).build(),
-            itemBuilder.transactionId(id2).build()
-        )
-        ).subscribeOn(Schedulers.io()).blockingSubscribe()
+        dataBuilder.createTransaction()
+            .debitOrCredit(false)
+            .withDefaultItemPrice(BigDecimal(100))
+            .withItem("Description").withItem("Description 2")
+            .commit()
 
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val newAccountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
@@ -123,6 +127,6 @@ class AccountDaoTest {
     }
 
     companion object {
-        val LOGGER = LoggerFactory.getLogger(AccountDaoTest::class.java)
+        private val LOGGER = LoggerFactory.getLogger(AccountDaoTest::class.java)
     }
 }

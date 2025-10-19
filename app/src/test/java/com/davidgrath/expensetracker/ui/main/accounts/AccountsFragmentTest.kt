@@ -89,7 +89,7 @@ class AccountsFragmentTest {
             R.id.image_view_account_view_stats
         )
         onView(withId(R.id.fragment_statistics)).check(matches(isDisplayed()))
-        onView(withId(R.id.text_view_statistics_transaction_count)).check(matches(withText(Matchers.matchesRegex(".*\\b2\\b.*"))))
+        onView(withId(R.id.text_view_statistics_transaction_count)).check(matches(withText(Matchers.matchesRegex(".*\\b2\\b.*")))) //TODO Maybe use ViewModel's LiveData.value instead
         onView(withId(R.id.text_view_statistics_item_count)).check(matches(withText(Matchers.matchesRegex(".*\\b3\\b.*"))))
     }
 
