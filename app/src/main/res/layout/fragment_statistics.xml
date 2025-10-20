@@ -108,8 +108,8 @@
         android:padding="16dp">
         <ImageButton
             android:id="@+id/image_button_statistics_cycle_mode_left"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/baseline_arrow_left_24"/>
         <Spinner
             android:id="@+id/spinner_statistics_current_mode"
@@ -118,8 +118,8 @@
             android:layout_weight="1"/>
         <ImageButton
             android:id="@+id/image_button_statistics_cycle_mode_right"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/baseline_arrow_right_24"/>
         <ImageView
             android:id="@+id/image_view_statistics_configure_current_mode"

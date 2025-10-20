@@ -45,22 +45,4 @@ class StatisticsFragmentInstrumentedTest {
             it.viewModel.setConfig(StatisticsConfig(timeAndLocaleHandler.getLocale()))
         }
     }
-
-    @Test
-    @Ignore("Not ready yet")
-    fun givenModeIsDailyWhenClickConfigureThenDateDialogAppears() {
-        onView(ViewMatchers.withId(R.id.spinner_statistics_current_mode))
-            .perform(ViewActions.click())
-        onData(Matchers.equalTo(StatisticsConfig.DateMode.Daily))
-            .perform(ViewActions.click())
-        onView(ViewMatchers.withId(R.id.image_view_statistics_configure_current_mode))
-            .perform(ViewActions.click())
-    }
-
-
-    @Test
-    @Ignore("Not ready yet")
-    fun givenRangeIsSelectedAndNoRangesSelectedBeforeThenDateRangeDialogAppears() {
-
-    }
 }

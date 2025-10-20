@@ -9,10 +9,13 @@ import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMai
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModelFactory
 import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.WeekDayDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.YearDayDialogFragment
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
 import com.davidgrath.expensetracker.ui.main.TransactionsFragment
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModelFactory
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
 import dagger.Component
@@ -37,4 +40,7 @@ interface MainComponent {
     fun inject(accountsFragment: AccountsFragment)
     fun inject(statisticsViewModelFactory: StatisticsViewModelFactory)
     fun inject(statisticsFilterActivity: StatisticsFilterActivity)
+    fun inject(statisticsFragment: StatisticsFragment)
+    fun inject(weekDayDialogFragment: WeekDayDialogFragment)
+    fun inject(yearDayDialogFragment: YearDayDialogFragment)
 }

@@ -45,9 +45,9 @@ import org.threeten.bp.DayOfWeek
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
+import org.threeten.bp.Month
 import org.threeten.bp.MonthDay
 import org.threeten.bp.temporal.TemporalAdjusters
-import org.threeten.bp.temporal.WeekFields
 import java.io.File
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -79,10 +79,10 @@ constructor(
     //TODO For refreshing at midnight
 //    private val minuteTicker = Observable.interval(1, TimeUnit.MINUTES)
 
-    var statisticsConfig = StatisticsConfig(timeAndLocaleHandler.getLocale())
+    var statisticsConfig = StatisticsConfig(timeAndLocaleHandler.getLocale(), rangeStartDay = LocalDate.now(timeAndLocaleHandler.getClock()), rangeEndDay = LocalDate.now(timeAndLocaleHandler.getClock()))
         private set
     private var pastXLyMode: StatisticsConfig.DateMode? = null
-    private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>(statisticsConfig)
+    private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>()
     val statisticsConfigLiveData: LiveData<StatisticsConfig> = _statisticsConfigLiveData
     val accountsLiveData: LiveData<List<AccountWithStatsUi>>
     private val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
@@ -349,7 +349,7 @@ constructor(
                 }
                 val weeksToSubtract = -statisticsConfig.xLyOffset
                 val startDateWeek = LocalDate.now(timeAndLocaleHandler.getClock()).minusWeeks(weeksToSubtract.toLong())
-                val firstDayOfWeek = WeekFields.of(timeAndLocaleHandler.getLocale()).firstDayOfWeek
+                val firstDayOfWeek = statisticsConfig.weeklyFirstDay
                 val startDate = startDateWeek.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
 
                 val lastDayOfWeek = firstDayOfWeek.plus(6)
@@ -385,7 +385,22 @@ constructor(
                     }
                     endDate = possibleEndDate
                 } else {
-                    startDate = startDateMonth.withDayOfMonth(statisticsConfig.monthlyDayOfMonth)
+                    val month = startDateMonth.month
+                    val maxDayInMonth = month.maxLength()
+                    var day = statisticsConfig.monthlyDayOfMonth
+                    if(month == Month.FEBRUARY) {
+                        if(startDateMonth.isLeapYear) {
+                            LOGGER.info("isLeapYear, using 29")
+                            day = maxDayInMonth
+                        } else {
+                            LOGGER.info("isLeapYear false, using 28")
+                            day = 28
+                        }
+                    } else if(day > maxDayInMonth){
+                        LOGGER.info("monthlyDayOfMonth {} is greater than current month maximum {}, reducing", day, maxDayInMonth)
+                        day = maxDayInMonth
+                    }
+                    startDate = startDateMonth.withDayOfMonth(day)
                     var possibleEndDate = startDate.plusMonths(1).minusDays(1)
                     if(possibleEndDate > today) {
                         possibleEndDate = today
@@ -416,7 +431,13 @@ constructor(
                 statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
             }
             StatisticsConfig.DateMode.Range -> {
-                // No need to do anything, I guess
+                var startDate = statisticsConfig.rangeStartDay
+                var endDate = statisticsConfig.rangeEndDay
+                if(startDate != null && startDate == endDate) { //Previous mode was Daily or PastXDays with 1
+                    startDate = null
+                    endDate = null
+                }
+                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
             }
             StatisticsConfig.DateMode.All -> {
                 statisticsConfig = statisticsConfig.copy(rangeStartDay = null, rangeEndDay = null)
@@ -444,8 +465,15 @@ constructor(
     }
 
     fun setMonthlyDayOfMonth(dayOfMonth: Int) {
-        this.statisticsConfig = this.statisticsConfig.copy(monthlyDayOfMonth = dayOfMonth)
+        val day = if(dayOfMonth > 31) {
+            LOGGER.info("setMonthlyDayOfMonth: dayOfMonth cannot be greater than 31. Changing")
+            31
+        } else {
+            dayOfMonth
+        }
+        this.statisticsConfig = this.statisticsConfig.copy(monthlyDayOfMonth = day)
         setDateMode(this.statisticsConfig.dateMode)
+        LOGGER.info("setMonthlyDayOfMonth: changed")
     }
 
     fun setMonthDayOfYear(monthDay: MonthDay) {
@@ -458,12 +486,12 @@ constructor(
         setDateMode(this.statisticsConfig.dateMode)
     }
 
-    fun setWeekDays(weekdays: List<DayOfWeek>) {
+    fun setFilterWeekDays(weekdays: List<DayOfWeek>) {
         val filter = this.statisticsConfig.filter.copy(weekdays = weekdays)
         this.statisticsConfig = statisticsConfig.copy(filter = filter)
         _statisticsConfigLiveData.postValue(this.statisticsConfig)
         setDateMode(this.statisticsConfig.dateMode)
-        LOGGER.info("setWeekDays")
+        LOGGER.info("setFilterWeekDays")
     }
 
 
@@ -481,6 +509,31 @@ constructor(
             val json = gson.toJson(this.statisticsConfig.filter)
             file.writeText(json)
         }.subscribeOn(Schedulers.io())
+    }
+
+    fun incrementXLyOffset() {
+        val offset = statisticsConfig.xLyOffset
+        if(offset + 1 > 0) {
+            LOGGER.info("xLyOffset capped at 0")
+        } else {
+            this.statisticsConfig = this.statisticsConfig.copy(xLyOffset = offset + 1)
+            setDateMode(this.statisticsConfig.dateMode)
+        }
+
+    }
+
+    fun decrementXLyOffset() {
+        val offset = statisticsConfig.xLyOffset
+        val newOffset = offset - 1
+        this.statisticsConfig = this.statisticsConfig.copy(xLyOffset = newOffset)
+        setDateMode(this.statisticsConfig.dateMode)
+    }
+
+    fun setFirstWeekDay(weekday: DayOfWeek) {
+        this.statisticsConfig = statisticsConfig.copy(weeklyFirstDay = weekday)
+        _statisticsConfigLiveData.postValue(this.statisticsConfig)
+        setDateMode(this.statisticsConfig.dateMode)
+        LOGGER.info("setFirstWeekDay: changed")
     }
 
     private fun getFilteredWeekDays(config: StatisticsConfig): List<String> {
