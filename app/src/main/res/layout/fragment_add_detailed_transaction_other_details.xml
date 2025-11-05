@@ -10,11 +10,6 @@
         android:orientation="vertical"
         android:animateLayoutChanges="true">
 
-        <CheckBox
-            android:id="@+id/check_box_add_detailed_transaction_use_custom_date_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Custom Date/Time"/>
         <LinearLayout
             android:id="@+id/linear_layout_add_detailed_transaction_date_time"
             android:layout_width="match_parent"
@@ -60,13 +55,6 @@
                     android:src="@drawable/baseline_cancel_24"/>
             </LinearLayout>
         </LinearLayout>
-        <TextView
-            android:id="@+id/text_view_add_detailed_transaction_zone_difference_notice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:drawableStart="@drawable/baseline_info_24"
-            android:text="Transaction time zone not same as local time zone"/>
 
         <TextView
             android:layout_width="match_parent"

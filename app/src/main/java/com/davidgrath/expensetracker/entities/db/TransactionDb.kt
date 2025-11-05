@@ -1,11 +1,12 @@
 package com.davidgrath.expensetracker.entities.db;
 
 import androidx.room.Entity;
+import androidx.room.ForeignKey
 import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
-import com.davidgrath.expensetracker.offsetTimeToLocalTime
+import com.davidgrath.expensetracker.entities.TransactionMode
 
 import org.jilt.Builder;
 import org.jspecify.annotations.NullMarked;
@@ -15,9 +16,22 @@ import org.threeten.bp.LocalTime;
 
 import java.math.BigDecimal;
 
+/**
+ * The basis for everything else in the app
+ */
 @Builder
-@NullMarked
-@Entity(indices = [Index(value = ["datedAt","datedAtTime"])]) // TODO Think about ordinals later
+@Entity(
+    indices = [
+        Index(value = ["accountId", "datedAt", "ordinal"], unique = true),
+    Index(value = ["sellerId"]),
+    Index(value = ["sellerLocationId"]),
+              ], // TODO Think about ordinals later, also apparently I can't use function-based indexes. Rework other 'date' queries
+    foreignKeys = [
+        ForeignKey(AccountDb::class, parentColumns = ["id"], childColumns = ["accountId"]),
+        ForeignKey(SellerDb::class, parentColumns = ["id"], childColumns = ["sellerId"]),
+        ForeignKey(SellerLocationDb::class, parentColumns = ["id"], childColumns = ["sellerLocationId"])
+    ]
+)
 data class TransactionDb(
     @PrimaryKey(autoGenerate = true)
     var id: Long?,
@@ -26,42 +40,25 @@ data class TransactionDb(
     val currencyCode: String,
     val referenceNumber: String?,
     val debitOrCredit: Boolean,
-//    val isCashless: Boolean, //TODO Possibly revise to enum Mode {Cash,Transfer,POS,etc}
+    val mode: TransactionMode,
     /**
      * Maximum 500 NFC Normalized code points //TODO Actually implement the NFC part
      */
     val note: String?,
-    val sellerID: Long?,
+    val sellerId: Long?,
     val sellerLocationId: Long?,
     val createdAt: String,
     val createdAtOffset: String,
     val createdAtTimezone: String,
     /**
-     * To allow for reordering of transactions as well as imposing an ordering on timeless transactions
+     * To allow for reordering of transactions
      */
     val ordinal: Int,
     val datedAt: String,
-
-    /*val datedAtTime: String?, //TODO Think about ordinals later
-    val datedAtOffset: String?,
-    val datedAtTimezone: String?,*/
-    val datedAtTime: String,
-    val datedAtOffset: String,
-    val datedAtTimezone: String,
+    val datedAtTime: String?,
 ): Comparable<TransactionDb> {
-
 
     override fun compareTo(other: TransactionDb): Int {
         return this.id!!.compareTo(other.id!!)
-    }
-    @Ignore
-    fun getDatedLocalDateTime(timeAndLocaleHandler: TimeAndLocaleHandler): LocalDateTime? {
-        if(datedAtTime == null) {
-            return null
-        }
-        val utcDate = LocalDate.parse(datedAt)
-        val utcTime = LocalTime.parse(datedAtTime)
-        val utcDateTime = utcDate.atTime(utcTime)
-        return offsetTimeToLocalTime(timeAndLocaleHandler, utcDateTime.toString(), datedAtOffset)
     }
 }

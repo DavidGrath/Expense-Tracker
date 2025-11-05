@@ -11,6 +11,8 @@ import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.ProfileDb
+import com.davidgrath.expensetracker.entities.db.SellerDb
+import com.davidgrath.expensetracker.entities.db.SellerLocationDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemCategoriesDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
@@ -19,7 +21,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 @Database(version = 1,
     entities = [
         CategoryDb::class, ImageDb::class, ProfileDb::class, TransactionDb::class, TransactionItemDb::class, TransactionItemImagesDb::class,
-        EvidenceDb::class, AccountDb::class, TransactionItemCategoriesDb::class
+        EvidenceDb::class, AccountDb::class, TransactionItemCategoriesDb::class, SellerDb::class, SellerLocationDb::class
     ])
 @TypeConverters(Converters::class)
 abstract class InstrumentedTestExpenseTrackerDatabase: ExpenseTrackerDatabase() {

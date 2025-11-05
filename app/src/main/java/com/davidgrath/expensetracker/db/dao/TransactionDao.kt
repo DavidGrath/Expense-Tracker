@@ -29,78 +29,71 @@ interface TransactionDao {
     @Query("SELECT * FROM TransactionDb")
     fun getAllTemp(): Single<List<TransactionDb>>
 
-    @Query("SELECT * FROM TransactionDb WHERE date(datedAt) >= date(:fromDate)")
-    fun getAllFromUTC(fromDate: String): Observable<List<TransactionDb>>
-
-    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate)")
-    fun getAllFromTransactionOffset(fromDate: String): Observable<List<TransactionDb>>
-
-    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset))")
-    fun getAllFromSpecifiedOffset(fromDate: String, offset: String): Observable<List<TransactionDb>>
-
-    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset))")
-    fun getAllFromSpecifiedOffsetSingle(fromDate: String, offset: String): Single<List<TransactionDb>>
-    @Query("SELECT * FROM TransactionDb WHERE " +
-            "date(datetime(datedAt || \"T\" || datedAtTime, :offset)) >= date(datetime(:fromDate || \"T00:00:00\" || :offset)) " +
-            "AND " +
-            "date(datetime(datedAt || \"T\" || datedAtTime, :offset)) <= date(datetime(:toDate || \"T00:00:00\" || :offset)) ")
-    fun getAllFromToSpecifiedOffsetSingle(fromDate: String, toDate: String, offset: String): Single<List<TransactionDb>>
-
-    @Query("SELECT * FROM TransactionDb WHERE date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate)")
-    fun getAllFromTransactionOffsetSingle(fromDate: String): Single<List<TransactionDb>>
-
-    @Query("SELECT * FROM TransactionDb WHERE " +
-            "date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) >= date(:fromDate) " +
-            "AND " +
-            "date(datetime(datedAt || \"T\" || datedAtTime, datedAtOffset)) <= date(:toDate) ")
-    fun getAllFromToTransactionOffsetSingle(fromDate: String, toDate: String): Single<List<TransactionDb>>
-
     @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb t " +
-            "WHERE (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:fromDate IS NULL OR aggregateDate >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR aggregateDate <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
             "AND debitOrCredit = :debitOrCredit " +
             "GROUP BY aggregateDate ORDER BY aggregateDate")
-    fun getTransactionSumByDate(debitOrCredit: Boolean, fromDate: String? = null, toDate: String? = null,
-                                emptyAccounts: Boolean, accountIds: List<Long>,
-                                datesEmpty: Boolean, dates: List<String>,
-                                categoriesEmpty: Boolean, categories: List<Long>
-                                ): Observable<List<DateAmountSummary>>
+    fun getTransactionSumByDate(
+        profileId: Long, debitOrCredit: Boolean,
+        fromDate: String? = null, toDate: String? = null,
+        emptyAccounts: Boolean, accountIds: List<Long>,
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
+    ): Observable<List<DateAmountSummary>>
 
     @Query("SELECT sum(t.amount) FROM TransactionDb t " +
-//            "INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
-            "WHERE (:fromDate IS NULL OR date(t.datedAt) >= date(:fromDate)) " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:fromDate IS NULL OR date(t.datedAt) >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR date(t.datedAt) <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
             "AND debitOrCredit")
-    fun getTransactionDebitSum(fromDate: String? = null, toDate: String? = null,
-                               emptyAccounts: Boolean, accountIds: List<Long>,
-                               datesEmpty: Boolean, dates: List<String>,
-                               categoriesEmpty: Boolean, categories: List<Long>
-                               ): Observable<BigDecimal>
+    fun getTransactionDebitSum(
+        profileId: Long,
+        fromDate: String? = null, toDate: String? = null,
+        emptyAccounts: Boolean, accountIds: List<Long>,
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
+    ): Observable<BigDecimal>
 
     @Query("SELECT sum(t.amount) FROM TransactionDb t " +
-//            "INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
-            "WHERE (:fromDate IS NULL OR date(t.datedAt) >= date(:fromDate)) " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:fromDate IS NULL OR date(t.datedAt) >= date(:fromDate)) " +
             "AND (:toDate IS NULL OR date(t.datedAt) <= date(:toDate)) " +
-            "AND (:emptyAccounts OR t.accountId in (:accountIds))" + //TODO Profile Ids
+            "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates))" +
-//            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
             "AND not(debitOrCredit)")
-    fun getTransactionCreditSum(fromDate: String? = null, toDate: String? = null, emptyAccounts: Boolean, accountIds: List<Long>,
-                                datesEmpty: Boolean, dates: List<String>,
-                                categoriesEmpty: Boolean, categories: List<Long>
-                                ): Observable<BigDecimal>
+    fun getTransactionCreditSum(
+        profileId: Long,
+        fromDate: String? = null, toDate: String? = null,
+        emptyAccounts: Boolean, accountIds: List<Long>,
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
+    ): Observable<BigDecimal>
 
-    @Query("SELECT min(date(datedAt)) FROM TransactionDb " +
-            "WHERE (:emptyAccounts OR accountId in (:accountIds))" //TODO Profile Ids
+    @Query("SELECT min(date(datedAt)) FROM TransactionDb t " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:emptyAccounts OR accountId in (:accountIds))"
     )
-    fun getEarliestTransactionDate(emptyAccounts: Boolean, accountIds: List<Long>): Maybe<LocalDate>
+    fun getEarliestTransactionDate(
+        profileId: Long,
+        emptyAccounts: Boolean, accountIds: List<Long>): Maybe<LocalDate>
+
+    @Query("SELECT max(ordinal) FROM TransactionDb " +
+            "WHERE accountId = :accountId " +
+            "AND date(datedAt) = date(:date)")
+    fun getMaxOrdinalInDayForAccount(accountId: Long, date: String): Maybe<Int>
 
     //endregion
 
@@ -110,7 +103,6 @@ interface TransactionDao {
     //endregion
 
     //region Delete
-    @Query("DELETE FROM TransactionDb WHERE 1")
-    fun deleteAll(): Single<Int> //TODO Replace with clearAllTables
+
     //endregion
 }

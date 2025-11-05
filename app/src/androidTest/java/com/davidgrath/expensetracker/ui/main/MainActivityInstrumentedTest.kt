@@ -16,11 +16,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -40,6 +43,8 @@ class MainActivityInstrumentedTest {
     lateinit var transactionDao: TransactionDao
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var database: ExpenseTrackerDatabase
 
     @Before
     fun setUp() {
@@ -48,8 +53,7 @@ class MainActivityInstrumentedTest {
 
     @After
     fun tearDown() {
-        transactionItemDao.deleteAll().blockingSubscribe()
-        transactionDao.deleteAll().blockingSubscribe()
+        Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
         addDetailedTransactionRepository.deleteDraft()
     }
 

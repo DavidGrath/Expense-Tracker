@@ -23,8 +23,6 @@ interface TransactionItemImagesDao {
     //endregion
 
     //region Delete
-    @Query("DELETE FROM TransactionItemImagesDb WHERE 1")
-    fun deleteAll(): Single<Int>
 
     @Query("DELETE FROM TransactionItemImagesDb " +
             "WHERE transactionItemID = :transactionItemId " +

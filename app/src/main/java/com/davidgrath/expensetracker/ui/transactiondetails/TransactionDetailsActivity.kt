@@ -96,15 +96,9 @@ class TransactionDetailsActivity: AppCompatActivity() {
             binding.textViewTransactionDetailsTotal.text = transaction.currencyCode + " " + transaction.amount
             binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
-            val zone = transaction.datedZone
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
             binding.textViewTransactionDetailsTime.text = timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS)) //TODO ordinals, ignore, we must, for now
-            if(zone != timeAndLocaleHandler.getZone()) {
-                LOGGER.info("Transaction {} has different time zone from the system", transactionId)
-                binding.textViewTransactionDetailsZoneDifferenceNotice.visibility = View.VISIBLE
-            } else {
-                binding.textViewTransactionDetailsZoneDifferenceNotice.visibility = View.GONE
-            }
+
             if(transaction.debitOrCredit) {
                 binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
             } else {

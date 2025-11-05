@@ -49,7 +49,7 @@ import org.threeten.bp.format.FormatStyle
 import java.io.File
 import javax.inject.Inject
 
-class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, OnCheckedChangeListener,
+class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
     MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
 
     private lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
@@ -81,7 +81,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         binding.imageViewAddDetailedTransactionCustomDateRemove.setOnClickListener(this)
         binding.imageViewAddDetailedTransactionCustomTimeRemove.setOnClickListener(this)
 
-        binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
         val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap(), this)
         binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
         binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
@@ -89,32 +88,14 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
             items = draft.evidence
             adapter.setItems(items, renderers)
-            binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(null)
-            binding.checkBoxAddDetailedTransactionUseCustomDateTime.isChecked = draft.useCustomDateTime
-            if(mode == "edit") {
-                binding.checkBoxAddDetailedTransactionUseCustomDateTime.visibility = View.GONE
-                binding.linearLayoutAddDetailedTransactionDateTime.visibility = View.VISIBLE
-            } else {
-                binding.checkBoxAddDetailedTransactionUseCustomDateTime.visibility = View.VISIBLE
-                binding.linearLayoutAddDetailedTransactionDateTime.visibility = if(draft.useCustomDateTime) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
-            }
-            binding.checkBoxAddDetailedTransactionUseCustomDateTime.setOnCheckedChangeListener(this)
+
+
             customLocalTime = draft.customTime
             customLocalDate = draft.customDate
 
             if(draft.customDate == null) {
                 if(mode == "edit") {
                     binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.dbOriginalDate!!)
-                    val zone = draft.dbOriginalZoneId
-                    if(zone != timeAndLocaleHandler.getZone()) {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    } else {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    }
                 } else {
                     binding.textViewAddDetailedTransactionCustomDate.text = ""
                 }
@@ -122,24 +103,10 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
             } else {
                 binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.customDate)
                 binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.VISIBLE
-                if(mode == "edit") {
-                    val zone = draft.dbOriginalZoneId
-                    if(zone != timeAndLocaleHandler.getZone()) {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    } else {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    }
-                }
             }
             if(draft.customTime == null) {
                 if(mode == "edit") {
                     binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.dbOriginalTime!!)
-                    val zone = draft.dbOriginalZoneId
-                    if(zone != timeAndLocaleHandler.getZone()) {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    } else {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    }
                 } else {
                     binding.textViewAddDetailedTransactionCustomTime.text = ""
                 }
@@ -147,14 +114,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
             } else {
                 binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.customTime)
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.VISIBLE
-                if(mode == "edit") {
-                    val zone = draft.dbOriginalZoneId
-                    if(zone != timeAndLocaleHandler.getZone()) {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    } else {
-                        binding.textViewAddDetailedTransactionZoneDifferenceNotice.visibility = View.VISIBLE
-                    }
-                }
             }
         }
         val accountAdapter = AccountAdapter(requireContext(), mutableListOf<AccountUi>())
@@ -357,14 +316,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener, O
                 intent.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "application/pdf"))
                 requireActivity().startActivityForResult(intent, AddDetailedTransactionActivity.REQUEST_CODE_OPEN_DOCUMENT)
                 LOGGER.info("startedActivityForResult called to get evidence")
-            }
-        }
-    }
-
-    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
-        when(buttonView) {
-            binding.checkBoxAddDetailedTransactionUseCustomDateTime -> {
-                viewModel.setUseCustomDateTime(isChecked)
             }
         }
     }

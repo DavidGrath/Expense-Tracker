@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
+import android.widget.CompoundButton
+import android.widget.CompoundButton.OnCheckedChangeListener
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -130,6 +132,15 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     listener?.onItemChangedInvalidate(absPosition, latestItem)
                 }
 
+                binding.checkBoxAddDetailedTransactionIsReduction.setOnCheckedChangeListener(null)
+                binding.checkBoxAddDetailedTransactionIsReduction.isChecked = cachedItem.isReduction
+                binding.checkBoxAddDetailedTransactionIsReduction.text = "Is Discount/Deduction" //TODO Pass debitOrCredit into this adapter
+                binding.checkBoxAddDetailedTransactionIsReduction.setOnCheckedChangeListener { buttonView, isChecked ->
+                    currentItem = absPosition
+                    var latestItem = _items[absPosition]
+                    latestItem = latestItem.copy(isReduction = isChecked)
+                    listener?.onItemChangedInvalidate(absPosition, latestItem)
+                }
 
                 val oldBrandWatcher = textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()]
                 if(oldBrandWatcher != null) {

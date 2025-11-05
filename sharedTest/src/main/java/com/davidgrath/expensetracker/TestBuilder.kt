@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker
 
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionDbBuilder
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
@@ -14,16 +15,15 @@ class TestBuilder {
                 .accountId(accountId).currencyCode("USD")
                 .debitOrCredit(true)
                 .note(null)
-                .sellerID(null)
+                .sellerId(null)
                 .sellerLocationId(null)
                 .createdAt("2025-06-30T08:00:00")
                 .createdAtOffset("Z")
                 .createdAtTimezone("UTC")
                 .ordinal(0)
+                .mode(TransactionMode.Other)
                 .datedAt("2025-06-30")
                 .datedAtTime("08:00:00")
-                .datedAtOffset("Z")
-                .datedAtTimezone("UTC")
             return builder
         }
 

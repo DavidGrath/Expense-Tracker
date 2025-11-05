@@ -1,14 +1,21 @@
 package com.davidgrath.expensetracker.entities.db
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity
+@Entity(
+    indices = [Index(value = ["profileId"])],
+    foreignKeys = [
+        ForeignKey(ProfileDb::class, parentColumns = ["id"], childColumns = ["profileId"])
+    ]
+)
 data class CategoryDb(
     @PrimaryKey(autoGenerate = true)
     val id: Long?,
-    val profileID: Long?,
-    val stringID: String?,
+    val profileId: Long,
+    val stringId: String?,
     val isCustom: Boolean,
     val name: String?,
     val createdAt: String,

@@ -31,12 +31,6 @@
             android:layout_height="wrap_content"
             android:text="Time Long"/>
         <TextView
-            android:id="@+id/text_view_transaction_details_zone_difference_notice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Transaction time zone not same as local time zone"
-            android:visibility="gone"/>
-        <TextView
             android:id="@+id/text_view_transaction_details_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

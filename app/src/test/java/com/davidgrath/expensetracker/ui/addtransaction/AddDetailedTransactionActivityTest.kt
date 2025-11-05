@@ -139,7 +139,8 @@ class AddDetailedTransactionActivityTest {
     @Test
     fun givenIntentHasArgsWhenStartActivityThenDetailsArePopulated() {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
-        val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val basicAmount = "300.00"
         val basicDescription = "Description"
         val categoryId = category.id!!
@@ -181,7 +182,8 @@ class AddDetailedTransactionActivityTest {
         fileHandler.saveDraft(draft).subscribe()
         //Start on MainActivity
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
-        val dumbbellCategory = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val dumbbellCategory = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val basicAmount = "300.00"
         val basicDescription = "Dumbbells"
         val categoryId = dumbbellCategory.id!!
@@ -545,7 +547,8 @@ class AddDetailedTransactionActivityTest {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
-        val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
         transactionItemRepository.addTransactionItem(transactionItem).blockingGet()
 
@@ -578,7 +581,8 @@ class AddDetailedTransactionActivityTest {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val transaction = TestBuilder.defaultTransaction(accountId, BigDecimal.TEN)
         val id = transactionRepository.addTransaction(transaction).blockingGet()
-        val category = categoryRepository.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val transactionItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal.TEN, category.id!!).description("Dumbbells").build()
         transactionItemRepository.addTransactionItem(transactionItem).blockingGet()
 
@@ -638,7 +642,8 @@ class AddDetailedTransactionActivityTest {
 
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()
         for(resource in evidence) {
@@ -665,7 +670,8 @@ class AddDetailedTransactionActivityTest {
         val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
         copyResourceToFile(classLoader, resource.resourceName, mainImage)
         val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
-        val image = ImageDb(null, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val image = ImageDb(null, profile.id!!, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
         return imageDao.insertImage(image).subscribeOn(Schedulers.io())
     }
 }

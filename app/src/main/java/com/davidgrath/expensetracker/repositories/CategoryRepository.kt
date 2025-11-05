@@ -27,8 +27,8 @@ class CategoryRepository
             }
     }
 
-    fun findByStringId(stringId: String): Maybe<CategoryDb> {
-        return categoryDao.findByStringId(stringId)
+    fun findByProfileIdAndStringId(profileId: Long, stringId: String): Maybe<CategoryDb> {
+        return categoryDao.findByProfileIdAndStringId(profileId, stringId)
     }
 
     fun getById(id: Long): Single<CategoryDb> {

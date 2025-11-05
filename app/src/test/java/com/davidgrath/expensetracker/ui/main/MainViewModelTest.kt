@@ -8,6 +8,7 @@ import androidx.test.espresso.idling.CountingIdlingResource
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TestExpenseTracker
@@ -17,6 +18,7 @@ import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.After
 import org.junit.Assert.*
@@ -51,6 +53,8 @@ class MainViewModelTest {
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     @Inject
     lateinit var categoryDao: CategoryDao
+    @Inject
+    lateinit var profileRepository: ProfileRepository
     lateinit var app: TestExpenseTracker
 
     @Before
@@ -468,11 +472,11 @@ class MainViewModelTest {
 
     @Test
     fun categoriesFilterTest() {
-
-        val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
-        val misc = categoryDao.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
-        val util = categoryDao.findByStringId("utilities").subscribeOn(Schedulers.io()).blockingGet()!!
-        val entertainment = categoryDao.findByStringId("entertainment").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val food = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val misc = categoryDao.findByProfileIdAndStringId(profile.id!!, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
+        val util = categoryDao.findByProfileIdAndStringId(profile.id!!, "utilities").subscribeOn(Schedulers.io()).blockingGet()!!
+        val entertainment = categoryDao.findByProfileIdAndStringId(profile.id!!, "entertainment").subscribeOn(Schedulers.io()).blockingGet()!!
 
         val totalTransactionCount = 4
         val miscCount = 2

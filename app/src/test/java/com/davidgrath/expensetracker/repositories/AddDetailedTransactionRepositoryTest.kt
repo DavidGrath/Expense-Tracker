@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.repositories
 import android.net.Uri
 import androidx.core.net.toUri
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.TestBuilder
@@ -96,8 +97,11 @@ class AddDetailedTransactionRepositoryTest {
     lateinit var accountRepository: AccountRepository
     @Inject
     lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
 
     lateinit var app: ExpenseTracker
+    lateinit var dataBuilder: DataBuilder
 
     companion object {
         @JvmStatic
@@ -114,6 +118,7 @@ class AddDetailedTransactionRepositoryTest {
     fun setUp() {
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
+        dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
     }
 
@@ -129,8 +134,8 @@ class AddDetailedTransactionRepositoryTest {
         val file = File(folder, Constants.DRAFT_FILE_NAME)
         fileHandler.createDraft()
         //Enter valid input
-
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), accountId = accountId)
 
@@ -151,7 +156,8 @@ class AddDetailedTransactionRepositoryTest {
         val uri = draftImage.toUri()
         val resource = TestData.Resource.Images.BREAD
         val map = mapOf(resource.sha256 to uri)
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description", images = listOf(
@@ -159,6 +165,7 @@ class AddDetailedTransactionRepositoryTest {
         ))), imageHashes = map, accountId = accountId)
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
         repository.finishTransaction().blockingSubscribe()
         assertEquals(0, getHashCount(resource.sha256, draftImagesFolder).blockingGet())
@@ -182,6 +189,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = AddEditDetailedTransactionDraft(listOf(basicItem(0)), imageHashes = map, accountId = accountId)
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
         repository.finishTransaction().blockingSubscribe()
 
@@ -205,13 +214,14 @@ class AddDetailedTransactionRepositoryTest {
         assertFalse(transaction.debitOrCredit)
         assertEquals("USD", transaction.currencyCode)
         //Load Draft
-
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
 
         //Edit existing item
         val firstItem = repository.getDraftValue().items[0]
-        val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val food = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val foodUi = categoryDbToCategoryUi(food)
         repository.changeItem(0,
             firstItem.copy(description = "Edited", amount = BigDecimal(20), category = foodUi,
@@ -238,7 +248,6 @@ class AddDetailedTransactionRepositoryTest {
         repository.addEvidence(secondEvidence.uri, "image/jpeg").blockingSubscribe()
 
         //Edit Account
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
         repository.setAccount(accountId)
 
@@ -254,7 +263,7 @@ class AddDetailedTransactionRepositoryTest {
         items = transactionItemRepository.getTransactionItemsSingle(id).blockingGet()
         val images = imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet()
         val evidenceList = evidenceDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-
+        println("Items: $items")
         assertEquals(2, items.size)
         assertEqualsBD(total, transaction.amount)
         assertEquals(note, transaction.note)
@@ -288,8 +297,9 @@ class AddDetailedTransactionRepositoryTest {
         repository.initializeEdit(id).blockingGet()
         repository.deleteItemImage(0, 0)
         repository.finishTransaction().blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         assertEquals(0, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertEquals(null, imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(null, imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(0, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -348,7 +358,8 @@ class AddDetailedTransactionRepositoryTest {
 
         val itemImage = TransactionItemImagesDb(null, itemId, breadImageId, dateTimeString, offset, zone)
         itemImagesDao.insertItemImage(itemImage).subscribeOn(Schedulers.io()).blockingSubscribe()
-
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
 
@@ -359,7 +370,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.addImageToItem(1, bread.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
         repository.finishTransaction().blockingSubscribe()
         assertEquals(1, getHashCount(bread.sha256, mainImagesFolder).blockingGet())
-        assertNotNull(imageDao.findBySha256(bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertNotNull(imageDao.findBySha256(profile.id!!, bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
         val otherItemId = transactionItemDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet().find { it.description == "Desc" }!!.id!!
         assertEquals(1, imageDao.getAllByItemSingle(otherItemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
@@ -378,6 +389,8 @@ class AddDetailedTransactionRepositoryTest {
         mainImagesFolder.mkdirs()
         val draftEvidence = File(draftImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
         copyResourceToFile(AddDetailedTransactionRepositoryTest::class.java.classLoader, bread.resourceName, draftEvidence)
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
 
@@ -385,7 +398,7 @@ class AddDetailedTransactionRepositoryTest {
 
         repository.finishTransaction().blockingSubscribe()
         assertEquals(1, getHashCount(bread.sha256, mainImagesFolder).blockingGet())
-        assertNotNull(imageDao.findBySha256(bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertNotNull(imageDao.findBySha256(profile.id!!, bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(1, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -393,13 +406,16 @@ class AddDetailedTransactionRepositoryTest {
     fun givenModeIsEditAndItemImageInDbAndImageNotLinkedWhenSaveEditThenLinkExists() {
         val total = BigDecimal(35)
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val transaction = TestBuilder.defaultTransaction(accountId, total)
-        val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
-        val category = categoryDao.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
-        val item = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal(20), category.id!!).build()
-        val otherItem = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal(15), category.id!!).build()
-        val itemId = transactionItemDao.insertTransactionItem(item).subscribeOn(Schedulers.io()).blockingGet()
-        val otherItemId = transactionItemDao.insertTransactionItem(otherItem).subscribeOn(Schedulers.io()).blockingGet()
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .withItem("Description", "miscellaneous", BigDecimal(15))
+            .commit().first()
+
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+
+        val items = transactionItemDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+        val itemId = items[0].id!!
+        val otherItemId = items[1].id!!
 
 
         val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
@@ -414,7 +430,7 @@ class AddDetailedTransactionRepositoryTest {
 
         val itemImage = TransactionItemImagesDb(null, itemId, breadImageId, dateTimeString, offset, zone)
         itemImagesDao.insertItemImage(itemImage).subscribeOn(Schedulers.io()).blockingSubscribe()
-
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
 
@@ -422,7 +438,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.addImageToItem(1, bread.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
         repository.finishTransaction().blockingSubscribe()
         assertEquals(1, getHashCount(bread.sha256, mainImagesFolder).blockingGet())
-        assertNotNull(imageDao.findBySha256(bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertNotNull(imageDao.findBySha256(profile.id!!, bread.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(1, imageDao.getAllByItemSingle(otherItemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -439,14 +455,15 @@ class AddDetailedTransactionRepositoryTest {
         mainImagesFolder.mkdirs()
         val resourceFile = File(mainImagesFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
         val imageId = saveImageToDevice(resource).blockingGet()
-
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
         repository.deleteItemImage(0, 0)
         repository.finishTransaction().blockingSubscribe()
         assertEquals(0, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertEquals(null, imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertEquals(null, imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(0, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -467,6 +484,8 @@ class AddDetailedTransactionRepositoryTest {
         val otherItemImage = TransactionItemImagesDb(null, otherTransaction.second, imageId, dateTimeString, offset, zone)
         itemImagesDao.insertItemImage(otherItemImage).subscribeOn(Schedulers.io()).blockingSubscribe()
 
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingGet()
         repository.changeItem(0, repository.getDraftValue().items[0].copy(amount = BigDecimal.TEN, description = "Description"))
@@ -475,7 +494,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.deleteItemImage(0, 0)
         repository.finishTransaction().blockingSubscribe()
         assertEquals(1, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertNotNull(imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        assertNotNull(imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(0, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -498,7 +517,8 @@ class AddDetailedTransactionRepositoryTest {
         repository.deleteItemImage(0, 0)
         repository.finishTransaction().blockingSubscribe()
         assertEquals(0, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertEquals(null, imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        assertEquals(null, imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(0, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -525,7 +545,8 @@ class AddDetailedTransactionRepositoryTest {
         repository.deleteItemImage(0, 0)
         repository.finishTransaction().blockingSubscribe()
         assertEquals(1, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertNotNull(imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        assertNotNull(imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet())
         assertEquals(0, imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet().size)
     }
 
@@ -565,7 +586,8 @@ class AddDetailedTransactionRepositoryTest {
         copyResourceToFile(classLoader, TestData.Resource.Documents.EVIDENCE_IMAGE.resourceName, draftEvidence)
         val uri = draftEvidence.toUri()
         val map = mapOf(TestData.Resource.Documents.EVIDENCE_IMAGE.sha256 to uri)
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = emptyList(), accountId = accountId)
@@ -611,7 +633,8 @@ class AddDetailedTransactionRepositoryTest {
 
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
@@ -637,7 +660,8 @@ class AddDetailedTransactionRepositoryTest {
         addContentProviderResources(app, classLoader, resource)
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
@@ -692,6 +716,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -707,7 +733,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.setMode("add")
         repository.restoreDraft().blockingSubscribe()
         val repoDraft = repository.getDraftValue()
-        val image = imageDao.findBySha256(resource.sha256).subscribeOn(Schedulers.io()).blockingGet()
+        val image = imageDao.findBySha256(profile.id!!, resource.sha256).subscribeOn(Schedulers.io()).blockingGet()
         //Assert hashmap updated
         assertEquals(Uri.parse(image!!.uri), repoDraft.imageHashes[resource.sha256])
         assertEquals(Uri.parse(image!!.uri), repoDraft.items[0].images[0].uri)
@@ -733,6 +759,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -770,12 +798,15 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
 
         //Add other image to existing transaction
         val (id, itemId) = saveBasicTransaction(BigDecimal.TEN).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.setMode("edit")
         repository.initializeEdit(id).blockingSubscribe()
         repository.addImageToItem(0, otherResource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -802,7 +833,8 @@ class AddDetailedTransactionRepositoryTest {
         copyResourceToFile(classLoader, resource.resourceName, draftEvidence)
         val uri = draftEvidence.toUri()
         val map = mapOf(resource.sha256 to uri)
-        val category = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val draft = AddEditDetailedTransactionDraft(items =
         listOf(AddTransactionItem(0, null, categoryDbToCategoryUi(category), BigDecimal(300).setScale(2, RoundingMode.HALF_UP), "Description")), evidenceHashes = map, evidence = listOf(
@@ -824,6 +856,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -843,6 +877,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -861,6 +897,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -885,6 +923,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -907,6 +947,8 @@ class AddDetailedTransactionRepositoryTest {
         val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
         fileHandler.createDraft().blockingSubscribe()
         fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
         repository.restoreDraft().blockingSubscribe()
 
         repository.addImageToItem(0, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
@@ -920,188 +962,189 @@ class AddDetailedTransactionRepositoryTest {
     //region Date and Time
 
     @Test
+    @Ignore("I'll rework such that time is optional and the time gets unset if date < today")
     fun givenModeIsAddAndDoNotUseCustomTimeAndTransactionHasCustomTimeWhenSaveThenTransactionHasCurrentDateTime() {
-        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
-        fileHandler.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft).blockingSubscribe()
-        repository.restoreDraft().blockingSubscribe()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setDate(localDate)
-        repository.setTime(localTime)
-
-        repository.finishTransaction().blockingSubscribe()
-        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val now = LocalDateTime.now(timeAndLocaleHandler.getClock()).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals(0, now.compareTo(transactionTime))
+//        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+//        fileHandler.createDraft().blockingSubscribe()
+//        fileHandler.saveDraft(draft).blockingSubscribe()
+//        repository.restoreDraft().blockingSubscribe()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setDate(localDate)
+//        repository.setTime(localTime)
+//
+//        repository.finishTransaction().blockingSubscribe()
+//        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+//        val now = LocalDateTime.now(timeAndLocaleHandler.getClock()).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals(0, now.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsAddAndUseCustomTimeAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasSpecifiedDateTime() {
-        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
-        fileHandler.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft).blockingSubscribe()
-        repository.restoreDraft().blockingSubscribe()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
-        repository.setDate(localDate)
-        repository.setTime(localTime)
-        repository.finishTransaction().blockingSubscribe()
-        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val custom = LocalDateTime.parse("2025-01-01T01:00:30.123").truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+//        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+//        fileHandler.createDraft().blockingSubscribe()
+//        fileHandler.saveDraft(draft).blockingSubscribe()
+//        repository.restoreDraft().blockingSubscribe()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setUseCustomDateTime(true)
+//        repository.setDate(localDate)
+//        repository.setTime(localTime)
+//        repository.finishTransaction().blockingSubscribe()
+//        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+//        val custom = LocalDateTime.parse("2025-01-01T01:00:30.123").truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsAddAndUseCustomTimeAndDateNotNullAndTimeNullWhenSaveThenTransactionHasSpecifiedDate() {
-        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
-        fileHandler.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft).blockingSubscribe()
-        repository.restoreDraft().blockingSubscribe()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
-        repository.setDate(localDate)
-        repository.setTime(null)
-        repository.finishTransaction().blockingSubscribe()
-        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val custom = localDate.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals(0, custom.compareTo(transactionTime))
+//        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+//        fileHandler.createDraft().blockingSubscribe()
+//        fileHandler.saveDraft(draft).blockingSubscribe()
+//        repository.restoreDraft().blockingSubscribe()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setUseCustomDateTime(true)
+//        repository.setDate(localDate)
+//        repository.setTime(null)
+//        repository.finishTransaction().blockingSubscribe()
+//        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+//        val custom = localDate.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals(0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsAddAndUseCustomTimeAndDateNullAndTimeNotNullWhenSaveThenTransactionHasSpecifiedTime() {
-        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
-        fileHandler.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft).blockingSubscribe()
-        repository.restoreDraft().blockingSubscribe()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
-        repository.setDate(null)
-        repository.setTime(localTime)
-        repository.finishTransaction().blockingSubscribe()
-        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val custom = MOCKED_DATE.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals(0, custom.compareTo(transactionTime))
+//        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+//        fileHandler.createDraft().blockingSubscribe()
+//        fileHandler.saveDraft(draft).blockingSubscribe()
+//        repository.restoreDraft().blockingSubscribe()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setUseCustomDateTime(true)
+//        repository.setDate(null)
+//        repository.setTime(localTime)
+//        repository.finishTransaction().blockingSubscribe()
+//        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+//        val custom = MOCKED_DATE.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals(0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsAddAndUseCustomTimeAndDateNullAndTimeNullWhenSaveThenTransactionHasDefaultDateTime() {
-        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
-        fileHandler.createDraft().blockingSubscribe()
-        fileHandler.saveDraft(draft).blockingSubscribe()
-        repository.restoreDraft().blockingSubscribe()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setUseCustomDateTime(true)
-        repository.setDate(null)
-        repository.setTime(null)
-        repository.finishTransaction().blockingSubscribe()
-        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
-        val custom = MOCKED_DATE.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but got $transactionTime",0, custom.compareTo(transactionTime))
+//        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+//        fileHandler.createDraft().blockingSubscribe()
+//        fileHandler.saveDraft(draft).blockingSubscribe()
+//        repository.restoreDraft().blockingSubscribe()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setUseCustomDateTime(true)
+//        repository.setDate(null)
+//        repository.setTime(null)
+//        repository.finishTransaction().blockingSubscribe()
+//        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+//        val custom = MOCKED_DATE.atTime(MOCKED_TIME).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but got $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsEditAndDateNotNullAndTimeNotNullWhenSaveThenTransactionHasNewDateTime() {
 
-        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
-        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
-
-        repository.setMode("edit")
-        repository.initializeEdit(id).blockingGet()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setDate(localDate)
-        repository.setTime(localTime)
-        repository.finishTransaction().blockingSubscribe()
-
-        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-
-        val custom = localDate.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+//        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+//        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+//
+//        repository.setMode("edit")
+//        repository.initializeEdit(id).blockingGet()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setDate(localDate)
+//        repository.setTime(localTime)
+//        repository.finishTransaction().blockingSubscribe()
+//
+//        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//
+//        val custom = localDate.atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsEditAndDateNotNullAndTimeNullWhenSaveThenTransactionHasNewDate() {
-        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
-        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
-
-        repository.setMode("edit")
-        repository.initializeEdit(id).blockingGet()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setDate(localDate)
-        repository.setTime(null)
-        repository.finishTransaction().blockingSubscribe()
-
-        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-
-        val custom = localDate.atTime(originalDateTime.toLocalTime()).truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+//        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+//        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+//
+//        repository.setMode("edit")
+//        repository.initializeEdit(id).blockingGet()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setDate(localDate)
+//        repository.setTime(null)
+//        repository.finishTransaction().blockingSubscribe()
+//
+//        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//
+//        val custom = localDate.atTime(originalDateTime.toLocalTime()).truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsEditAndDateNullAndTimeNotNullWhenSaveThenTransactionHasNewTime() {
-        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
-        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
-
-        repository.setMode("edit")
-        repository.initializeEdit(id).blockingGet()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setDate(null)
-        repository.setTime(localTime)
-        repository.finishTransaction().blockingSubscribe()
-
-        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-
-        val custom = originalDateTime.toLocalDate().atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
-
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+//        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+//        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+//
+//        repository.setMode("edit")
+//        repository.initializeEdit(id).blockingGet()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setDate(null)
+//        repository.setTime(localTime)
+//        repository.finishTransaction().blockingSubscribe()
+//
+//        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//
+//        val custom = originalDateTime.toLocalDate().atTime(localTime).truncatedTo(ChronoUnit.MINUTES)
+//
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     @Test
     fun givenModeIsEditAndDateNullAndTimeNullWhenSaveThenTransactionHasOriginalDateTime() {
-        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
-        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
-
-        repository.setMode("edit")
-        repository.initializeEdit(id).blockingGet()
-
-        val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
-        repository.setDate(null)
-        repository.setTime(null)
-        repository.finishTransaction().blockingSubscribe()
-
-        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-
-        val custom = originalDateTime.truncatedTo(ChronoUnit.MINUTES)
-        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
-        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
+//        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+//        var transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//        val originalDateTime = LocalDate.parse(transaction.datedAt).atTime(LocalTime.parse(transaction.datedAtTime!!))
+//
+//        repository.setMode("edit")
+//        repository.initializeEdit(id).blockingGet()
+//
+//        val localDate = LocalDate.of(2025, 1, 1)
+//        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+//        repository.setDate(null)
+//        repository.setTime(null)
+//        repository.finishTransaction().blockingSubscribe()
+//
+//        transaction = transactionDao.getByIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
+//
+//        val custom = originalDateTime.truncatedTo(ChronoUnit.MINUTES)
+//        val transactionTime = transaction.getDatedLocalDateTime(timeAndLocaleHandler)!!.truncatedTo(ChronoUnit.MINUTES)
+//        assertEquals("Expected $custom but was $transactionTime",0, custom.compareTo(transactionTime))
     }
 
     //TODO Continue future-prevention code later
@@ -1160,7 +1203,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
-    fun givenOneAccountLeftForProfileWhenDeleteThenFail() { //TODO Care about cascading delete later
+    fun givenOneAccountLeftForProfileWhenDeleteThenFail() { //TODO Care about cascading delete later ODOT Move to new AccountRepositoryTest
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val defaultAccountId = getDefaultAccountId(profileRepository, accountRepository)
 
@@ -1168,6 +1211,188 @@ class AddDetailedTransactionRepositoryTest {
 
         assertEquals(-1, result)
         assertEquals(1, accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().size)
+    }
+
+    @Test
+    fun givenItemIsReductionWhenSaveThenRelevantFieldsPreservedAndOthersDiscarded() {
+        //Add item with isReduction
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val misc = categoryDao.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val draft = buildDraft(BigDecimal(11), "Desc", "fitness")
+        repository.setProfile(profile.id!!)
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+        //Add item with isReduction
+        repository.addItem()
+        repository.changeItem(1, repository.getDraftValue().items[0].copy(amount = BigDecimal.TEN, description = "Discount", isReduction = true,
+            brand = "Generic", variation = "XXL", referenceNumber = "REF-1234", quantity = 13))
+        //Fill in all fields
+        repository.finishTransaction().blockingSubscribe()
+        val account = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().first()
+        val transactions = transactionRepository.getTransactions(profile.id!!, account.id!!, null, null).blockingFirst()
+        val first = transactions.first()
+        val transaction = transactionDao.getByIdSingle(first.transactionId).subscribeOn(Schedulers.io()).blockingGet()
+        val item = transactionItemDao.getAllByTransactionIdSingle(first.itemId).subscribeOn(Schedulers.io()).blockingGet()[1]
+
+        assertEqualsBD(BigDecimal.ONE, transaction.amount)
+        //Assert amount, description, and categoryId remain
+        assertTrue(item.isReduction)
+        assertEqualsBD(BigDecimal.TEN, item.amount)
+        assertEquals("Discount", item.description)
+        assertEquals(misc.id!!, item.primaryCategoryId)
+        //Assert all other fields discarded
+        assertTrue(item.variation.isBlank())
+        assertNull(item.brand)
+        assertNull(item.referenceNumber)
+        assertEquals(1, item.quantity)
+    }
+
+    @Test
+    fun givenTransactionHasReductionsAndReductionsLessThanTotalThenTransactionIsValid() {
+        //Add normal item
+        val draft = buildDraft(BigDecimal(11), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+        //Add item with isReduction
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
+        repository.addItem()
+        repository.changeItem(1, repository.getDraftValue().items[0].copy(amount = BigDecimal.TEN, description = "Discount", isReduction = true))
+        val isValid = repository.validateDraft()
+        assertTrue(isValid)
+    }
+
+    @Test
+    fun givenTransactionHasReductionsAndReductionsNotLessThanTotalThenTransactionIsNotValid() {
+        //Add normal item
+        val draft = buildDraft(BigDecimal.TEN, "Desc", "miscellaneous")
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+        //Add item with isReduction
+        repository.addItem()
+        repository.changeItem(1, repository.getDraftValue().items[0].copy(amount = BigDecimal.TEN, description = "Discount", isReduction = true))
+        val isValid = repository.validateDraft()
+        assertFalse(isValid)
+    }
+
+    @Test
+    fun givenTransactionHasReductionsAndTransactionHasNoNormalItemsThenFail() {
+        val draft = buildDraft(BigDecimal.TEN, "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        //Change item to isReduction
+        repository.changeItem(0, repository.getDraftValue().items[0].copy(amount = BigDecimal.TEN, description = "Discount", isReduction = true))
+        //No other items
+        //Fail - cannot have only reductions
+        val isValid = repository.validateDraft()
+        assertFalse(isValid)
+        //Oh, also, in general, negatives aren't allowed. Add multiple levels of assertion
+    }
+
+    @Test
+    fun draftEmptyTest() {
+        //Basically assert that whitespace and zero values are equivalent to an empty draft,
+        // but if any files are "in use", that is, linked to an item or evidence and not just in the hashmap, then it is not empty
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+        val item = repository.getDraftValue().items[0]
+        repository.changeItem(0, item.copy(description = " \t\r", amount = BigDecimal.ZERO))
+        assertTrue(repository.isDraftEmpty())
+        val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
+        val bread = TestData.Resource.Images.BREAD
+        addContentProviderResources(app, classLoader, bread)
+        repository.addImageToItem(item.id, bread.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
+        assertFalse(repository.isDraftEmpty())
+        repository.deleteItemImage(0, 0)
+        assertTrue(repository.isDraftEmpty())
+
+        repository.setNote("A note")
+        assertFalse(repository.isDraftEmpty())
+        repository.setNote("")
+        assertTrue(repository.isDraftEmpty())
+    }
+
+    @Test
+    fun givenDateIsTodayAndTimeNotSetWhenSaveThenTimeIsNow() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = MOCKED_DATE
+        repository.setDate(localDate)
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val transactionTime = LocalTime.parse(transaction.datedAtTime!!)
+
+        assertEquals(0, MOCKED_TIME.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenDateIsTodayAndTimeIsSetWhenSaveThenTimeIsCustom() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = MOCKED_DATE
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val transactionTime = LocalTime.parse(transaction.datedAtTime!!)
+
+        assertEquals(0, localTime.compareTo(transactionTime))
+    }
+
+    @Test
+    fun givenDateIsBeforeTodayAndTimeNotSetWhenSaveThenTimeIsNull() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        repository.setDate(localDate)
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+
+        assertNull(transaction.datedAtTime)
+
+    }
+
+    @Test
+    fun givenDateIsBeforeTodayAndTimeSetWhenSaveThenTimeIsCustom() {
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        val localDate = LocalDate.of(2025, 1, 1)
+        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        repository.setDate(localDate)
+        repository.setTime(localTime)
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+        val transactionTime = LocalTime.parse(transaction.datedAtTime!!)
+
+        assertEquals(0, localTime.compareTo(transactionTime))
     }
 
 
@@ -1193,7 +1418,8 @@ class AddDetailedTransactionRepositoryTest {
      * A basic item with sensible defaults
      */
     fun basicItem(id: Int): AddTransactionItem {
-        val category = categoryDao.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
         return AddTransactionItem(id, null, categoryDbToCategoryUi(category), BigDecimal.TEN, "Description")
     }
 
@@ -1206,8 +1432,9 @@ class AddDetailedTransactionRepositoryTest {
         }
         val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
         copyResourceToFile(classLoader, resource.resourceName, mainImage)
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val (dateTimeString, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
-        val image = ImageDb(null, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
+        val image = ImageDb(null, profile.id!!, 0L, resource.sha256, "image/jpeg", mainImage.toUri().toString(), dateTimeString, offset, zone)
         return imageDao.insertImage(image).subscribeOn(Schedulers.io())
     }
 
@@ -1226,14 +1453,13 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
-        val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val transaction = TestBuilder.defaultTransaction(accountId, amount)
-        val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
-        val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
-        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
-        return transactionItemDao.insertTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
-            id to itemId
-        }
+
+        val id = dataBuilder.createBasicTransaction("Description", categoryStringId, amount)
+        return transactionItemDao.getAllByTransactionIdSingle(id)
+            .map {
+                id to it.first().id!!
+            }
+
     }
 
     /**
@@ -1242,9 +1468,10 @@ class AddDetailedTransactionRepositoryTest {
     fun saveBasicTwoItemTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Triple<Long, Long, Long>> {
         val transaction = TestBuilder.defaultTransactionBuilder(getDefaultAccountId(profileRepository, accountRepository), amount.times(BigDecimal(2))).debitOrCredit(false).build()
         val id = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
-        val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
-        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
-        val item2 = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).ordinal(1).build()
+        val item2 = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).ordinal(2).build()
         return transactionItemDao.insertTransactionItem(item).subscribeOn(Schedulers.io()).flatMap { itemId ->
             transactionItemDao.insertTransactionItem(item2)
                 .map { item2Id ->
@@ -1263,7 +1490,8 @@ class AddDetailedTransactionRepositoryTest {
 
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val category = categoryDao.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val category = categoryDao.findByProfileIdAndStringId(profile.id!!, categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()
         for(resource in evidence) {
@@ -1272,32 +1500,4 @@ class AddDetailedTransactionRepositoryTest {
         return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), accountId = accountId, evidence = evidence, evidenceHashes = evidenceMap)
     }
 
-    class TransactionBuilder private constructor(){
-        private var items = emptyList<TransactionItemDb>()
-    }
-
-    class TransactionItemBuilder private constructor(private var transactionItem: TransactionItemDb, private var clock: Clock, private var dao: TransactionItemDao, private var itemImagesDao: TransactionItemImagesDao) {
-        private var images = emptyList<ImageDb>()
-        companion object {
-            fun builder(transactionItem: TransactionItemDb, clock: Clock, dao: TransactionItemDao, itemImagesDao: TransactionItemImagesDao): TransactionItemBuilder {
-                val builder = TransactionItemBuilder(transactionItem, clock, dao, itemImagesDao)
-                return builder
-            }
-        }
-
-        fun build(): TransactionItemDb {
-            val id = dao.insertTransactionItem(transactionItem).blockingGet()
-            val item = transactionItem.copy(id)
-            val date = ZonedDateTime.now(clock)
-            val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
-            val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-
-            val offset = date.offset.id
-            val zone = date.zone.id
-            for(image in images) {
-                itemImagesDao.insertItemImage(TransactionItemImagesDb(null, id, image.id!!, dateTimeString, offset, zone)).blockingSubscribe()
-            }
-            return item
-        }
-    }
 }

@@ -213,14 +213,12 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                 LOGGER.info("Initialized current profile to default {}", Constants.DEFAULT_PROFILE_ID)
             }
             tempInitProfile(defaultProfile)
-                .flatMap {
-                    tempInitDb()
+                .flatMap { id ->
+                    tempInitDefaultCategories(id)
                 }
         }
     }
-    fun tempInitDb(): Single<Unit> {
-        return tempInitDefaultCategories()
-    }
+
 
     fun tempCreateDefaultProfile(): Single<ProfileDb> {
         val clock = appComponent.timeHandler().getClock()
@@ -236,7 +234,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         }
 
     }
-    fun tempInitProfile(profileDb: ProfileDb): Single<Unit> {
+    fun tempInitProfile(profileDb: ProfileDb): Single<Long> {
         return Single.fromCallable {
             val accountDao = appComponent.accountDao()
             val accounts = accountDao.getAllByProfileIdSingle(profileDb.id!!).blockingGet()
@@ -274,9 +272,10 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             profilePreferences.edit()
                 .putLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, defaultAccount.id!!).commit()
             LOGGER.info("Set default account for profile ${profileDb.stringId}")
+            profileDb.id!!
         }
     }
-    fun tempInitDefaultCategories(): Single<Unit> {
+    fun tempInitDefaultCategories(profileId: Long): Single<Unit> {
         return Single.fromCallable {
             val clock = appComponent.timeHandler().getClock()
             val date = ZonedDateTime.now(clock)
@@ -287,7 +286,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val categoryDao = appComponent.categoryDao()
             var anyCategoryNotExist = false
             for (category in Utils.CORE_CATEGORIES) {
-                val categoryDb = categoryDao.findByStringId(category)
+                val categoryDb = categoryDao.findByProfileIdAndStringId(profileId, category)
                     .subscribeOn(Schedulers.io())
                     .blockingGet()
                 if (categoryDb == null) {
@@ -295,7 +294,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                     categoryDao.insertCategory(
                         CategoryDb(
                             null,
-                            null,
+                            profileId,
                             category,
                             false,
                             null,

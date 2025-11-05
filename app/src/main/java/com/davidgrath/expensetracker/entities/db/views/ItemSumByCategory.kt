@@ -4,7 +4,7 @@ import java.math.BigDecimal
 
 data class ItemSumByCategory(
     val categoryId: Long,
-    val stringID: String?,
+    val stringId: String?,
     val isCustom: Boolean,
     val name: String?,
     val sum: BigDecimal

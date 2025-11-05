@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.ProfileDb
@@ -38,7 +39,6 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         private var debitOrCredit: Boolean = true
         private var date: LocalDate? = null
 
-        private val itemsDao = expenseTrackerDatabase.transactionItemDao()
         private val categoryDao = expenseTrackerDatabase.categoryDao()
         private val profileDao = expenseTrackerDatabase.profileDao()
         private val accountDao = expenseTrackerDatabase.accountDao()
@@ -62,11 +62,11 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         }
 
         override fun withItem(description: String, category: String, amount: BigDecimal): TransactionBuilder {
-            val categoryDb = categoryDao.findByStringId(category).subscribeOn(Schedulers.io()).blockingGet()
+            val categoryDb = categoryDao.findByProfileIdAndStringId(profile.id!!, category).subscribeOn(Schedulers.io()).blockingGet()
             if(categoryDb == null) {
                 throw IllegalStateException("Category does not exist")
             }
-            items.add(TransactionItemDb(null, -1, amount, null, 1, description, "", null, categoryDb.id!!, "", "", ""))
+            items.add(TransactionItemDb(null, -1, amount, null, 1, description, "", null, categoryDb.id!!, false, 0, "", "", ""))
             return this
         }
 
@@ -128,11 +128,12 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             val mainImagesFolder = file(context.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
             val classLoader = TransactionItemBuilderImpl::class.java.classLoader
             val ids = repeats.map { repeatDate ->
-                val transaction = TransactionDb(null, account.id!!, sum, account.currencyCode, null, debitOrCredit, null, null, null, dateTime, offset, zone, 1, repeatDate.toString(), time.toString(), offset, zone)
+                val ordinal = transactionDao.getMaxOrdinalInDayForAccount(account.id!!, repeatDate.toString()).subscribeOn(Schedulers.io()).blockingGet()?: 0
+                val transaction = TransactionDb(null, account.id!!, sum, account.currencyCode, null, debitOrCredit, TransactionMode.Other,null, null, null, dateTime, offset, zone, ordinal + 1, repeatDate.toString(), time.toString())
                 val transactionId = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
 
                 items.forEachIndexed { index, item ->
-                    val correctedItem = item.copy(transactionId = transactionId, createdAt = dateTime, createdAtOffset = offset, createdAtTimezone = zone)
+                    val correctedItem = item.copy(transactionId = transactionId, createdAt = dateTime, createdAtOffset = offset, createdAtTimezone = zone, ordinal = index + 1)
                     val itemId = transactionItemDao.insertTransactionItem(correctedItem).subscribeOn(Schedulers.io()).blockingGet()
                     val list = imagesMap[index]
                     if(list != null) {
@@ -146,7 +147,7 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
                                 val copied = resourceInputStream.copyTo(outputStream)
                                 resourceInputStream.close()
                                 outputStream.close()
-                                val imageDb = ImageDb(null, file.length(), resource.sha256, "image/jpeg", file.toUri().toString(), "", "", "") //TODO date time
+                                val imageDb = ImageDb(null, profile.id!!, file.length(), resource.sha256, "image/jpeg", file.toUri().toString(), "", "", "") //TODO date time
                                 val imageId = imagesDao.insertImage(imageDb).blockingGet()
                                 sha256Map[resource.sha256] = imageId
                                 imageId
@@ -164,7 +165,7 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         }
 
         override fun withDetailedItem(): TransactionItemBuilder {
-            val itemBuilder = TransactionItemBuilderImpl(this, this.expenseTrackerDatabase)
+            val itemBuilder = TransactionItemBuilderImpl(this, this.expenseTrackerDatabase, this.profile)
             return itemBuilder
         }
 
@@ -193,9 +194,9 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         }
     }
 
-    private class TransactionItemBuilderImpl(private val xTransactionBuilderImpl: TransactionBuilderImpl, private val expenseTrackerDatabase: ExpenseTrackerDatabase): TransactionItemBuilder {
+    private class TransactionItemBuilderImpl(private val xTransactionBuilderImpl: TransactionBuilderImpl, private val expenseTrackerDatabase: ExpenseTrackerDatabase, private val profileDb: ProfileDb): TransactionItemBuilder {
 
-        private var item = TransactionItemDb(null, -1, BigDecimal.ZERO, null, 1, "", "", null, -1, "", "", "")
+        private var item = TransactionItemDb(null, -1, BigDecimal.ZERO, null, 1, "", "", null, -1, false,0, "", "", "")
         private val categoryDao = expenseTrackerDatabase.categoryDao()
         private var images = listOf<TestData.Resource>()
         private var mainDetailsSet = false
@@ -209,17 +210,17 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             if(mainDetailsSet) {
                 throw IllegalStateException("Main details have already been set")
             }
-            val categoryDb = categoryDao.findByStringId(category).subscribeOn(Schedulers.io()).blockingGet()
+            val categoryDb = categoryDao.findByProfileIdAndStringId(profileDb.id!!, category).subscribeOn(Schedulers.io()).blockingGet()
             if(categoryDb == null) {
                 throw IllegalStateException("Category does not exist")
             }
-            item = TransactionItemDb(null, -1, amount, null, 1, description, "", null, categoryDb.id!!, "", "", "")
+            item = TransactionItemDb(null, -1, amount, null, 1, description, "", null, categoryDb.id!!, false, 0,"", "", "")
             mainDetailsSet = true
             return this
         }
 
-        override fun otherDetails(brand: String?, quantity: Int, variation: String, referenceNumber: String?): TransactionItemBuilder {
-            item = item.copy(brand = brand, quantity = quantity, variation = variation, referenceNumber = referenceNumber)
+        override fun otherDetails(brand: String?, quantity: Int, variation: String, referenceNumber: String?, isReduction: Boolean): TransactionItemBuilder {
+            item = item.copy(brand = brand, quantity = quantity, variation = variation, referenceNumber = referenceNumber, isReduction = isReduction)
             return this
         }
 
@@ -267,7 +268,7 @@ interface TransactionBuilder: Commit {
 
 interface TransactionItemBuilder: Commit {
     fun mainDetails(description: String, category: String, amount: BigDecimal): TransactionItemBuilder
-    fun otherDetails(brand: String?, quantity: Int, variation: String, referenceNumber: String?): TransactionItemBuilder
+    fun otherDetails(brand: String?, quantity: Int, variation: String, referenceNumber: String?, isReduction: Boolean): TransactionItemBuilder
     fun withImages(vararg resource: TestData.Resource): TransactionItemBuilder
     fun build(): TransactionBuilder
 }

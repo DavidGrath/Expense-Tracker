@@ -11,6 +11,7 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.ActivityStatisticsFilterBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import org.slf4j.LoggerFactory
 import org.threeten.bp.DayOfWeek
 import org.threeten.bp.temporal.WeekFields
@@ -23,6 +24,7 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
     private var accountsMap = mutableMapOf<Long, CheckBox>()
     private var weekDaysMap = mutableMapOf<DayOfWeek, CheckBox>()
     private var categoriesMap = mutableMapOf<Long, CheckBox>()
+    private var modesMap = mutableMapOf<TransactionMode, CheckBox>()
     private var statsUsed = false
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
@@ -76,6 +78,19 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
                 viewModel.toggleWeekDay(weekDay)
             }
         }
+        val modes = TransactionMode.values()
+        for(mode in modes) {
+            val linearLayout = binding.linearLayoutStatisticsFilterModes
+            val checkbox = CheckBox(this)
+            val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            checkbox.layoutParams = layoutParams
+            checkbox.text = mode.toString() //TODO Context and String IDs
+            linearLayout.addView(checkbox)
+            modesMap[mode] = checkbox
+            checkbox.setOnClickListener {
+                viewModel.toggleMode(mode)
+            }
+        }
         viewModel.statisticsFilterLiveData.observe(this) { filter ->
             val accountIds = filter.accountIds
             for((id, cb) in accountsMap) {
@@ -88,6 +103,10 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
             val categories = filter.categories
             for((catId, cb) in categoriesMap) {
                 cb.isChecked = catId in categories
+            }
+            val xModes = filter.modes
+            for((mode, cb) in modesMap) {
+                cb.isChecked = mode in xModes
             }
         }
         binding.imageViewStatisticsFilterDone.setOnClickListener(this)

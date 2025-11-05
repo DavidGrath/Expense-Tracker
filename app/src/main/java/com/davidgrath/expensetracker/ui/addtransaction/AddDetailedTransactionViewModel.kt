@@ -83,7 +83,15 @@ class AddDetailedTransactionViewModel(
             Triple(accounts, AccountUi(-1, -1, "AAA", "Error", "Error"), BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
         } else {
             val total = draft.items.map {
-                it.amount ?: BigDecimal.ZERO
+                if(it.isReduction) {
+                    if(it.amount != null) {
+                        it.amount.times(BigDecimal(-1))
+                    } else {
+                        it.amount ?: BigDecimal.ZERO
+                    }
+                } else {
+                    it.amount ?: BigDecimal.ZERO
+                }
             }.reduceOrNull { acc, bd -> acc.plus(bd) }?.setScale(2, RoundingMode.HALF_UP)
                 ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
             Triple(accounts, accountDbToAccountUi(accountDb, timeAndLocaleHandler.getLocale()), total)
@@ -92,6 +100,7 @@ class AddDetailedTransactionViewModel(
 
     init {
         LOGGER.debug("profile: {}", profile)
+        addDetailedTransactionRepository.setProfile(profile.id!!)
         addDetailedTransactionRepository.setMode(mode)
         mediator.addSource(currentAccount) {
             mediator.postValue(it)
@@ -269,10 +278,6 @@ class AddDetailedTransactionViewModel(
         addDetailedTransactionRepository.setNote(note)
     }
 
-    fun setUseCustomDateTime(useCustomDateTime: Boolean) {
-        addDetailedTransactionRepository.setUseCustomDateTime(useCustomDateTime)
-    }
-
     fun setCustomDate(localDate: LocalDate?) {
         addDetailedTransactionRepository.setDate(localDate)
     }
@@ -307,7 +312,7 @@ class AddDetailedTransactionViewModel(
     }
 
     fun getImageCount(): Single<Long> {
-        return imageRepository.getImageCount()
+        return imageRepository.getImageCount(profile.id!!)
     }
 
 

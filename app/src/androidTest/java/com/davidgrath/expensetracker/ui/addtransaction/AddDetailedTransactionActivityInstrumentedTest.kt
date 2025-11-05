@@ -37,6 +37,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import com.davidgrath.expensetracker.CategoryStringIdMatcher
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
@@ -44,6 +45,7 @@ import com.davidgrath.expensetracker.RecyclerInputTextItemAction
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
 import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
@@ -52,11 +54,15 @@ import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItemInstrumented
+import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
 import javax.inject.Inject
 import org.hamcrest.Description
@@ -87,24 +93,28 @@ class AddDetailedTransactionActivityInstrumentedTest {
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
+    lateinit var accountRepository: AccountRepository
+    @Inject
+    lateinit var profileRepository: ProfileRepository
+    @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    @Inject
+    lateinit var database: ExpenseTrackerDatabase
     lateinit var app: InstrumentedTestExpenseTracker
     lateinit var uiDevice: UiDevice
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
         (app.appComponent as InstrumentedTestComponent).inject(this)
         uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
 
     @After
     fun tearDown() {
-        transactionItemImagesDao.deleteAll().blockingSubscribe()
-        imageDao.deleteAll().blockingSubscribe()
-        transactionItemDao.deleteAll().blockingSubscribe()
-        transactionDao.deleteAll().blockingSubscribe()
         addDetailedTransactionRepository.deleteDraft()
+        Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
     }
 
     @Test
@@ -351,7 +361,10 @@ class AddDetailedTransactionActivityInstrumentedTest {
         Espresso.onData(allOf(CategoryStringIdMatcher("entertainment"))).perform(click())
 
         var list = emptyList<TransactionWithItemAndCategory>()
-        transactionRepository.getTransactions().subscribe {
+
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id
+        transactionRepository.getTransactions(profile.id!!, accountId!!, null, null).subscribe {
             list = it
         }
         onView(withId(R.id.image_button_add_detailed_transaction_done)).perform(click())
@@ -359,9 +372,9 @@ class AddDetailedTransactionActivityInstrumentedTest {
 
 
         assertEquals(3, list.size)
-        val categoryOne = list[0].categoryStringID
-        val categoryTwo = list[1].categoryStringID
-        val categoryThree = list[2].categoryStringID
+        val categoryOne = list[0].categoryStringId
+        val categoryTwo = list[1].categoryStringId
+        val categoryThree = list[2].categoryStringId
 
         assertEquals("food", categoryOne)
         assertEquals("transportation", categoryTwo)

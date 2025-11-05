@@ -7,15 +7,18 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.clickRecyclerViewItem
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
@@ -47,7 +50,13 @@ class AccountsFragmentTest {
     lateinit var transactionItemDao: TransactionItemDao
     @Inject
     lateinit var transactionDao: TransactionDao
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+
     lateinit var app: TestExpenseTracker
+    lateinit var dataBuilder: DataBuilder
 
     @get:Rule
     val mainActivityScenario = ActivityScenarioRule(MainActivity::class.java)
@@ -58,29 +67,25 @@ class AccountsFragmentTest {
 
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
+        dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
     }
 
     @Test
     fun whenClickViewStatisticsThenFilterApplied() {
 
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val category = categoryRepository.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
-        val transactionBuilder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(100))
-        val id = transactionDao.insertTransaction(transactionBuilder.build()).subscribeOn(Schedulers.io()).blockingGet()
-        val itemBuilder = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal(100), category.id!!)
-        val itemId = transactionItemDao.insertTransactionItem(itemBuilder.build()).subscribeOn(
-            Schedulers.io()).blockingGet()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
 
-        val secondTransaction = transactionBuilder.amount(BigDecimal(200)).debitOrCredit(false).build()
-        val id2 = transactionDao.insertTransaction(secondTransaction).subscribeOn(Schedulers.io()).blockingGet()
-        transactionItemDao.insertTransactionItemMultiple(listOf(
-            itemBuilder.transactionId(id2).build(),
-            itemBuilder.transactionId(id2).build()
-        )
-        ).subscribeOn(Schedulers.io()).blockingSubscribe()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .commit()
 
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(
-            Schedulers.io()).blockingGet()
+        dataBuilder.createTransaction()
+            .debitOrCredit(false)
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .commit()
+
         val newAccountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
 
         clickRecyclerViewItem<AccountsRecyclerAdapter.AccountsViewHolder>(

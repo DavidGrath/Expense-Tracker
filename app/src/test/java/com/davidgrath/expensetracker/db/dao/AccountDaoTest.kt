@@ -44,11 +44,13 @@ class AccountDaoTest {
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     lateinit var app: TestExpenseTracker
+    lateinit var dataBuilder: DataBuilder
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext<TestExpenseTracker>()
         (app.appComponent as TestComponent).inject(this)
+        dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
     }
 
     @Test
@@ -59,19 +61,18 @@ class AccountDaoTest {
         val totalItems = 3
 
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
-        val category = categoryRepository.findByStringId("miscellaneous").subscribeOn(Schedulers.io()).blockingGet()!!
-        val transactionBuilder = TestBuilder.defaultTransactionBuilder(accountId, BigDecimal(100))
-        val id = transactionDao.insertTransaction(transactionBuilder.build()).subscribeOn(Schedulers.io()).blockingGet()
-        val itemBuilder = TestBuilder.defaultTransactionItemBuilder(id, BigDecimal(100), category.id!!)
-        val itemId = transactionItemDao.insertTransactionItem(itemBuilder.build()).subscribeOn(Schedulers.io()).blockingGet()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
 
-        val secondTransaction = transactionBuilder.amount(BigDecimal(200)).debitOrCredit(false).build()
-        val id2 = transactionDao.insertTransaction(secondTransaction).subscribeOn(Schedulers.io()).blockingGet()
-        transactionItemDao.insertTransactionItemMultiple(listOf(
-            itemBuilder.transactionId(id2).build(),
-            itemBuilder.transactionId(id2).build()
-        )
-        ).subscribeOn(Schedulers.io()).blockingSubscribe()
+        dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .commit()
+
+        dataBuilder.createTransaction()
+            .debitOrCredit(false)
+            .withItem("Description", "miscellaneous", BigDecimal(100))
+            .withItem("Description 2", "miscellaneous", BigDecimal(100))
+            .commit()
+
 
         val accountStats = accountDao.getAccountSummarySingle(accountId).subscribeOn(Schedulers.io()).blockingGet()
         assertEqualsBD(totalExpense, accountStats.expenses)
@@ -79,7 +80,6 @@ class AccountDaoTest {
         assertEquals(totalTransactions, accountStats.transactionCount)
         assertEquals(totalItems, accountStats.itemCount)
 
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val newAccountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
 
 
@@ -97,7 +97,7 @@ class AccountDaoTest {
         val totalTransactions = 2
         val totalItems = 3
 
-        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+
         dataBuilder.createTransaction()
             .withItem("Description", "miscellaneous", BigDecimal(100))
             .commit()

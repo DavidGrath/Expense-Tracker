@@ -10,7 +10,7 @@ data class TransactionDetailsUi(
     val id: Long,
     val accountName: String,
     val accountCurrencyCode: String,
-    val accountReferenceNumber: String,
+    val accountReferenceNumber: String?,
     val amount: BigDecimal,
     val currencyCode: String,
     val debitOrCredit: Boolean,
@@ -18,7 +18,6 @@ data class TransactionDetailsUi(
     val timestamp: LocalDateTime,
     val datedDate: LocalDate,
     val datedTime: LocalTime?,
-    val datedZone: ZoneId,
     val seller: SellerUi? = null,
 ) {
 }

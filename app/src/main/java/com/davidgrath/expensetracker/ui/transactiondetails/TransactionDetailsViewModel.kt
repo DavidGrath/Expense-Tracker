@@ -38,7 +38,7 @@ class TransactionDetailsViewModel(
         transaction = transactionRepository.getTransactionById(transactionId) //TODO Replace with Join query
             .map {
                 val account = accountRepository.getAccountByIdSingle(it.accountId).blockingGet()!!
-                transactionDbToTransactionDetailedUi(timeAndLocaleHandler, it, account)
+                transactionDbToTransactionDetailedUi(it, account)
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         items = transactionItemRepository.getTransactionItems(transactionId)

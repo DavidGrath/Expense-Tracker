@@ -24,26 +24,30 @@ interface ImageDao {
     @Query("SELECT * FROM ImageDb WHERE id = :id")
     fun getById(id: Long): Single<ImageDb>
 
-    @Query("SELECT count(id) > 0 FROM ImageDb WHERE sha256 = :sha256")
-    fun doesHashExist(sha256: String): Single<Boolean>
+    @Query("SELECT count(id) > 0 FROM ImageDb " +
+            "WHERE profileId = :profileId " +
+            "AND sha256 = :sha256")
+    fun doesHashExist(profileId: Long, sha256: String): Single<Boolean>
 
-    @Query("SELECT * FROM ImageDb WHERE sha256 = :sha256")
-    fun findBySha256(sha256: String): Maybe<ImageDb>
+    @Query("SELECT * FROM ImageDb " +
+            "WHERE profileId = :profileId " +
+            "AND sha256 = :sha256")
+    fun findBySha256(profileId: Long, sha256: String): Maybe<ImageDb>
 
     @Query("SELECT im.* FROM ImageDb im INNER JOIN TransactionItemImagesDb tii ON tii.imageID = im.id " +
             "WHERE tii.transactionItemID = :itemId")
     fun getAllByItemSingle(itemId: Long): Single<List<ImageDb>>
 
-    @Query("SELECT sum(sizeBytes) FROM ImageDb")
-    fun storageSum(): Single<Long>
+    @Query("SELECT sum(sizeBytes) FROM ImageDb " +
+            "WHERE profileId = :profileId")
+    fun storageSum(profileId: Long): Single<Long>
 
-    @Query("SELECT count(*) FROM ImageDb")
-    fun countAllSingle(): Single<Long>
+    @Query("SELECT count(*) FROM ImageDb " +
+            "WHERE profileId = :profileId")
+    fun countAllSingle(profileId: Long): Single<Long>
     //endregion
 
     //region Delete
-    @Query("DELETE FROM ImageDb WHERE 1")
-    fun deleteAll(): Single<Int>
 
     @Query("DELETE FROM ImageDb " +
             "WHERE id = :id")

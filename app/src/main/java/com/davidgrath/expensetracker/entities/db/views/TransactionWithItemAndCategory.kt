@@ -17,9 +17,7 @@ data class TransactionWithItemAndCategory(
     val transactionCreatedAtTimezone: String,
     val transactionDatedAt: String,
     val transactionDatedAtTime: String?,
-    val transactionDatedAtOffset: String?,
-    val transactionDatedAtTimezone: String?,
-    val categoryStringID: String?,
+    val categoryStringId: String?,
     val categoryIsCustom: Boolean,
     val categoryName: String?,
 )

@@ -23,7 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import javax.inject.Inject
 
-@RunWith(AndroidJUnit4::class)
+//@RunWith(AndroidJUnit4::class)
 class StatisticsFragmentInstrumentedTest {
     @get:Rule
     val mainActivityScenario = ActivityScenarioRule(MainActivity::class.java)

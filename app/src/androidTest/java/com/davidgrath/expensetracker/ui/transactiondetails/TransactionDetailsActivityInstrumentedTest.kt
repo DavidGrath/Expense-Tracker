@@ -82,24 +82,6 @@ class TransactionDetailsActivityInstrumentedTest {
         Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
     }
 
-    @Test
-    fun givenTransactionZoneIsNotSameAsSystemZoneWhenLoadEditThenOriginalZoneDisplayedAndNoticeDisplayed() {
-
-        timeAndLocaleHandler.changeZone(ZoneId.of("Pacific/Honolulu")) //-10 hours changes the date as well
-        transactionDetailsActivityScenario.recreate()
-
-        val customDate = LocalDate.of(2025, 6, 29)
-        val customTime = LocalTime.of( 22, 0, 0)
-        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
-        val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
-
-        val dateString = dateFormat.format(customDate)
-        val timeString = timeFormat.format(customTime)
-
-        onView(withId(R.id.text_view_transaction_details_date)).check(matches(withText(dateString)))
-        onView(withId(R.id.text_view_transaction_details_time)).check(matches(withText(timeString)))
-        onView(withId(R.id.text_view_transaction_details_zone_difference_notice)).check(matches(isDisplayed()))
-    }
 
     fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
         val profile = profileDao.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
@@ -107,7 +89,7 @@ class TransactionDetailsActivityInstrumentedTest {
 
         val transaction = TestBuilder.defaultTransaction(accountId!!, amount)
         val id = transactionRepository.addTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
-        val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
+        val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
         val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
         return transactionItemRepository.addTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
             id to itemId

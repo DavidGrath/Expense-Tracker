@@ -31,8 +31,6 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var binding: ActivityAddDetailedTransactionBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
     @Inject
-    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
-    @Inject
     lateinit var categoryRepository: CategoryRepository
     @Inject
     lateinit var accountRepository: AccountRepository

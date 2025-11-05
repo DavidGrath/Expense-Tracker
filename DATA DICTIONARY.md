@@ -61,7 +61,7 @@
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String
-* Ordinal: Int - To allow for reordering of transactions as well as imposing an ordering on timeless transactions
+* Ordinal: Int - To allow for reordering of transactions
 * DatedAt: String
 * DatedAtTime: String?
 * DatedAtOffset: String - An ISO8601 Offset
@@ -166,11 +166,11 @@
 **SellerLocation**
 * ID: Long
 * SellerID: Long
-* Location: String
+* Location: String - Short, descriptive name, basically "branch name"
 * isVirtual: Boolean
 * Longitude: Double?
 * Latitude: Double?
-* Address: String?
+* Address: String? - The kind of address you'd put in Google Maps
 * CreatedAt: String
 * CreatedAtOffset: String - An ISO8601 Offset
 * CreatedAtTimezone: String

@@ -1,12 +1,18 @@
 package com.davidgrath.expensetracker.entities.db
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity
+@Entity(
+    indices = [Index("profileId", "sha256", unique = true)],
+    foreignKeys = [ForeignKey(ProfileDb::class, parentColumns = ["id"], childColumns = ["profileId"])]
+)
 data class ImageDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long?, //TODO I just realized that Images have no profile ID. Fix later
+    val id: Long?,
+    val profileId: Long,
     val sizeBytes: Long,
     val sha256: String,
     val mimeType: String,

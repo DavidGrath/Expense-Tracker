@@ -54,8 +54,9 @@ class TransactionItemDaoTest {
     fun sumByCategoryTest() {
 
         val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
-        val fitness = categoryDao.findByStringId("fitness").subscribeOn(Schedulers.io()).blockingGet()!!
-        val food = categoryDao.findByStringId("food").subscribeOn(Schedulers.io()).blockingGet()!!
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val fitness = categoryDao.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
+        val food = categoryDao.findByProfileIdAndStringId(profile.id!!, "food").subscribeOn(Schedulers.io()).blockingGet()!!
 
         val fromDate = LocalDate.parse("2025-01-01")
         val id = dataBuilder.createTransaction()
@@ -79,14 +80,14 @@ class TransactionItemDaoTest {
             .commit()
 
 
-        val sumList = transactionItemDao.getDebitSumByCategory(fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumList = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         var foodSum = sumList.find { it.categoryId == food.id }!!.sum
         var fitnessSum = sumList.find { it.categoryId == fitness.id }!!.sum
         LOGGER.debug("sumList: {}", sumList)
         assertEqualsBD(BigDecimal(5_500), foodSum)
         assertEqualsBD(BigDecimal(12_500), fitnessSum)
 
-        val sumListTo = transactionItemDao.getDebitSumByCategory(fromDate.toString(), toDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumListTo = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), toDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         foodSum = sumListTo.find { it.categoryId == food.id }!!.sum
         fitnessSum = sumListTo.find { it.categoryId == fitness.id }!!.sum
 

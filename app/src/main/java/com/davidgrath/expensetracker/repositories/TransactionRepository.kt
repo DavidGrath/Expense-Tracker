@@ -5,6 +5,7 @@ import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
@@ -40,12 +41,14 @@ constructor(
         val date = ZonedDateTime.now(timeAndLocaleHandler.getClock())
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val timeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_TIME)
+        val dateString = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val timeString = date.format(DateTimeFormatter.ISO_LOCAL_TIME)
 
         val offset = date.offset.id
         val zone = date.zone.id
         val account = accountRepository.getAccountByIdSingle(accountId).blockingGet()!!
+        val maxOrdinal = getMaxOrdinalInDayForAccount(accountId, dateString).blockingGet()?: 0
+        val ordinal = maxOrdinal + 1
         val transaction = TransactionDb(
             null,
             accountId,
@@ -53,22 +56,21 @@ constructor(
             account.currencyCode,
             null,
             false,
+            TransactionMode.Other,
             null,
             null,
             null,
             dateTimeString,
             offset,
             zone,
-            0,
+            ordinal,
             dateString,
-            timeString,
-            offset,
-            zone
+            timeString
         )
         return transactionDao.insertTransaction(transaction)
             .subscribeOn(Schedulers.io())
             .flatMap { id ->
-            val item = TransactionItemDb(null, id, amount, null, 1, description, "", null, categoryId, dateTimeString, offset, zone)
+            val item = TransactionItemDb(null, id, amount, null, 1, description, "", null, categoryId, false, 1, dateTimeString, offset, zone)
             transactionItemDao.insertTransactionItem(item).map { id }
         }.subscribeOn(Schedulers.io())
     }
@@ -78,8 +80,10 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTransactions(): Flowable<List<TransactionWithItemAndCategory>> {
-        return transactionItemDao.getItemsWithTransactionsAndCategoryFrom(LocalDate.now(timeAndLocaleHandler.getClock()).toString())
+    fun getTransactions(profileId: Long, accountId: Long, startDate: String?, endDate: String?): Observable<List<TransactionWithItemAndCategory>> {
+        return transactionItemDao.getItemsWithTransactionsAndCategory(profileId,
+            startDate, endDate, false, listOf(accountId), true, emptyList()
+        )
             .subscribeOn(Schedulers.io())
             .timeInterval()
             .map {
@@ -99,26 +103,26 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalExpense(fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+    fun getTotalExpense(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionDao.getTransactionDebitSum(fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        return transactionDao.getTransactionDebitSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
             .subscribeOn(Schedulers.io())
     }
-    fun getTotalIncome(fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+    fun getTotalIncome(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionDao.getTransactionCreditSum(fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        return transactionDao.getTransactionCreditSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalAmountByDate(debitOrCredit: Boolean, fromDate: String?, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<List<DateAmountSummary>> {
+    fun getTotalAmountByDate(profileId: Long, debitOrCredit: Boolean, fromDate: String?, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<List<DateAmountSummary>> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        val originalSummary = transactionDao.getTransactionSumByDate(debitOrCredit, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val originalSummary = transactionDao.getTransactionSumByDate(profileId, debitOrCredit, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
         val filledSummary = originalSummary.map { list ->
             var zeroCount = 0
             val start = if(fromDate == null) {
@@ -172,9 +176,14 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getEarliestTransactionDate(accountIds: List<Long>): Maybe<LocalDate> {
+    fun getEarliestTransactionDate(profileId: Long, accountIds: List<Long>): Maybe<LocalDate> {
         val emptyAccounts = accountIds.isEmpty()
-        return transactionDao.getEarliestTransactionDate(emptyAccounts, accountIds)
+        return transactionDao.getEarliestTransactionDate(profileId, emptyAccounts, accountIds)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getMaxOrdinalInDayForAccount(accountId: Long, date: String): Maybe<Int> {
+        return transactionDao.getMaxOrdinalInDayForAccount(accountId, date)
             .subscribeOn(Schedulers.io())
     }
 

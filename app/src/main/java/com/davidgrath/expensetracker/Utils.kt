@@ -35,6 +35,7 @@ import org.threeten.bp.DayOfWeek
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
+import org.threeten.bp.LocalTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
@@ -146,8 +147,8 @@ fun categoryDbToCategoryUi(categoryDb: CategoryDb): CategoryUi {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(categoryDb.id!!, null, categoryDb.name!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(categoryDb.stringID)!!
-        CategoryUi(categoryDb.id!!, categoryDb.stringID, Utils.CATEGORY_NAMES_DEFAULT[categoryDb.stringID]!!, categoryIcon)
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(categoryDb.stringId)!!
+        CategoryUi(categoryDb.id!!, categoryDb.stringId, Utils.CATEGORY_NAMES_DEFAULT[categoryDb.stringId]!!, categoryIcon)
     }
     return category
 }
@@ -157,8 +158,8 @@ fun transactionWithCategoryToCategoryUi(transactionWithItemAndCategory: Transact
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(transactionWithItemAndCategory.primaryCategoryId, null, transactionWithItemAndCategory.categoryName!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(transactionWithItemAndCategory.categoryStringID)!!
-        CategoryUi(transactionWithItemAndCategory.primaryCategoryId, transactionWithItemAndCategory.categoryStringID, Utils.CATEGORY_NAMES_DEFAULT[transactionWithItemAndCategory.categoryStringID]!!, categoryIcon)
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(transactionWithItemAndCategory.categoryStringId)!!
+        CategoryUi(transactionWithItemAndCategory.primaryCategoryId, transactionWithItemAndCategory.categoryStringId, Utils.CATEGORY_NAMES_DEFAULT[transactionWithItemAndCategory.categoryStringId]!!, categoryIcon)
     }
     return category
 }
@@ -168,48 +169,27 @@ fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(itemSumByCategory.categoryId, null, itemSumByCategory.name!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(itemSumByCategory.stringID)!!
-        CategoryUi(itemSumByCategory.categoryId, itemSumByCategory.stringID, Utils.CATEGORY_NAMES_DEFAULT[itemSumByCategory.stringID]!!, categoryIcon)
+        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(itemSumByCategory.stringId)!!
+        CategoryUi(itemSumByCategory.categoryId, itemSumByCategory.stringId, Utils.CATEGORY_NAMES_DEFAULT[itemSumByCategory.stringId]!!, categoryIcon)
     }
     return category
 }
 
-fun transactionDbToTransactionUi(timeAndLocaleHandler: TimeAndLocaleHandler, transactionDb: TransactionDb): TransactionUi {
-    val createdDateTime = offsetTimeToLocalTime(timeAndLocaleHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
+fun transactionDbToTransactionDetailedUi(transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
+    val createdDateTime = LocalDateTime.parse(transactionDb.createdAt)
     var datedDate = LocalDate.parse(transactionDb.datedAt)
-    val datedDateTime = transactionDb.getDatedLocalDateTime(timeAndLocaleHandler)
-    if(datedDateTime != null) {
-        datedDate = datedDateTime.toLocalDate()
-    }
-    val transactionUi = TransactionUi(transactionDb.id!!, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, createdDateTime, datedDate, datedDateTime?.toLocalTime(), null, emptyList())
-    return transactionUi
-}
 
-fun transactionDbToTransactionDetailedUi(timeAndLocaleHandler: TimeAndLocaleHandler, transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
-    val createdDateTime = offsetTimeToLocalTime(timeAndLocaleHandler, transactionDb.datedAt + "T" + transactionDb.datedAtTime, transactionDb.datedAtOffset)
-    var datedDate = LocalDate.parse(transactionDb.datedAt)
-    LOGGER.debug("transactionDb: {}", transactionDb)
-    val datedDateTime = transactionDb.getDatedLocalDateTime(timeAndLocaleHandler)
-    if(datedDateTime != null) {
-        datedDate = datedDateTime.toLocalDate()
+    val datedTime = if(transactionDb.datedAtTime == null) {
+        null
+    } else {
+        LocalTime.parse(transactionDb.datedAtTime)
     }
-    val zone = ZoneId.of(transactionDb.datedAtTimezone)
-    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.note, createdDateTime, datedDate, datedDateTime?.toLocalTime(), zone, null)
+    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.note, createdDateTime, datedDate, datedTime, null)
     return transactionUi
 }
 
 
 val instantFormatter = DateTimeFormatter.ISO_INSTANT
-fun offsetTimeToLocalTime(timeAndLocaleHandler: TimeAndLocaleHandler, dateTimeString: String, offsetString: String): LocalDateTime {
-    val parsedDateTime = LocalDateTime.parse(dateTimeString)
-    val instantString = instantFormatter.format(parsedDateTime.toInstant(ZoneOffset.UTC))
-    val instant = Instant.parse(instantString)
-    val offset = ZoneOffset.of(offsetString)
-    val originalOffsetDateTime = instant.atOffset(offset)
-    val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeAndLocaleHandler.getZone().rules.getOffset(Instant.now())))
-    val localDateTime = localOffsetDateTime.toLocalDateTime()
-    return localDateTime
-}
 
 fun imageDbToImageUi(image: ImageDb): ImageUi {
     val utcDateTime = LocalDateTime.parse(image.createdAt)

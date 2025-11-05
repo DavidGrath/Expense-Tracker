@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.entities.ui
 
 import android.net.Uri
+import com.davidgrath.expensetracker.entities.TransactionMode
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.ZoneId
@@ -10,6 +11,7 @@ data class AddEditDetailedTransactionDraft(
     val items: List<AddTransactionItem>,
     val accountId: Long,
     val debitOrCredit: Boolean = true,
+    val mode: TransactionMode = TransactionMode.Other,
     /**
      * To prevent the user from adding duplicate images
      */
@@ -22,11 +24,8 @@ data class AddEditDetailedTransactionDraft(
     /**
      * In edit mode, this means nothing
      */
-    val useCustomDateTime: Boolean = false,
     val dbOriginalDate: LocalDate? = null,
     val dbOriginalTime: LocalTime? = null,
-    val dbOriginalOffset: ZoneOffset? = null,
-    val dbOriginalZoneId: ZoneId? = null,
     val customDate: LocalDate? = null,
     val customTime: LocalTime? = null //TODO Observable that ticks every few seconds in the ViewModel
 )

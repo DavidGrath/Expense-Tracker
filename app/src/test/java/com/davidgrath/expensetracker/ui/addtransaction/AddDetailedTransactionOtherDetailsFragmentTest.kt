@@ -18,23 +18,23 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.davidgrath.expensetracker.AccountUiIdMatcher
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.DataBuilder
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
-import com.davidgrath.expensetracker.TestBuilder
 import com.davidgrath.expensetracker.TestConstants
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.cursorEndViewAction
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -49,7 +49,6 @@ import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.test.TestContentProvider
-import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
 import org.junit.After
@@ -97,8 +96,11 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     lateinit var evidenceDao: EvidenceDao
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    @Inject
+    lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
 
     lateinit var app: TestExpenseTracker
+    lateinit var dataBuilder: DataBuilder
 
     companion object {
         private val MOCKED_DATE = LocalDate.of(2025, 6, 30)
@@ -110,6 +112,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     fun setUp() {
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
+        dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
 
         onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
@@ -173,7 +176,8 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         mainDocumentFolder.mkdirs()
         val existingDocument = File(mainDocumentFolder, "45402cd3-2452-4804-981a-7ea5515dec74.pdf")
         copyResourceToFile(classLoader, resource.resourceName, existingDocument)
-        evidenceDao.insertEvidence(EvidenceDb(null, 0, 0L, resource.sha256, "application/pdf", existingDocument.toUri().toString(), "2025-06-30T08:00:00", "-04:00", "America/New_York"))
+        val transactionId = dataBuilder.createBasicTransaction("Description", "miscellaneous", BigDecimal(100))
+        evidenceDao.insertEvidence(EvidenceDb(null, transactionId, 0L, resource.sha256, "application/pdf", existingDocument.toUri().toString(), "2025-06-30T08:00:00", "-04:00", "America/New_York"))
             .subscribeOn(Schedulers.io())
             .blockingGet()
 
@@ -356,20 +360,6 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
     }
 
     @Test
-    fun givenModeIsEditThenUseCustomCheckBoxNotVisible() {
-
-        startInEditMode()
-        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
-        onView(withId(R.id.check_box_add_detailed_transaction_use_custom_date_time)).check(matches(
-            withEffectiveVisibility(ViewMatchers.Visibility.GONE)
-        ))
-        onView(withId(R.id.linear_layout_add_detailed_transaction_date_time)).check(matches(
-            withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)
-        ))
-
-    }
-
-    @Test
     fun givenModeIsEditWhenRemoveDateClickedThenRemoveDateButtonGoneAndOriginalDateDisplayed() {
         startInEditMode()
         onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
@@ -442,13 +432,6 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         onView(withId(R.id.text_view_add_detailed_transaction_custom_time)).check(matches(withText(timeString)))
     }
 
-    @Test
-    fun givenTransactionZoneIsNotSameAsSystemZoneWhenLoadEditThenOriginalZoneDisplayedAndNoticeDisplayed() {
-        timeAndLocaleHandler.changeZone(ZoneId.of("Pacific/Honolulu"))
-        startInEditMode()
-        onView(withId(R.id.tab_layout_add_detailed_transaction)).perform(TabLayoutItemClick(1))
-        onView(withId(R.id.text_view_add_detailed_transaction_zone_difference_notice)).check(matches(isDisplayed()))
-    }
 
     @Test
     fun basicAccountChangeTest() {
@@ -466,7 +449,10 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
      * Relying on edit mode, so can't use ScenarioRule
      */
     fun startInEditMode() {
-        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN, "miscellaneous").subscribeOn(Schedulers.io()).blockingGet()
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(110.00))
+            .commit().first()
 
 
         val intent = Intent(app, AddDetailedTransactionActivity::class.java).also {
@@ -475,19 +461,6 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         }
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
-    }
-
-    fun saveBasicTransaction(amount: BigDecimal, categoryStringId: String = "miscellaneous"): Single<Pair<Long, Long>> {
-        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
-        val accountId = accountRepository.getAccountsForProfileSingle(profile.id!!).blockingGet().firstOrNull()!!.id!!
-
-        val transaction = TestBuilder.defaultTransaction(accountId, amount)
-        val id = transactionRepository.addTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
-        val category = categoryRepository.findByStringId(categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
-        val item = TestBuilder.defaultTransactionItemBuilder(id, amount, category.id!!).build()
-        return transactionItemRepository.addTransactionItem(item).subscribeOn(Schedulers.io()).map { itemId ->
-            id to itemId
-        }
     }
 
     fun pickFileFromDevice() {

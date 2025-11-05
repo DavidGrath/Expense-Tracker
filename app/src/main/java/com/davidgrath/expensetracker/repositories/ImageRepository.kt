@@ -29,8 +29,8 @@ class ImageRepository
             }
     }
 
-    fun getImageCount(): Single<Long> {
-        return imageDao.countAllSingle()
+    fun getImageCount(profileId: Long): Single<Long> {
+        return imageDao.countAllSingle(profileId)
             .subscribeOn(Schedulers.io())
             .doOnSuccess {
                 LOGGER.info("getImageCount: {} ", it)

@@ -13,6 +13,8 @@ class ProfileRepository
     private val profileDao: ProfileDao
 ) {
     fun getByStringId(stringId: String): Single<ProfileDb> {
+        println("ProfileRepo Check")
+        println(Thread.currentThread().stackTrace.joinToString())
         return profileDao.getByStringId(stringId)
             .subscribeOn(Schedulers.io())
     }

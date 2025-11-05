@@ -34,6 +34,7 @@ import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.addContentProviderResourcesInstrumented
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
@@ -64,10 +65,13 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Inject
     lateinit var repository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var database: ExpenseTrackerDatabase
 
     @Before
     fun setUp() {
         val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
         (app.appComponent as InstrumentedTestComponent).inject(this)
         Espresso.onView(ViewMatchers.withId(R.id.tab_layout_add_detailed_transaction))
             .perform(TabLayoutItemClick(1))
@@ -77,6 +81,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
     fun tearDown() {
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val draftFolder = File(context.filesDir, Constants.FOLDER_NAME_DRAFT)
+        Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
         draftFolder.deleteRecursively()
 //        val contentFolder = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER) //TODO Instrumented version of delete
 //        contentFolder.deleteRecursively()

@@ -12,6 +12,7 @@ import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.UriTypeAdapter
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
@@ -112,6 +113,17 @@ class StatisticsViewModel
             categories + categoryId
         }
         statisticsFilter = statisticsFilter.copy(categories = newCategories)
+        _statisticsFilterLiveData.postValue(statisticsFilter)
+    }
+
+    fun toggleMode(mode: TransactionMode) {
+        val modes = statisticsFilter.modes
+        val newModes = if(mode in modes) {
+            modes - mode
+        } else {
+            modes + mode
+        }
+        statisticsFilter = statisticsFilter.copy(modes = newModes)
         _statisticsFilterLiveData.postValue(statisticsFilter)
     }
 

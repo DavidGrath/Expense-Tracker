@@ -61,10 +61,16 @@ constructor(
     private val draftLiveData: LiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>> = _draftLiveData
     private var currentMode = "add"
     private var transactionId: Long? = null
+    private var profileId: Long? = null
 
     fun setMode(mode: String) {
         currentMode = mode
         LOGGER.info("Current mode set to {}", mode)
+    }
+
+    fun setProfile(profileId: Long) {
+        this.profileId = profileId
+        LOGGER.info("Changed profileId")
     }
 
     fun initializeDraft(accountId: Long, initialAmount: BigDecimal?, initialDescription: String?, initialCategoryId: Long?) {
@@ -73,7 +79,7 @@ constructor(
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         } else {
-            categoryDao.findByStringId("miscellaneous")
+            categoryDao.findByProfileIdAndStringId(profileId!!, "miscellaneous")
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         }
@@ -103,7 +109,8 @@ constructor(
                         }
                         AddEditTransactionFile(it.id, uri, it.mimeType, it.sha256, it.sizeBytes, true)
                     }
-                    AddTransactionItem(incrementId++, it.id!!, categoryDbToCategoryUi(category), it.amount, it.description, false, it.brand, imagesDraft)
+                    AddTransactionItem(incrementId++, it.id!!, categoryDbToCategoryUi(category),
+                        it.amount, it.description, false, it.brand, it.variation, it.referenceNumber, it.quantity, it.isReduction, it.ordinal, imagesDraft)
                 }
                 draft = draft.copy(items, imageHashes = imagesMap + existingDraft.imageHashes)
                 //Set Evidence
@@ -122,20 +129,13 @@ constructor(
                 //Set Seller
                 //Set Date and Time
                 val localDate = LocalDate.parse(transaction.datedAt)
-                val localTime = LocalTime.parse(transaction.datedAtTime)
-                val instant = localDate.atTime(localTime).toInstant(ZoneOffset.UTC)
-
-                val offset = ZoneOffset.of(transaction.datedAtOffset)
-                val originalOffsetDateTime = instant.atOffset(offset)
-                val localOffsetDateTime = originalOffsetDateTime.withOffsetSameInstant((timeAndLocaleHandler.getZone().rules.getOffset(
-                    Instant.now())))
-                val localDateTime = localOffsetDateTime.toLocalDateTime()
-                val zone = ZoneId.of(transaction.datedAtTimezone)
-                if(zone != timeAndLocaleHandler.getZone()) {
-                    LOGGER.info("Transaction {} has different time zone from the system", transactionId)
+                val localTime = if(transaction.datedAtTime != null) {
+                    LocalTime.parse(transaction.datedAtTime)
+                } else {
+                    null
                 }
-                draft = draft.copy(dbOriginalDate = localDateTime.toLocalDate(), dbOriginalTime = localDateTime.toLocalTime()) // TODO Think about ordinals later
-                draft = draft.copy(dbOriginalOffset = offset, dbOriginalZoneId = zone)
+
+                draft = draft.copy(dbOriginalDate = localDate, dbOriginalTime = localTime) // TODO Think about ordinals later
 
                 LOGGER.info("Initialized existing transaction {}", transactionId)
                 _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
@@ -152,7 +152,7 @@ constructor(
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         } else {
-            categoryDao.findByStringId("miscellaneous")
+            categoryDao.findByProfileIdAndStringId(profileId!!, "miscellaneous")
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         }
@@ -175,7 +175,7 @@ constructor(
     fun addItem(): Boolean {
         val currentList = draft.items
         if(currentList.size + 1 <= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE) {
-            val category = categoryDao.findByStringId("miscellaneous")
+            val category = categoryDao.findByProfileIdAndStringId(profileId!!, "miscellaneous")
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
             val maxId = currentList.maxOfOrNull { it.id }?: -1
@@ -245,16 +245,13 @@ constructor(
     // it's not likely that that will happen in the first place, unlike item images.
     // Rework this flow
     private fun evidenceHashInDb(transactionId: Long, sha256: String): Single<Boolean> {
-        return evidenceDao.doesHashExist(sha256)
+        return evidenceDao.doesHashExist(transactionId, sha256)
     }
 
     private fun getDbEvidenceByHash(transactionId: Long, sha256: String): Maybe<EvidenceDb> {
         return evidenceDao.findByTransactionIdAndSha256(transactionId, sha256)
     }
 
-    private fun getDbImageByHash(sha256: String): Maybe<ImageDb> {
-        return imageDao.findBySha256(sha256)
-    }
 
     /**
      * Creates a local image file for the `externalUri` if it doesn't exist and adds it to the item
@@ -265,9 +262,9 @@ constructor(
         var xUri = fileUri
         if(xUri == null) {
             val file: AddEditTransactionFile
-            if(imageDao.doesHashExist(uriHash).blockingGet()) {
+            if(imageDao.doesHashExist(profileId!!, uriHash).blockingGet()) {
                 LOGGER.info("createImageForItem: File already exists in DB for image")
-                val im = getDbImageByHash(uriHash).blockingGet()!!
+                val im = imageDao.findBySha256(profileId!!, uriHash).blockingGet()!!
                 xUri = Uri.parse(im.uri)
                 val size = xUri.toFile().length()
                 file = AddEditTransactionFile(im.id, xUri, mimeType, uriHash, size)
@@ -279,11 +276,18 @@ constructor(
             }
             return ((item.images + file) to item.images.size)
         } else {
-            val index = item.images.indexOfFirst { it.sha256 == uriHash}
+            val index = item.images.indexOfFirst { it.sha256 == uriHash }
             if(index == -1) {
                 LOGGER.info("createImageForItem: Image already exists in draft. Adding to item")
-                val size = xUri.toFile().length()
-                return (item.images + AddEditTransactionFile(null, xUri, mimeType, uriHash, size)) to item.images.size
+                if(imageDao.doesHashExist(profileId!!, uriHash).blockingGet()) {
+                    LOGGER.info("createImageForItem: File already exists in DB for image")
+                    val im = imageDao.findBySha256(profileId!!, uriHash).blockingGet()!!
+                    val size = xUri.toFile().length()
+                    return (item.images + AddEditTransactionFile(im.id!!, xUri, mimeType, uriHash, size)) to item.images.size
+                } else {
+                    val size = xUri.toFile().length()
+                    return (item.images + AddEditTransactionFile(null, xUri, mimeType, uriHash, size)) to item.images.size
+                }
             } else {
                 LOGGER.info("createImageForItem: Image already exists in draft and is attached to item")
                 return ArrayList(item.images) to index
@@ -298,6 +302,7 @@ constructor(
         }
         draft = draft.copy(items = newItems)
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Change, position))
+        LOGGER.debug("changeItem: {}", item)
         LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -523,7 +528,7 @@ constructor(
                 val newImageHashes = imageHashes.toMutableMap()
                 val idMap = mutableMapOf<String, Long>()
                 for((hash, _) in imageHashes) {
-                    val image = getDbImageByHash(hash).blockingGet()
+                    val image = imageDao.findBySha256(profileId!!, hash).blockingGet()
                     if(image != null) {
                         newImageHashes[hash] = Uri.parse(image.uri)
                         idMap[hash] = image.id!!
@@ -577,10 +582,15 @@ constructor(
 
     private fun saveDraft(): Single<Unit> {
         return Single.fromCallable {
-            val total = draft.items.map { it.amount!! }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+            val total = draft.items.map {
+                if(it.isReduction) {
+                    it.amount!!.times(BigDecimal(-1))
+                } else {
+                    it.amount!!
+                }
+            }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
             //TODO Dates, Times, and Ordinals
             val (datedDate, datedTime) = customDateTimeForDraft(draft)
-//            val (dateTime, date, time, offset, zone) = quintuple
             val date = ZonedDateTime.now(timeAndLocaleHandler.getClock())
             val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
             val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -602,7 +612,7 @@ constructor(
                 val finalUri = mainFile.toUri()
 
                 val length = mainFile.length()
-                val imageDb = ImageDb(null, length, hash, mimeType, finalUri.toString(), dateTimeString, offset, zone)
+                val imageDb = ImageDb(null, profileId!!, length, hash, mimeType, finalUri.toString(), dateTimeString, offset, zone)
                 val imageId = imageDao.insertImage(imageDb).blockingGet()
                 imagesMap[image.sha256] = imageId
             }
@@ -616,7 +626,9 @@ constructor(
             }
             LOGGER.debug("AccountID: {}, Draft: {}", draft.accountId, draft)
             val account = accountRepository.getAccountByIdSingle(draft.accountId).blockingGet()!!
-            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, note, null, null, dateTimeString, offset, zone, 0, datedDate, datedTime, offset, zone)
+            val maxOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+            val ordinal = maxOrdinal + 1
+            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, draft.mode, note, null, null, dateTimeString, offset, zone, ordinal, datedDate, datedTime)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
                 LOGGER.info("saveDraft: Created new transaction")
@@ -636,8 +648,18 @@ constructor(
                 if(draft.evidence.isNotEmpty()) {
                     LOGGER.info("saveDraft: Saved {} evidence to transaction", draft.evidence.size)
                 }
+                var itemOrdinal = 1
                 val singles = draft.items.map { draftItem ->
-                    val item = TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, 1, draftItem.description!!, "", "", draftItem.category.id, dateTimeString, offset, zone)
+
+                    val item = if(draftItem.isReduction) {
+                        TransactionItemDb(null, id, draftItem.amount!!, null, 1,
+                            draftItem.description!!, "", null,
+                            draftItem.category.id, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
+                    } else {
+                        TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, draftItem.quantity,
+                            draftItem.description!!, draftItem.variation, draftItem.referenceNumber,
+                            draftItem.category.id, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
+                    }
                     transactionItemRepository.addTransactionItem(item)
                         .flatMap {  itemId ->
                             val imageSingles = draftItem.images.map { image ->
@@ -689,9 +711,10 @@ constructor(
             val actuallyUsedNewImages = draft.items.map { it.images }.fold(emptyList<AddEditTransactionFile>()) { acc, list -> acc + list }.filter { it.dbId == null }.toSet()
             val imagesMap = mutableMapOf<String, Long>()
             for(image in actuallyUsedNewImages) {
-//                if(imagesMap[image.sha256] != null) { //?
-//                    continue
-//                }
+                LOGGER.debug("actuallyUsedNewImages: {}", actuallyUsedNewImages)
+                if(imagesMap[image.sha256] != null) {
+                    continue
+                }
                 val file = image.uri.toFile()
                 val hash = image.sha256
                 val mimeType = image.mimeType
@@ -699,7 +722,7 @@ constructor(
                 val finalUri = mainFile.toUri()
 
                 val length = mainFile.length()
-                val imageDb = ImageDb(null, length, hash, mimeType, finalUri.toString(), dateTime, offset, zone)
+                val imageDb = ImageDb(null, profileId!!, length, hash, mimeType, finalUri.toString(), dateTime, offset, zone)
                 val imageId = imageDao.insertImage(imageDb).blockingGet()
                 imagesMap[image.sha256] = imageId
             }
@@ -710,37 +733,83 @@ constructor(
             var unchangedCount = 0
 
             var total  = BigDecimal.ZERO
+            var maxOrdinal = ((draft.items.filter { it.dbId != null } + draft.deletedDbItems).map { it.ordinal }.maxOrNull()?: 0) + 1
+            val ordinals = draft.items.filter { it.dbId != null }.map { it.ordinal }
+            LOGGER.debug("ordinals: {}, maxOrdinal: {}", ordinals, maxOrdinal)
             for(item in draft.items) {
                 val itemId: Long
                 if(item.dbId != null) {
                     itemId = item.dbId
-                    total = total.plus(item.amount!!)
-                    val result = transactionItemDao.updateTransactionItem(
-                        item.dbId, item.amount!!, item.brand, 1, item.description!!, item.category.id
-                    ).blockingGet()
-                    if(result > 0) {
-                        updatedCount += result
+                    if(item.isReduction) {
+                        val amountToAdd = item.amount!!.times(BigDecimal(-1))
+                        total = total.plus(amountToAdd)
+                        val result = transactionItemDao.updateTransactionItem(
+                            item.dbId, item.amount!!, null, 1, item.description!!, item.category.id
+                        ).blockingGet()
+                        if(result > 0) {
+                            updatedCount += result
+                        } else {
+                            unchangedCount += 1
+                        }
                     } else {
-                        unchangedCount += 1
+                        val amountToAdd = item.amount!!
+
+                        total = total.plus(amountToAdd)
+                        val result = transactionItemDao.updateTransactionItem(
+                            item.dbId,
+                            item.amount!!,
+                            item.brand,
+                            1,
+                            item.description!!,
+                            item.category.id
+                        ).blockingGet()
+                        if (result > 0) {
+                            updatedCount += result
+                        } else {
+                            unchangedCount += 1
+                        }
                     }
 
                 } else {
-                    val itemDb = TransactionItemDb(
-                        null,
-                        transactionId!!,
-                        item.amount!!,
-                        item.brand,
-                        1,
-                        item.description!!,
-                        "",
-                        "",
-                        item.category.id,
-                        dateTime,
-                        offset,
-                        zone
-                    )
-                    itemId = transactionItemRepository.addTransactionItem(itemDb).blockingGet()
-                    total = total.plus(item.amount)
+                    if(item.isReduction) {
+                        val itemDb = TransactionItemDb(
+                            null,
+                            transactionId!!,
+                            item.amount!!,
+                            null,
+                            1,
+                            item.description!!,
+                            "",
+                            null,
+                            item.category.id,
+                            item.isReduction, maxOrdinal++,
+                            dateTime,
+                            offset,
+                            zone
+                        )
+                        itemId = transactionItemRepository.addTransactionItem(itemDb).blockingGet()
+                        val amountToAdd = item.amount!!.times(BigDecimal(-1))
+                        total = total.plus(amountToAdd)
+                    } else {
+                        val itemDb = TransactionItemDb(
+                            null,
+                            transactionId!!,
+                            item.amount!!,
+                            item.brand,
+                            item.quantity,
+                            item.description!!,
+                            item.variation,
+                            item.referenceNumber,
+                            item.category.id,
+                            item.isReduction, maxOrdinal++,
+                            dateTime,
+                            offset,
+                            zone
+                        )
+                        itemId = transactionItemRepository.addTransactionItem(itemDb).blockingGet()
+                        val amountToAdd = item.amount!!
+                        total = total.plus(amountToAdd)
+                    }
                     newCount++
                 }
                 for (image in item.images) {
@@ -949,17 +1018,65 @@ constructor(
                 break
             }
         }
+        if(valid) {
+            val reductionSum = draft.items.map {
+                if(it.isReduction) {
+                    it.amount!!
+                } else {
+                    BigDecimal.ZERO //This implicitly covers the case of only reductions
+                }
+            }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+            val regularSum = draft.items.map {
+                if(!it.isReduction) {
+                    it.amount!!
+                } else {
+                    BigDecimal.ZERO
+                }
+            }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
+            if (regularSum.compareTo(reductionSum) <= 0) {
+                LOGGER.info("Sum of reductions cannot be greater than or equal to the sum of regular items")
+                valid = false
+            }
+        }
         return valid
     }
 
-    fun setUseCustomDateTime(useCustomDateTime: Boolean) {
-        draft = draft.copy(useCustomDateTime = useCustomDateTime)
-        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
-        LOGGER.info("Use custom dateTime {}", useCustomDateTime)
-        if (currentMode == "add") {
-            fileHandler.saveDraft(draft).subscribe()
+    fun isDraftEmpty(): Boolean {
+        if(draft.evidence.isNotEmpty()) {
+            return false
         }
+        if(draft.customDate != null || draft.customTime != null) {
+            return false
+        }
+        if(draft.note != null && draft.note!!.isNotBlank()) {
+            return false
+        }
+        for(item in draft.items) {
+            if(item.images.isNotEmpty()) {
+                return false
+            }
+            if(item.amount != null && item.amount.compareTo(BigDecimal.ZERO) != 0) {
+                return false
+            }
+            if(item.description != null && item.description.isNotBlank()) {
+                return false
+            }
+
+            if(item.brand != null && item.brand.isNotBlank()) {
+                return false
+            }
+
+            if(item.variation.isNotBlank()) {
+                return false
+            }
+
+            if(item.referenceNumber != null && item.referenceNumber.isNotBlank()) {
+                return false
+            }
+        }
+        return true
     }
+
     fun setDate(localDate: LocalDate?) {
         draft = draft.copy(customDate = localDate)
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
@@ -1005,26 +1122,16 @@ constructor(
         }
     }
 
-    fun customDateTimeForDraft(draft: AddEditDetailedTransactionDraft): Pair<String, String> {
-        val date = ZonedDateTime.now(timeAndLocaleHandler.getClock())
-//        val (dateTime, offset, zone) = dateTimeOffsetZone(clock)
-        val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
-        val dateString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val timeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_TIME)
-        val useCustom = draft.useCustomDateTime
-        return if(useCustom) {
-            val customDate = draft.customDate ?: LocalDate.now(timeAndLocaleHandler.getClock())
-            val customTime = draft.customTime ?: LocalTime.now(timeAndLocaleHandler.getClock())
-            val customDateTime = customDate.atTime(customTime)
-//            DateTimeQuintuple(
-                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME)
-//                customDateTime.format(DateTimeFormatter.ISO_LOCAL_TIME),
-//                offset, zone
-//            )
+    fun customDateTimeForDraft(draft: AddEditDetailedTransactionDraft): Pair<String, String?> {
+
+        val customDate = draft.customDate ?: LocalDate.now(timeAndLocaleHandler.getClock())
+        val customTime: LocalTime?
+        if(customDate.isBefore(LocalDate.now(timeAndLocaleHandler.getClock()))) {
+            customTime = draft.customTime
         } else {
-//            DateTimeQuintuple(dateTime, dateString, timeString, offset, zone)
-            dateString to timeString
+            customTime = draft.customTime ?: LocalTime.now(timeAndLocaleHandler.getClock())
         }
+        return customDate.toString() to customTime?.toString()
     }
 
     /**
