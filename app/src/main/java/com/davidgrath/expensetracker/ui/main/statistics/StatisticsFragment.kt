@@ -96,7 +96,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
-                    binding.imageViewStatisticsConfigureCurrentMode.alpha = 0.5f
+                    binding.imageViewStatisticsConfigureCurrentMode.alpha = ALPHA_DISABLED
                 }
                 StatisticsConfig.DateMode.Weekly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
@@ -108,7 +108,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
-                    binding.imageViewStatisticsConfigureCurrentMode.alpha = 0.5f
+                    binding.imageViewStatisticsConfigureCurrentMode.alpha = ALPHA_DISABLED
                 }
                 StatisticsConfig.DateMode.Monthly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
@@ -120,7 +120,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
-                    binding.imageViewStatisticsConfigureCurrentMode.alpha = 0.5f
+                    binding.imageViewStatisticsConfigureCurrentMode.alpha = ALPHA_DISABLED
                 }
                 StatisticsConfig.DateMode.Yearly -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
@@ -142,7 +142,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = false
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = false
-                    binding.imageViewStatisticsConfigureCurrentMode.alpha = 0.5f
+                    binding.imageViewStatisticsConfigureCurrentMode.alpha = ALPHA_DISABLED
                 }
             }
 
@@ -286,7 +286,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                                     builder.setSelection(millis)
                                     LOGGER.info("Using existing date for datePicker")
                                 } else {
-                                    val millis = Instant.now().toEpochMilli()
+                                    val millis = Instant.now(timeAndLocaleHandler.getClock()).toEpochMilli()
                                     builder.setSelection(millis)
                                     LOGGER.info("Using current date for datePicker")
                                 }
@@ -414,7 +414,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     ZoneOffset.UTC).toEpochMilli()
                 LOGGER.info("Using existing date for datePicker")
             } else {
-                startMillis = Instant.now().toEpochMilli()
+                startMillis = Instant.now(timeAndLocaleHandler.getClock()).toEpochMilli()
                 LOGGER.info("Using current date for datePicker")
             }
             val endMillis: Long
@@ -423,7 +423,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     ZoneOffset.UTC).toEpochMilli()
                 LOGGER.info("Using existing date for datePicker")
             } else {
-                endMillis = Instant.now().toEpochMilli()
+                endMillis = Instant.now(timeAndLocaleHandler.getClock()).toEpochMilli()
                 LOGGER.info("Using current date for datePicker")
             }
             builder.setSelection(Pair(startMillis, endMillis))
@@ -451,6 +451,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
         private const val DISAMBIGUATION_TAG_X_DAYS = "xDays"
         private const val DISAMBIGUATION_TAG_MONTHLY = "monthly"
         private val LOGGER = LoggerFactory.getLogger(StatisticsFragment::class.java)
+        private const val ALPHA_DISABLED = 0.2f
     }
 
     class DateValuesFormatter(private val dates: List<LocalDate>): ValueFormatter() {

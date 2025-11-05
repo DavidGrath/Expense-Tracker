@@ -230,7 +230,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                             builder.setSelection(millis)
                             LOGGER.info("Using existing date for datePicker")
                         } else {
-                            val millis = Instant.now().toEpochMilli()
+                            val millis = Instant.now(timeAndLocaleHandler.getClock()).toEpochMilli()
                             builder.setSelection(millis)
                             LOGGER.info("Using current date for datePicker")
                         }

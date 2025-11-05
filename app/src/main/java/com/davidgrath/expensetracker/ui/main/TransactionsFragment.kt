@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,25 +8,50 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.Spinner
+import androidx.core.util.Pair
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.ui.AccountUi
+import com.davidgrath.expensetracker.ui.AccountAdapter
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
+import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener
 import org.slf4j.LoggerFactory
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneOffset
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.format.FormatStyle
 import java.math.BigDecimal
 import javax.inject.Inject
 
-class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener {
+class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, AddTransactionDialogFragment.AddTransactionListener, TransactionItemsAdapter.TransactionClickListener,
+    MaterialPickerOnPositiveButtonClickListener<Pair<Long, Long>> {
 
     lateinit var binding: FragmentTransactionsBinding
     lateinit var viewModel: MainViewModel
     lateinit var adapter: TransactionItemsAdapter
+    private var dateRangePicker: MaterialDatePicker<Pair<Long, Long>>? = null
+    private lateinit var startDate: LocalDate
+    private lateinit var endDate: LocalDate
+    private var accountId = -1L
+    private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
 
     var addTransactionDialog: AddTransactionDialogFragment? = null
     @Inject
@@ -37,35 +63,73 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         val app = requireContext().applicationContext as ExpenseTracker
         val appComponent = app.appComponent
         appComponent.inject(this)
+        startDate = LocalDate.now(timeAndLocaleHandler.getClock())
+        endDate = LocalDate.now(timeAndLocaleHandler.getClock())
         addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         adapter = TransactionItemsAdapter(emptyList(), this)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
+        val accountAdapter = AccountAdapter(requireContext(), mutableListOf<AccountUi>())
+
+        val listener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val account = accountAdapter._objects[position]
+                viewModel.setHomeAccountId(account.id)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+        }
+        binding.spinnerTransactionsCurrentAccount.adapter = accountAdapter
+        binding.spinnerTransactionsCurrentAccount.onItemSelectedListener = listener
+
         binding.recyclerviewTransactions.adapter = adapter
         binding.recyclerviewTransactions.layoutManager = LinearLayoutManager(requireContext())
+
+        viewModel.accountsLiveData.observe(viewLifecycleOwner) { accounts ->
+            accountAdapter.setItems(accounts)
+            if(binding.spinnerTransactionsCurrentAccount.selectedItemPosition == Spinner.INVALID_POSITION) {
+                binding.spinnerTransactionsCurrentAccount.onItemSelectedListener = null
+                binding.spinnerTransactionsCurrentAccount.setSelection(0)
+                binding.spinnerTransactionsCurrentAccount.onItemSelectedListener = listener
+            }
+
+            val accountPosition = accountAdapter._objects.indexOfFirst { it.id == accountId }
+            binding.spinnerTransactionsCurrentAccount.onItemSelectedListener = null
+
+            if(accountPosition == -1) {
+                LOGGER.warn("Current Account not available in spinner. Changing selection to first item")
+                binding.spinnerTransactionsCurrentAccount.setSelection(0)
+            } else {
+                LOGGER.info("Current Account of spinner changed")
+                binding.spinnerTransactionsCurrentAccount.setSelection(accountPosition)
+            }
+            binding.spinnerTransactionsCurrentAccount.onItemSelectedListener = listener
+        }
         viewModel.homeListLiveData.observe(viewLifecycleOwner) { list ->
             LOGGER.info("Transactions Item Count: {}", list.size)
             adapter.setItems(list)
         }
-        /*binding.barChartMain.legend.isEnabled = false
-        binding.barChartMain.description.isEnabled = false
-        binding.barChartMain.xAxis.setDrawLabels(false)
-        binding.barChartMain.axisLeft.setDrawLabels(false)
-        binding.barChartMain.axisLeft.axisMinimum = 0f
-        binding.barChartMain.axisRight.axisMinimum = 0f
-        viewModel.statsPastXByCategory.observe(viewLifecycleOwner) { list ->
-            LOGGER.info("Summary Item Count: {}", list.size)
-            val dataSet = BarDataSet(list, "Summary for past 7 days")
-            dataSet.colors = MaterialColors.Palette.map { it.value }
-            dataSet.setDrawIcons(true)
-            dataSet.setDrawValues(true)
-            val data = BarData(dataSet)
-            binding.barChartMain.isLogEnabled = true
-            binding.barChartMain.data = data
-            binding.barChartMain.invalidate()
-        }*/
+        viewModel.homeConfigLiveData.observe(viewLifecycleOwner) {
+            this.startDate = it.startDate
+            this.endDate = it.endDate
+            val startDateFormat = dateFormat.format(startDate)
+            if(startDate.compareTo(endDate) != 0) {
+                val endDateFormat = dateFormat.format(endDate)
+                binding.textViewTransactionsCurrentDate.text = "$startDateFormat - $endDateFormat"
+                binding.imageButtonTransactionsCycleDateRight.isEnabled = false
+                binding.imageButtonTransactionsCycleDateLeft.isEnabled = false
+            } else {
+                binding.textViewTransactionsCurrentDate.text = startDateFormat
+                binding.imageButtonTransactionsCycleDateRight.isEnabled = true
+                binding.imageButtonTransactionsCycleDateLeft.isEnabled = true
+            }
+            this.accountId = it.accountId
+        }
         viewModel.homeTotalIncome.observe(viewLifecycleOwner) {
             binding.textViewTransactionsTotalIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
         }
@@ -75,6 +139,9 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
 
         binding.fabTransactions.setOnClickListener(this)
         binding.fabTransactions.setOnLongClickListener(this)
+        binding.imageButtonTransactionsCycleDateLeft.setOnClickListener(this)
+        binding.imageButtonTransactionsCycleDateRight.setOnClickListener(this)
+        binding.textViewTransactionsCurrentDate.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
@@ -94,6 +161,39 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
                         addTransactionDialog?.show(childFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
                     }
                 }
+                binding.imageButtonTransactionsCycleDateLeft -> {
+                    viewModel.decrementHomeDay()
+                }
+                binding.imageButtonTransactionsCycleDateRight -> {
+                    viewModel.incrementHomeDay()
+                }
+                binding.textViewTransactionsCurrentDate -> {
+                    dateRangePicker = childFragmentManager.findFragmentByTag(DIALOG_TAG_DATE) as MaterialDatePicker<Pair<Long, Long>>?
+                    if(dateRangePicker == null) {
+                        LOGGER.info("dateRangePicker is null. Creating")
+                        val calendarConstraints = CalendarConstraints.Builder()
+                            .setValidator(DateValidatorPointBackward.now())
+                            .build()
+                        val builder = MaterialDatePicker.Builder.dateRangePicker()
+                            .setCalendarConstraints(calendarConstraints)
+
+                            val startMillis = startDate.atStartOfDay().toInstant(
+                                ZoneOffset.UTC).toEpochMilli()
+                            val endMillis = startDate.atTime(LocalTime.MAX).toInstant(
+                                ZoneOffset.UTC).toEpochMilli()
+                            builder.setSelection(Pair(startMillis, endMillis))
+
+                        builder.setSelection(Pair(startMillis, endMillis))
+                        dateRangePicker = builder.build()
+                        dateRangePicker!!.addOnPositiveButtonClickListener(this)
+                    }
+                    if(!(dateRangePicker?.dialog?.isShowing?: false)) {
+                        dateRangePicker!!.show(childFragmentManager,
+                            DIALOG_TAG_DATE
+                        )
+                        LOGGER.info("Showed dateRangePicker")
+                    }
+                }
                 else -> {}
             }
         }
@@ -110,6 +210,18 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             }
         }
         return true
+    }
+
+    override fun onPositiveButtonClick(selection: Pair<Long, Long>) {
+        selection?.let {
+            LOGGER.info("dateRangePicker date picked")
+            val startInstant = Instant.ofEpochMilli(it.first)
+            val startLocalDate = startInstant.atZone(timeAndLocaleHandler.getZone()).toLocalDate()
+
+            val endInstant = Instant.ofEpochMilli(it.second)
+            val endLocalDate = endInstant.atZone(timeAndLocaleHandler.getZone()).toLocalDate()
+            viewModel.setHomeDateRange(startLocalDate, endLocalDate)
+        }
     }
 
     override fun onGoToDetails(accountId: Long, amount: BigDecimal?, description: String?, categoryId: Long?) {
@@ -135,6 +247,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             return transactionsFragment
         }
         private const val FRAGMENT_TAG_ADD_TRANSACTION = "addTransaction"
+        private const val DIALOG_TAG_DATE = "dateDialog"
 
         private val LOGGER = LoggerFactory.getLogger(TransactionsFragment::class.java)
     }

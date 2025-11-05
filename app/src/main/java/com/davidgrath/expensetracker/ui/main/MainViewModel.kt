@@ -19,7 +19,6 @@ import com.davidgrath.expensetracker.transactionWithCategoryToCategoryUi
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
-import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
@@ -83,7 +82,8 @@ constructor(
     private var pastXLyMode: StatisticsConfig.DateMode? = null
     private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>()
     val statisticsConfigLiveData: LiveData<StatisticsConfig> = _statisticsConfigLiveData
-    val accountsLiveData: LiveData<List<AccountWithStatsUi>>
+    val accountWithStatsLiveData: LiveData<List<AccountWithStatsUi>>
+    val accountsLiveData: LiveData<List<AccountUi>>
     private val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
     private var currentProfile = -1L
 
@@ -104,6 +104,7 @@ constructor(
         homeListLiveData = homeConfigLiveData.switchMap {
             transactionRepository.getTransactions(
                 profile.id, it.accountId, it.startDate.toString(), it.endDate.toString()
+//                profile.id, it.accountId, it.startDate.toString(), it.endDate.toString()
             ).map { transactionsAndItems ->
                 val list = arrayListOf<TransactionWithItemAndCategoryUi>()
                 for (item in transactionsAndItems) {
@@ -274,8 +275,13 @@ constructor(
 
 
 
-        accountsLiveData = accountRepository.getAccountsWithStatsForProfile(currentProfile).map { list ->
+        accountWithStatsLiveData = accountRepository.getAccountsWithStatsForProfile(currentProfile).map { list ->
             list.map { accountWithStatsDbToAccountWithStatsUi(it, timeAndLocaleHandler.getLocale()) }
+        }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        accountsLiveData = accountRepository.getAccountsForProfile(currentProfile).map { list ->
+            list.map { account ->
+                accountDbToAccountUi(account, timeAndLocaleHandler.getLocale())
+            }
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 
@@ -559,6 +565,34 @@ constructor(
         this.homeConfig = this.homeConfig.copy(startDate = startDate, endDate = endDate)
         _homeConfigLiveData.postValue(homeConfig)
     }
+
+    fun incrementHomeDay() {
+        if(homeConfig.startDate.compareTo(homeConfig.endDate) != 0) {
+            LOGGER.info("incrementHomeDay: Start and end date not the same. Will not increment")
+            return
+        }
+        val date = homeConfig.startDate
+        val today = LocalDate.now(timeAndLocaleHandler.getClock())
+        if(date.plusDays(1).isAfter(today)) {
+            LOGGER.info("Home day capped at today")
+        } else {
+            this.homeConfig = this.homeConfig.copy(startDate = date.plusDays(1), endDate = date.plusDays(1))
+            _homeConfigLiveData.postValue(this.homeConfig)
+        }
+
+    }
+
+    fun decrementHomeDay() {
+        if(homeConfig.startDate.compareTo(homeConfig.endDate) != 0) {
+            LOGGER.info("decrementHomeDay: Start and end date not the same. Will not decrement")
+            return
+        }
+        val date = homeConfig.endDate
+        this.homeConfig = this.homeConfig.copy(startDate = date.minusDays(1), endDate = date.minusDays(1))
+        _homeConfigLiveData.postValue(this.homeConfig)
+    }
+
+
 
     private fun getFilteredWeekDays(profileId: Long, config: StatisticsConfig): List<String> {
         val dates = mutableListOf<String>()

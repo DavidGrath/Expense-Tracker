@@ -55,7 +55,7 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
         val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerviewAccounts.adapter = adapter
         binding.recyclerviewAccounts.layoutManager = layoutManager
-        viewModel.accountsLiveData.observe(viewLifecycleOwner) { accounts ->
+        viewModel.accountWithStatsLiveData.observe(viewLifecycleOwner) { accounts ->
             adapter.setItems(accounts)
         }
         binding.fabAccounts.setOnClickListener(this)
