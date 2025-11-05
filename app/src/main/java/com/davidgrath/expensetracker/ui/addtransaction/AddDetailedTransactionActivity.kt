@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -36,6 +37,10 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var accountRepository: AccountRepository
     @Inject
     lateinit var profileDao: ProfileDao
+    @Inject
+    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    var mode = "add"
+    var finishingDraft = false
 
     var noPagesDialogFragment: GenericDialogFragment? = null
     var passwordDialogFragment: GenericDialogFragment? = null
@@ -50,7 +55,6 @@ class AddDetailedTransactionActivity : FragmentActivity(),
         var description: String? = null
         var categoryId: Long? = null
         var accountId: Long? = null
-        var mode = "add"
         var transactionId: Long? = null
         if (extras != null) {
             mode = extras.getString(ARG_MODE)?: "add"
@@ -81,6 +85,17 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                 tab.text = "Other Details"
             }
         }.attach()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if(isFinishing) {
+            if(addDetailedTransactionRepository.isDraftEmpty() && mode == "add" && !finishingDraft) {
+                LOGGER.info("Draft is empty. Discarding")
+                Toast.makeText(this, "Draft is empty. Discarding", Toast.LENGTH_SHORT).show()
+                addDetailedTransactionRepository.deleteDraft()
+            }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -179,6 +194,7 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     }
 
     override fun onFinished() {
+        finishingDraft = true
         finish()
     }
 

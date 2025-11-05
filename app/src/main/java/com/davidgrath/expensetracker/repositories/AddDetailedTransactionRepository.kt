@@ -1074,6 +1074,7 @@ constructor(
                 return false
             }
         }
+        LOGGER.debug("draftEmpty: true")
         return true
     }
 

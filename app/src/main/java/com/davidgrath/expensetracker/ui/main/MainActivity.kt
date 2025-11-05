@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.main
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
@@ -11,6 +12,8 @@ import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
+import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModel
@@ -19,16 +22,29 @@ import com.google.gson.GsonBuilder
 import org.slf4j.LoggerFactory
 import org.threeten.bp.DayOfWeek
 import java.io.File
+import javax.inject.Inject
 
 class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListener {
 
     lateinit var activityMainBinding: ActivityMainBinding
     lateinit var viewModel: MainViewModel
+    @Inject
+    lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
+        app.appComponent.inject(this)
+        if(savedInstanceState == null) {
+            if(addDetailedTransactionRepository.draftExists()) {
+                addDetailedTransactionRepository.restoreDraft().blockingSubscribe() //TODO I think I'll rework the Repository to no longer be a Singleton, this way of restoring the draft feels unnecessary
+                if (addDetailedTransactionRepository.isDraftEmpty()) {
+                    LOGGER.info("Draft is empty. Removing")
+                    addDetailedTransactionRepository.deleteDraft()
+                }
+            }
+        }
         viewModel = ViewModelProvider(this, MainViewModelFactory(app.appComponent)).get(
             MainViewModel::class.java)
         activityMainBinding.viewpagerMain.adapter = MainFragmentStateAdapter(this)

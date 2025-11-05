@@ -11,6 +11,7 @@ import androidx.lifecycle.switchMap
 import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
+import com.davidgrath.expensetracker.DraftFileHandler
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.accountWithStatsDbToAccountWithStatsUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -60,7 +61,8 @@ constructor(
     private val categoryRepository: CategoryRepository,
     private val timeAndLocaleHandler: TimeAndLocaleHandler,
     private val accountRepository: AccountRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val fileHandler: DraftFileHandler
 ) : AndroidViewModel(application) {
 
     val statsTotalByCategory: LiveData<Pair<List<BarEntry>, List<BarEntry>>>
@@ -590,6 +592,10 @@ constructor(
         val date = homeConfig.endDate
         this.homeConfig = this.homeConfig.copy(startDate = date.minusDays(1), endDate = date.minusDays(1))
         _homeConfigLiveData.postValue(this.homeConfig)
+    }
+
+    fun doesDraftExist(): Boolean {
+        return fileHandler.draftExists()
     }
 
 

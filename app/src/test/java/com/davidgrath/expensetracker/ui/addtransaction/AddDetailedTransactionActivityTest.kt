@@ -77,6 +77,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowLooper
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.math.BigDecimal
 import java.util.Locale
@@ -116,6 +117,9 @@ class AddDetailedTransactionActivityTest {
          * Rx Idler doesn't seem to work as expected, so I'll fall back to this when necessary
          */
         const val SLEEP_DURATION = 1_100L
+
+
+        private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionActivityTest::class.java)
     }
 
     @Before
@@ -637,6 +641,73 @@ class AddDetailedTransactionActivityTest {
     @Ignore("Not ready yet")
     fun givenTransactionExistsWhenEditsMadeAndCancelClickedThenTransactionNotChanged() {
 
+    }
+
+    @Test
+    fun givenModeIsAddAndChangesMadeWhenCloseActivityThenDraftDiscarded() {
+
+        //Open Add Detailed Transaction Screen
+        var addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        val basicAmount = "100.00"
+        val basicDescription = "Description"
+
+
+        //Add an Item with all details
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            basicAmount
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            basicDescription
+        )
+
+        addDetailedTransactionActivityScenario.moveToState(Lifecycle.State.DESTROYED)
+
+        assertTrue(app.draftExists())
+        addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount
+        )
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_amount,
+            "0"
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description
+        )
+        clearTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description
+        )
+        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.edit_text_add_detailed_transaction_item_description,
+            " " // It seems setting the text to empty doesn't trigger a change. It's either something I did or a subtle bug, either way I'm leaving it like this
+        )
+        addDetailedTransactionActivityScenario.moveToState(Lifecycle.State.DESTROYED)
+
+        assertFalse(app.draftExists())
     }
 
 

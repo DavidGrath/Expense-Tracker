@@ -117,6 +117,7 @@ class AddDetailedTransactionRepositoryTest {
     @Before
     fun setUp() {
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
         (app.appComponent as TestComponent).inject(this)
         dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
@@ -126,6 +127,7 @@ class AddDetailedTransactionRepositoryTest {
     fun tearDown() {
         app.filesDir.deleteRecursively()
         Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
+        println("clearAllTables")
     }
 
     @Test
@@ -701,6 +703,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
+//    @Ignore("Seems to have turned flaky. Ignore for later")
     fun givenModeIsDraftAndImagesSavedThroughPreviousEditWhenRestoreDraftThenReferencesCorrected() {
 
         val resource = TestData.Resource.Images.BREAD

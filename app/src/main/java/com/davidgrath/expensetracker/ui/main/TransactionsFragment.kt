@@ -10,6 +10,7 @@ import android.view.View.OnLongClickListener
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.Spinner
+import androidx.annotation.OptIn
 import androidx.core.util.Pair
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -26,6 +27,9 @@ import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOth
 import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
+import com.google.android.material.badge.BadgeDrawable
+import com.google.android.material.badge.BadgeUtils
+import com.google.android.material.badge.ExperimentalBadgeUtils
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -52,6 +56,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
     private lateinit var endDate: LocalDate
     private var accountId = -1L
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+    private lateinit var badgeDrawable: BadgeDrawable
 
     var addTransactionDialog: AddTransactionDialogFragment? = null
     @Inject
@@ -142,6 +147,20 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         binding.imageButtonTransactionsCycleDateLeft.setOnClickListener(this)
         binding.imageButtonTransactionsCycleDateRight.setOnClickListener(this)
         binding.textViewTransactionsCurrentDate.setOnClickListener(this)
+        badgeDrawable = BadgeDrawable.create(requireContext())
+    }
+
+    @OptIn(ExperimentalBadgeUtils::class)
+    override fun onResume() {
+        super.onResume()
+        if(viewModel.doesDraftExist()) {
+            badgeDrawable.setVisible(true)
+            ""
+            BadgeUtils.attachBadgeDrawable(badgeDrawable, binding.fabTransactions)
+        } else {
+            badgeDrawable.setVisible(false)
+            BadgeUtils.detachBadgeDrawable(badgeDrawable, binding.fabTransactions)
+        }
     }
 
     override fun onClick(v: View?) {
