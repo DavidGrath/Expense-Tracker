@@ -9,6 +9,7 @@ import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.CompoundButton
 import android.widget.CompoundButton.OnCheckedChangeListener
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -34,6 +35,9 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
     private val textWatcherAmountMap = mutableMapOf<Int, TextWatcher>()
     private val textWatcherDescriptionMap = mutableMapOf<Int, TextWatcher>()
     private val textWatcherBrandMap = mutableMapOf<Int, TextWatcher>()
+    private val textWatcherVariationMap = mutableMapOf<Int, TextWatcher>()
+    private val textWatcherQuantityMap = mutableMapOf<Int, TextWatcher>()
+    private val textWatcherReferenceMap = mutableMapOf<Int, TextWatcher>()
 
     interface AddTransactionItemRecyclerListener {
         fun onItemChanged(position: Int, item: AddTransactionItem)
@@ -124,6 +128,15 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     }
                 }
                 binding.linearLayoutAddDetailedTransactionDetails.visibility = if(cachedItem.showDetails) View.VISIBLE else View.GONE
+                val showDrawable = AppCompatResources.getDrawable(binding.root.context, R.drawable.baseline_keyboard_arrow_right_24)
+                val hideDrawable = AppCompatResources.getDrawable(binding.root.context, R.drawable.baseline_keyboard_arrow_down_24)
+                binding.textViewAddDetailedTransactionShowDetails.setCompoundDrawables(
+                    if(cachedItem.showDetails) {
+                        hideDrawable
+                    } else {
+                        showDrawable
+                    }, null, null, null
+                )
                 binding.textViewAddDetailedTransactionShowDetails.setOnClickListener {
                     currentItem = absPosition
                     var latestItem = _items[position]
@@ -147,7 +160,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     binding.editTextAddDetailedTransactionItemBrand.removeTextChangedListener(oldBrandWatcher)
                 }
                 binding.editTextAddDetailedTransactionItemBrand.setText(cachedItem.brand?:"")
-                binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener { text: Editable? ->
+                val newBrandWatcher = binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener { text: Editable? ->
                     if(binding.editTextAddDetailedTransactionItemBrand.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
@@ -156,7 +169,57 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                         }
                     }
                 }
-                textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newDescriptionWatcher
+                textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newBrandWatcher
+
+                val oldVariationWatcher = textWatcherVariationMap[binding.editTextAddDetailedTransactionItemVariation.hashCode()]
+                if(oldVariationWatcher != null) {
+                    binding.editTextAddDetailedTransactionItemVariation.removeTextChangedListener(oldVariationWatcher)
+                }
+                binding.editTextAddDetailedTransactionItemVariation.setText(cachedItem.variation?:"")
+                val newVariationWatcher = binding.editTextAddDetailedTransactionItemVariation.addTextChangedListener { text: Editable? ->
+                    if(binding.editTextAddDetailedTransactionItemVariation.hasFocus()) {
+                        currentItem = absPosition
+                        var latestItem = _items[absPosition]
+                        if (latestItem.variation != text.toString()) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(variation = text.toString()))
+                        }
+                    }
+                }
+                textWatcherVariationMap[binding.editTextAddDetailedTransactionItemVariation.hashCode()] = newVariationWatcher
+
+                val oldQuantityWatcher = textWatcherQuantityMap[binding.editTextAddDetailedTransactionItemQuantity.hashCode()]
+                if(oldQuantityWatcher != null) {
+                    binding.editTextAddDetailedTransactionItemQuantity.removeTextChangedListener(oldQuantityWatcher)
+                }
+                binding.editTextAddDetailedTransactionItemQuantity.setText(cachedItem.quantity.toString())
+                val newQuantityWatcher = binding.editTextAddDetailedTransactionItemQuantity.addTextChangedListener { text: Editable? ->
+                    if(binding.editTextAddDetailedTransactionItemQuantity.hasFocus()) {
+                        currentItem = absPosition
+                        var latestItem = _items[absPosition]
+                        if (latestItem.quantity.toString() != text.toString()) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(quantity = text.toString().toInt()))
+                        }
+                    }
+                }
+                textWatcherQuantityMap[binding.editTextAddDetailedTransactionItemQuantity.hashCode()] = newQuantityWatcher
+
+                val oldReferenceListener = textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()]
+                if(oldReferenceListener != null) {
+                    binding.editTextAddDetailedTransactionItemReference.removeTextChangedListener(oldReferenceListener)
+                }
+                binding.editTextAddDetailedTransactionItemReference.setText(cachedItem.referenceNumber)
+                val newReferenceWatcher = binding.editTextAddDetailedTransactionItemReference.addTextChangedListener { text: Editable? ->
+                    if(binding.editTextAddDetailedTransactionItemReference.hasFocus()) {
+                        currentItem = absPosition
+                        var latestItem = _items[absPosition]
+                        if (latestItem.referenceNumber != text.toString()) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(referenceNumber = text?.toString()))
+                        }
+                    }
+                }
+                textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()] = newReferenceWatcher
+                //dd
+
                 val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images, object: AddTransactionItemImagesRecyclerAdapter.ItemImageClickListener {
                     override fun onDeleteImage(position: Int) {
                         listener?.onDeleteItemImage(absPosition, position)

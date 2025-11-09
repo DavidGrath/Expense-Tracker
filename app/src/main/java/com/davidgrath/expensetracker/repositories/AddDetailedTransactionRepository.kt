@@ -849,17 +849,20 @@ constructor(
 
 
             val customDate = draft.customDate ?: draft.dbOriginalDate!!
-            val customTime = draft.customTime ?: draft.dbOriginalTime!!
+            val customTime = draft.customTime ?: draft.dbOriginalTime
             LOGGER.debug("original: {}", draft.dbOriginalTime)
-            val customDateTime = ZonedDateTime.of(customDate.atTime(customTime), timeAndLocaleHandler.getZone()).withZoneSameInstant(ZoneId.of("UTC"))
+//            val customDateTime = ZonedDateTime.of(customDate.atTime(customTime), timeAndLocaleHandler.getZone()).withZoneSameInstant(ZoneId.of("UTC"))
 
-            val (datedDate, datedTime) =
-                customDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE) to customDateTime.format(
-                    DateTimeFormatter.ISO_LOCAL_TIME
-                )
+            val datedDate = customDate.toString()
+            val datedTime = customTime?.toString()
 
+            var transactionOrdinal = transaction.ordinal
+            if(transaction.datedAt != datedDate) {
+                val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                transactionOrdinal = maxTransactionOrdinal + 1
+            }
             updatedTransaction =
-                updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime)
+                updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime, ordinal = transactionOrdinal)
             LOGGER.info("saveEdit: Transaction {}: set custom dateTime", transactionId)
 
             transactionRepository.updateTransaction(updatedTransaction).blockingSubscribe()

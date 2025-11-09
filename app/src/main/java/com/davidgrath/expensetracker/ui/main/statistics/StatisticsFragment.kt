@@ -315,7 +315,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                             weekDayDialogFragment.show(childFragmentManager, DIALOG_TAG_WEEKDAY)
                         }
                         StatisticsConfig.DateMode.Monthly -> {
-                            val x = viewModel.statisticsConfig.xDays
+                            val x = viewModel.statisticsConfig.monthlyDayOfMonth
                             val numberDialogFragment = NumberDialogFragment.newInstance(x, 31, DISAMBIGUATION_TAG_MONTHLY)
                             numberDialogFragment.listener = this
                             numberDialogFragment.show(childFragmentManager, DIALOG_TAG_NUMBER)

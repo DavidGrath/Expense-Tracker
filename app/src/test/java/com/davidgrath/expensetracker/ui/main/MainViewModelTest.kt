@@ -232,7 +232,7 @@ class MainViewModelTest {
 
             // Assert same day if first day
 
-            val newToday = LocalDate.parse("2025-05-01")
+            var newToday = LocalDate.parse("2025-05-01")
             timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
             viewModel.setDateMode(StatisticsConfig.DateMode.Monthly)
             assertEquals(newToday, viewModel.statisticsConfig.rangeStartDay)
@@ -242,6 +242,18 @@ class MainViewModelTest {
             )
             assertEquals(newToday, viewModel.statisticsConfig.rangeEndDay)
             assertEquals(1, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+
+            //Assert StartDate coerced to "today" if dayOfMonth set after "today"
+            newToday = LocalDate.parse("2025-05-15")
+            timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+            viewModel.setMonthlyDayOfMonth(22)
+            assertEquals(LocalDate.parse("2025-04-22"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(
+                22,
+                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+            )
+            assertEquals(newToday, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(15, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
 
             timeAndLocaleHandler.changeClock(Clock.fixed(LocalDateTime.parse("2025-06-30T08:00:00.000").toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
 

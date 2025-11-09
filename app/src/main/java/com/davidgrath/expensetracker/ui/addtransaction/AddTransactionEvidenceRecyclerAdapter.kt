@@ -58,6 +58,7 @@ class AddTransactionEvidenceRecyclerAdapter(private var evidenceList: List<AddEd
                     }
                     //TODO Release Glide resources, too
                 }
+                selectedItemPosition = -1
                 listener?.onDeleteEvidence(pos, xEvidence.uri)
             } else {
                 val oldSelection = selectedItemPosition

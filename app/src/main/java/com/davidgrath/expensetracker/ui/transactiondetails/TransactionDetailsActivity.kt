@@ -97,7 +97,12 @@ class TransactionDetailsActivity: AppCompatActivity() {
             binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
-            binding.textViewTransactionDetailsTime.text = timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS)) //TODO ordinals, ignore, we must, for now
+//            binding.textViewTransactionDetailsTime.text = timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS)) //TODO ordinals, ignore, we must, for now
+            binding.textViewTransactionDetailsTime.text = if(transaction.datedTime != null) {
+                timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS))
+            } else {
+                ""
+            }
 
             if(transaction.debitOrCredit) {
                 binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)

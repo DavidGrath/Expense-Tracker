@@ -106,7 +106,11 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             }
             if(draft.customTime == null) {
                 if(mode == "edit") {
-                    binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.dbOriginalTime!!)
+                    binding.textViewAddDetailedTransactionCustomTime.text = if(draft.dbOriginalTime != null) {
+                        timeFormat.format(draft.dbOriginalTime!!)
+                    } else {
+                        ""
+                    }
                 } else {
                     binding.textViewAddDetailedTransactionCustomTime.text = ""
                 }
@@ -248,10 +252,18 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                     if(timePicker == null) {
                         LOGGER.info("timePicker is null. Creating")
                         val builder = MaterialTimePicker.Builder()
-                        if(customLocalTime != null) { //TODO Default date and time to now if Material doesn't do that already
+                        if(customLocalTime != null) {
                             builder.setHour(customLocalTime!!.hour)
                             builder.setMinute(customLocalTime!!.minute)
-                            LOGGER.info("Using existing time for timePicker")
+                            LOGGER.info("Using existing custom time for timePicker")
+                        } else {
+//                            val localTime = LocalTime.now(timeAndLocaleHandler.getClock())
+//                            builder.setHour(localTime!!.hour)
+//                            builder.setMinute(localTime!!.minute)
+//                            LOGGER.info("Using current time for timePicker")
+                            //TODO When the date is "today", the time should display the current time by default and setting a custom time fixes it to that time
+                            // When the date is not "today", then instead the time should display nothing by default and setting a custom time still fixes it
+                            // Take care of that when I change things such that time is used to determine ordinals
                         }
                         val is24Hour = DateFormat.is24HourFormat(requireContext())
                         val format = if(is24Hour) {

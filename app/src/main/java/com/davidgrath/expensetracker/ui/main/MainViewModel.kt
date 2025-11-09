@@ -422,7 +422,12 @@ constructor(
                         LOGGER.info("monthlyDayOfMonth {} is greater than current month maximum {}, reducing", day, maxDayInMonth)
                         day = maxDayInMonth
                     }
-                    startDate = startDateMonth.withDayOfMonth(day)
+                    var possibleStartDate = startDateMonth.withDayOfMonth(day)
+                    if(possibleStartDate > today) {
+                        possibleStartDate = possibleStartDate.minusMonths(1)
+                    }
+//                    startDate = startDateMonth.withDayOfMonth(day)
+                    startDate = possibleStartDate
                     var possibleEndDate = startDate.plusMonths(1).minusDays(1)
                     if(possibleEndDate > today) {
                         possibleEndDate = today

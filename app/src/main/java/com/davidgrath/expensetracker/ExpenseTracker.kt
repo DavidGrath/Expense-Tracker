@@ -17,8 +17,10 @@ import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMainFragment
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.threeten.bp.LocalDate
@@ -38,6 +40,9 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     private val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriTypeAdapter()).create()
     open lateinit var preferences: SharedPreferences
     open lateinit var LOGGER: Logger
+    private var profile: ProfileDb? = null
+    private val _profileObservable = BehaviorSubject.create<ProfileDb>()
+    var profileObservable: Observable<ProfileDb> = _profileObservable
 
 //    @Suppress("DEPRECATION")
     override fun onCreate() {
@@ -203,8 +208,10 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
 
     fun tempInit(): Single<Unit> {
+        LOGGER.debug("tempInit")
         val profileDao = appComponent.profileDao()
         return profileDao.findByStringId(Constants.DEFAULT_PROFILE_ID).switchIfEmpty(tempCreateDefaultProfile()).flatMap { defaultProfile ->
+            _profileObservable.onNext(defaultProfile)
             val currentProfile = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
             if (currentProfile == null) {
                 preferences.edit()
@@ -221,6 +228,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
 
 
     fun tempCreateDefaultProfile(): Single<ProfileDb> {
+        LOGGER.debug("tempCreateDefaultProfile")
         val clock = appComponent.timeHandler().getClock()
         val date = ZonedDateTime.now(clock)
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
@@ -235,6 +243,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
 
     }
     fun tempInitProfile(profileDb: ProfileDb): Single<Long> {
+        LOGGER.debug("tempInitProfile")
         return Single.fromCallable {
             val accountDao = appComponent.accountDao()
             val accounts = accountDao.getAllByProfileIdSingle(profileDb.id!!).blockingGet()
@@ -276,6 +285,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         }
     }
     fun tempInitDefaultCategories(profileId: Long): Single<Unit> {
+        LOGGER.debug("tempInitDefaultCategories")
         return Single.fromCallable {
             val clock = appComponent.timeHandler().getClock()
             val date = ZonedDateTime.now(clock)

@@ -29,6 +29,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.InstrumentedTestExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.TabLayoutItemClick
 import com.davidgrath.expensetracker.TestData
@@ -47,6 +48,7 @@ import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -67,14 +69,21 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
     lateinit var repository: AddDetailedTransactionRepository
     @Inject
     lateinit var database: ExpenseTrackerDatabase
+    lateinit var app: ExpenseTracker
 
-    @Before
+//    @Before
     fun setUp() {
-        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+//        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        LOGGER.debug("setUp OtherDetails")
+        app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
+        LOGGER.debug("setUp OtherDetails 2")
         app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
+        LOGGER.debug("setUp OtherDetails 3")
         (app.appComponent as InstrumentedTestComponent).inject(this)
+        LOGGER.debug("setUp OtherDetails 4")
         Espresso.onView(ViewMatchers.withId(R.id.tab_layout_add_detailed_transaction))
             .perform(TabLayoutItemClick(1))
+        LOGGER.debug("setUp OtherDetails 5")
     }
 
     @After
@@ -91,7 +100,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun givenEvidenceIsPdfAndPdfIsPasswordProtectedWhenSelectThenErrorDialog() {
-        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        setUp()
         val resource = TestData.Resource.Documents.EVIDENCE_PDF_PASSWORD_PROTECTED
 
         addContentProviderResourcesInstrumented(app, resource)
@@ -116,7 +125,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun givenEvidenceIsPdfAndPdfHasZeroPagesWhenSelectThenErrorDialog() {
-        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        setUp()
         val resource = TestData.Resource.Documents.EVIDENCE_PDF_EMPTY
 
         addContentProviderResourcesInstrumented(app, resource)
@@ -144,6 +153,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
      */
     @Test
     fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncatedByGrapheme() {
+        setUp()
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 1) {
             'a'
@@ -193,14 +203,14 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncated() {
-        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        setUp()
         val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 9) {
             'a'
         }) + "bcdefghij" + "klmnopqrst"
         addDetailedTransactionActivityScenarioRule.scenario.onActivity {
             it.runOnUiThread {
                 val clipBoardManager =
-                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clipData = ClipData.newPlainText("simple text", text)
                 clipBoardManager.setPrimaryClip(clipData)
             }
@@ -225,5 +235,11 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionActivityInstrumentedTest::class.java)
+
+        @BeforeClass
+        @JvmStatic
+        fun setUpClass() {
+            LOGGER.info("setUpClass")
+        }
     }
 }
