@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.di
 
 import com.davidgrath.expensetracker.ExpenseTrackerTest
 import com.davidgrath.expensetracker.db.dao.AccountDaoTest
+import com.davidgrath.expensetracker.db.dao.ImageDaoTest
 import com.davidgrath.expensetracker.db.dao.TransactionDaoTest
 import com.davidgrath.expensetracker.db.dao.TransactionItemDaoTest
 import com.davidgrath.expensetracker.repositories.AccountRepositoryTest
@@ -43,5 +44,6 @@ interface TestComponent: MainComponent {
     fun inject(transactionItemDaoTest: TransactionItemDaoTest)
     fun inject(transactionDaoTest: TransactionDaoTest)
     fun inject(accountDaoTest: AccountDaoTest)
+    fun inject(imageDaoTest: ImageDaoTest)
     //endregion
 }

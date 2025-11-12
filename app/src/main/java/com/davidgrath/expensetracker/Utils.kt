@@ -11,6 +11,7 @@ import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
+import com.davidgrath.expensetracker.entities.db.views.EvidenceWithTransactionDateAndOrdinal
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
@@ -26,6 +27,9 @@ import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryU
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import com.ibm.icu.text.MeasureFormat
+import com.ibm.icu.util.Measure
+import com.ibm.icu.util.MeasureUnit
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -318,4 +322,27 @@ fun loadRenderer(uri: Uri): Maybe<PdfRenderer> {
         }
         return@fromCallable pdfRenderer
     }
+}
+
+const val KB = 1024L
+const val MB = 1024L * 1024
+const val GB = 1024L * 1024 * 1024
+fun Long.formatBytes(locale: Locale): String {
+    val divisor: Double
+    val unit: MeasureUnit = if(this >= 0 && this < KB) {
+        divisor = 1.0
+        MeasureUnit.BYTE
+    } else if(this >= KB && this < MB) {
+        divisor = KB.toDouble()
+        MeasureUnit.KILOBYTE
+    } else if(this >= MB && this < GB) {
+        divisor = MB.toDouble()
+        MeasureUnit.MEGABYTE
+    } else {
+        divisor = GB.toDouble()
+        MeasureUnit.GIGABYTE
+    }
+    val measure = Measure(this/divisor, unit)
+    val format = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT)
+    return format.formatMeasures(measure)
 }

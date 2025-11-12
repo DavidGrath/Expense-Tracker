@@ -781,7 +781,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.finishTransaction().blockingSubscribe()
 
         assertEquals(1, getHashCount(resource.sha256, mainImagesFolder).blockingGet())
-        assertEquals(1, imageDao.getAllSingle().subscribeOn(Schedulers.io()).blockingGet().filter { it.sha256 == resource.sha256 }.size)
+        assertEquals(1, imageDao.getAllByProfileIdSingle(profile.id!!).subscribeOn(Schedulers.io()).blockingGet().filter { it.sha256 == resource.sha256 }.size)
 
     }
 

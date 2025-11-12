@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.db.views.EvidenceWithTransactionDateAndOrdinal
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -35,7 +36,39 @@ interface EvidenceDao {
             "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
             "INNER JOIN AccountDb a ON a.id=t.accountId " +
             "WHERE a.profileId = :profileId")
-    fun storageSum(profileId: Long): Single<Long>
+    fun storageSum(profileId: Long): Observable<Long>
+
+
+    @Query("SELECT sum(sizeBytes) FROM EvidenceDb e " +
+            "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id=t.accountId " +
+            "WHERE a.profileId = :profileId")
+    fun storageSumSingle(profileId: Long): Single<Long>
+
+    @Query("SELECT count(e.id) FROM EvidenceDb e " +
+            "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id=t.accountId " +
+            "WHERE a.profileId = :profileId")
+    fun countAll(profileId: Long): Observable<Long>
+
+    @Query("SELECT count(e.id) FROM EvidenceDb e " +
+            "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id=t.accountId " +
+            "WHERE a.profileId = :profileId")
+    fun countAllSingle(profileId: Long): Single<Long>
+    @Query("SELECT e.id, e.transactionId, e.sizeBytes, e.sha256, e.mimeType, e.uri, t.datedAt as transactionDatedAt, t.ordinal as transactionOrdinal FROM EvidenceDb e " +
+            "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id=t.accountId " +
+            "WHERE a.profileId = :profileId " +
+            "ORDER BY t.datedAt DESC, t.ordinal ASC")
+    fun getAllByProfileId(profileId: Long): Observable<List<EvidenceWithTransactionDateAndOrdinal>>
+
+    @Query("SELECT e.id, e.transactionId, e.sizeBytes, e.sha256, e.mimeType, e.uri, t.datedAt as transactionDatedAt, t.ordinal as transactionOrdinal FROM EvidenceDb e " +
+            "INNER JOIN TransactionDb t ON e.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id=t.accountId " +
+            "WHERE a.profileId = :profileId " +
+            "ORDER BY t.datedAt DESC, t.ordinal ASC")
+    fun getAllByProfileIdSingle(profileId: Long): Single<List<EvidenceWithTransactionDateAndOrdinal>>
     //endregion
 
     //region Delete

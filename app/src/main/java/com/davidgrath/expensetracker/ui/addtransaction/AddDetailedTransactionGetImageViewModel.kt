@@ -10,7 +10,7 @@ class AddDetailedTransactionGetImageViewModel(
     private val imageRepository: ImageRepository
 ): ViewModel() {
 
-    fun getImages() : LiveData<List<ImageDb>> {
-        return imageRepository.getAllImagesSingle().toFlowable().toLiveData()
+    fun getImages(profileId: Long) : LiveData<List<ImageDb>> {
+        return imageRepository.getAllImagesSingle(profileId).toFlowable().toLiveData()
     }
 }

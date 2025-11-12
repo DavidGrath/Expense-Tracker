@@ -1,19 +1,16 @@
-package com.davidgrath.expensetracker.ui.main.statistics
+package com.davidgrath.expensetracker.ui.main.documents
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.di.MainComponent
-import com.davidgrath.expensetracker.repositories.CategoryRepository
-import com.davidgrath.expensetracker.repositories.TransactionRepository
 import javax.inject.Inject
 
-class StatisticsViewModelFactory(
+class DocumentStatsViewModelFactory(
     private val appComponent: MainComponent,
 ) : ViewModelProvider.Factory {
 
     @Inject
-    lateinit var viewModel: StatisticsViewModel
+    lateinit var viewModel: DocumentStatsViewModel
 
     init {
         appComponent.inject(this)

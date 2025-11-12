@@ -490,12 +490,12 @@ class MainViewModelTest {
         val util = categoryDao.findByProfileIdAndStringId(profile.id!!, "utilities").subscribeOn(Schedulers.io()).blockingGet()!!
         val entertainment = categoryDao.findByProfileIdAndStringId(profile.id!!, "entertainment").subscribeOn(Schedulers.io()).blockingGet()!!
 
-        val totalTransactionCount = 4
-        val miscCount = 2
-        val utilCount = 2
-        val miscUtilCount = 3
-        val foodCount = 1
-        val entertainmentCount = 0
+        val totalTransactionCount = 4L
+        val miscCount = 2L
+        val utilCount = 2L
+        val miscUtilCount = 3L
+        val foodCount = 1L
+        val entertainmentCount = 0L
         val miscSum = BigDecimal(1550)
         val utilSum = BigDecimal(1432)
         val miscUtilSum = BigDecimal(1582)

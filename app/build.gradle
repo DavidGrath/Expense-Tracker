@@ -99,6 +99,9 @@ dependencies {
 
     compileOnly 'cc.jilt:jilt:1.8.3'
     annotationProcessor 'cc.jilt:jilt:1.8.3'
+    implementation "systems.uom:systems-quantity:2.1"
+    implementation("systems.uom:systems-unicode:2.2")
+    implementation 'tech.units:indriya:2.0.4'
 
     //Room
     def room_version = "2.6.1"

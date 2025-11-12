@@ -1,8 +1,8 @@
 package com.davidgrath.expensetracker.ui.main
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
@@ -13,10 +13,11 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
+import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsFragment
+import com.davidgrath.expensetracker.ui.main.images.ImageStatsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
-import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModel
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.gson.GsonBuilder
 import org.slf4j.LoggerFactory
@@ -30,6 +31,8 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
     lateinit var viewModel: MainViewModel
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var profileRepository: ProfileRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +41,10 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
         app.appComponent.inject(this)
         if(savedInstanceState == null) {
             if(addDetailedTransactionRepository.draftExists()) {
+                val preferences = getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
+                val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
+                val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
+                addDetailedTransactionRepository.setProfile(profile.id!!)
                 addDetailedTransactionRepository.restoreDraft().blockingSubscribe() //TODO I think I'll rework the Repository to no longer be a Singleton, this way of restoring the draft feels unnecessary
                 if (addDetailedTransactionRepository.isDraftEmpty()) {
                     LOGGER.info("Draft is empty. Removing")
@@ -59,6 +66,12 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
                 2 -> {
                     tab.text = "Accounts"
                 }
+                3 -> {
+                    tab.text = "Images"
+                }
+                4 -> {
+                    tab.text = "Documents"
+                }
             }
         }.attach()
         setContentView(activityMainBinding.root)
@@ -70,7 +83,7 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
 
     class MainFragmentStateAdapter(mainActivity: MainActivity): FragmentStateAdapter(mainActivity) {
         override fun getItemCount(): Int {
-            return 3
+            return 5
         }
 
         override fun createFragment(position: Int): Fragment {
@@ -83,6 +96,12 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
                 }
                 2 -> {
                     return AccountsFragment.newInstance()
+                }
+                3 -> {
+                    return ImageStatsFragment.newInstance()
+                }
+                4 -> {
+                    return DocumentStatsFragment.newInstance()
                 }
                 else -> {
                     return TransactionsFragment.newInstance()

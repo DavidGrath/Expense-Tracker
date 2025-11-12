@@ -58,12 +58,11 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
     override fun onBindViewHolder(holder: AddTransactionItemViewHolder, position: Int) {
         holder.binding.let { binding ->
             val spinnerAdapter = SpinnerCategoryAdapter(binding.root.context, R.layout.spinner_item_category, categories.toTypedArray())
-            val absPosition = position
-//            val absPosition = holder.absoluteAdapterPosition
-            _items[absPosition].let { cachedItem ->
-                if(absPosition != 0) {
+            _items[position].let { cachedItem ->
+                if(position != 0) {
                     binding.imageViewAddDetailedTransactionItemDelete.visibility = View.VISIBLE
                     binding.imageViewAddDetailedTransactionItemDelete.setOnClickListener {
+                        val absPosition = holder.absoluteAdapterPosition
                         listener?.onDeleteItem(absPosition)
                     }
                 } else {
@@ -78,6 +77,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(timeAndLocaleHandler.getLocale(), "%.2f", cachedItem.amount))
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
 //                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
+                    val absPosition = holder.absoluteAdapterPosition
                     var latestItem = _items[absPosition]
                     currentItem = absPosition
                         val amount = try {
@@ -98,6 +98,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 binding.editTextAddDetailedTransactionItemDescription.setText(cachedItem.description?:"")
                 val newDescriptionWatcher = binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener { text: Editable? ->
+                    val absPosition = holder.absoluteAdapterPosition
                     currentItem = absPosition
                     var latestItem = _items[absPosition]
                     if(binding.editTextAddDetailedTransactionItemDescription.hasFocus()) {
@@ -114,6 +115,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.spinnerAddDetailedTransactionItemCategory.setSelection(categoryPosition)
                 binding.spinnerAddDetailedTransactionItemCategory.onItemSelectedListener = object : OnItemSelectedListener{
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, _position: Int, id: Long) {
+                        val absPosition = holder.absoluteAdapterPosition
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
                         val category = categories[_position]
@@ -138,8 +140,9 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     }, null, null, null
                 )
                 binding.textViewAddDetailedTransactionShowDetails.setOnClickListener {
+                    val absPosition = holder.absoluteAdapterPosition
                     currentItem = absPosition
-                    var latestItem = _items[position]
+                    var latestItem = _items[absPosition]
                     binding.linearLayoutAddDetailedTransactionDetails.visibility = if(!latestItem.showDetails) View.VISIBLE else View.GONE
                     latestItem = latestItem.copy(showDetails = !latestItem.showDetails)
                     listener?.onItemChangedInvalidate(absPosition, latestItem)
@@ -149,6 +152,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.checkBoxAddDetailedTransactionIsReduction.isChecked = cachedItem.isReduction
                 binding.checkBoxAddDetailedTransactionIsReduction.text = "Is Discount/Deduction" //TODO Pass debitOrCredit into this adapter
                 binding.checkBoxAddDetailedTransactionIsReduction.setOnCheckedChangeListener { buttonView, isChecked ->
+                    val absPosition = holder.absoluteAdapterPosition
                     currentItem = absPosition
                     var latestItem = _items[absPosition]
                     latestItem = latestItem.copy(isReduction = isChecked)
@@ -161,6 +165,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 binding.editTextAddDetailedTransactionItemBrand.setText(cachedItem.brand?:"")
                 val newBrandWatcher = binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener { text: Editable? ->
+                    val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemBrand.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
@@ -178,6 +183,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.editTextAddDetailedTransactionItemVariation.setText(cachedItem.variation?:"")
                 val newVariationWatcher = binding.editTextAddDetailedTransactionItemVariation.addTextChangedListener { text: Editable? ->
                     if(binding.editTextAddDetailedTransactionItemVariation.hasFocus()) {
+                        val absPosition = holder.absoluteAdapterPosition
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
                         if (latestItem.variation != text.toString()) {
@@ -193,6 +199,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 binding.editTextAddDetailedTransactionItemQuantity.setText(cachedItem.quantity.toString())
                 val newQuantityWatcher = binding.editTextAddDetailedTransactionItemQuantity.addTextChangedListener { text: Editable? ->
+                    val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemQuantity.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
@@ -209,6 +216,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 binding.editTextAddDetailedTransactionItemReference.setText(cachedItem.referenceNumber)
                 val newReferenceWatcher = binding.editTextAddDetailedTransactionItemReference.addTextChangedListener { text: Editable? ->
+                    val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemReference.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
@@ -218,10 +226,11 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     }
                 }
                 textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()] = newReferenceWatcher
-                //dd
 
                 val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images, object: AddTransactionItemImagesRecyclerAdapter.ItemImageClickListener {
+
                     override fun onDeleteImage(position: Int) {
+                        val absPosition = holder.absoluteAdapterPosition
                         listener?.onDeleteItemImage(absPosition, position)
                     }
                 })
@@ -235,6 +244,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 } else {
                     binding.imageViewAddDetailedTransactionItemAddImage.isEnabled = true
                     binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
+                        val absPosition = holder.absoluteAdapterPosition
                         val latestItem = _items[absPosition]
                         listener?.onRequestAddImage(absPosition, latestItem.id)
                     }

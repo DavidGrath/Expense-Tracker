@@ -20,7 +20,7 @@ import javax.inject.Inject
 class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
 
     lateinit var binding: ActivityStatisticsFilterBinding
-    lateinit var viewModel: StatisticsViewModel
+    lateinit var viewModel: StatisticsFilterViewModel
     private var accountsMap = mutableMapOf<Long, CheckBox>()
     private var weekDaysMap = mutableMapOf<DayOfWeek, CheckBox>()
     private var categoriesMap = mutableMapOf<Long, CheckBox>()
@@ -35,8 +35,8 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
         val app = application as ExpenseTracker
         val appComponent = app.appComponent
         appComponent.inject(this)
-        viewModel = ViewModelProvider(this, StatisticsViewModelFactory(appComponent)).get(
-            StatisticsViewModel::class.java)
+        viewModel = ViewModelProvider(this, StatisticsFilterViewModelFactory(appComponent)).get(
+            StatisticsFilterViewModel::class.java)
 
         val accounts = viewModel.accounts
         accounts.forEach { account ->

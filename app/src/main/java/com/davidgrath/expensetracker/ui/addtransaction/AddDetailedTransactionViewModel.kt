@@ -312,7 +312,7 @@ class AddDetailedTransactionViewModel(
     }
 
     fun getImageCount(): Single<Long> {
-        return imageRepository.getImageCount(profile.id!!)
+        return imageRepository.getImageCountSingle(profile.id!!)
     }
 
 

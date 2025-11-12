@@ -2,14 +2,11 @@ package com.davidgrath.expensetracker.ui.main.statistics
 
 import android.app.Application
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
-import com.davidgrath.expensetracker.UriTypeAdapter
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.TransactionMode
@@ -27,7 +24,7 @@ import org.threeten.bp.DayOfWeek
 import java.io.File
 import javax.inject.Inject
 
-class StatisticsViewModel
+class StatisticsFilterViewModel
 @Inject
     constructor(
     private val application: Application,
@@ -145,6 +142,6 @@ class StatisticsViewModel
     }
 
     companion object {
-        private val LOGGER = LoggerFactory.getLogger(StatisticsViewModel::class.java)
+        private val LOGGER = LoggerFactory.getLogger(StatisticsFilterViewModel::class.java)
     }
 }

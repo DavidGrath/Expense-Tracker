@@ -16,7 +16,7 @@ data class EvidenceDb(
     val sizeBytes: Long,
     val sha256: String,
     val mimeType: String,
-    val uri: String,
+    val uri: String, //TODO Add document type, ordinal
     val createdAt: String,
     val createdAtOffset: String,
     val createdAtTimezone: String

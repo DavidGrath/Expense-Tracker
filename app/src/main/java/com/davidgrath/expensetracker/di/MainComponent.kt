@@ -4,6 +4,7 @@ import com.davidgrath.expensetracker.db.dao.AccountDao
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageActivity
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageViewModelFactory
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMainFragment
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
@@ -15,9 +16,13 @@ import com.davidgrath.expensetracker.ui.main.MainActivity
 import com.davidgrath.expensetracker.ui.main.MainViewModelFactory
 import com.davidgrath.expensetracker.ui.main.TransactionsFragment
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
+import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsFragment
+import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsViewModelFactory
+import com.davidgrath.expensetracker.ui.main.images.ImageStatsFragment
+import com.davidgrath.expensetracker.ui.main.images.ImageStatsViewModelFactory
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
-import com.davidgrath.expensetracker.ui.main.statistics.StatisticsViewModelFactory
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterViewModelFactory
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
 import dagger.Component
 import javax.inject.Singleton
@@ -39,10 +44,15 @@ interface MainComponent {
     fun inject(addDetailedTransactionMainFragment: AddDetailedTransactionMainFragment)
     fun inject(addAccountDialogFragment: AddAccountDialogFragment)
     fun inject(accountsFragment: AccountsFragment)
-    fun inject(statisticsViewModelFactory: StatisticsViewModelFactory)
+    fun inject(statisticsFilterViewModelFactory: StatisticsFilterViewModelFactory)
     fun inject(statisticsFilterActivity: StatisticsFilterActivity)
     fun inject(statisticsFragment: StatisticsFragment)
     fun inject(weekDayDialogFragment: WeekDayDialogFragment)
     fun inject(yearDayDialogFragment: YearDayDialogFragment)
     fun inject(mainActivity: MainActivity)
+    fun inject(imageStatsViewModelFactory: ImageStatsViewModelFactory)
+    fun inject(imageStatsFragment: ImageStatsFragment)
+    fun inject(addDetailedTransactionGetImageActivity: AddDetailedTransactionGetImageActivity)
+    fun inject(documentStatsFragment: DocumentStatsFragment)
+    fun inject(documentStatsViewModelFactory: DocumentStatsViewModelFactory)
 }
