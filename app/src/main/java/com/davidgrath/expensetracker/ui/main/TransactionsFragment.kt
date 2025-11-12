@@ -21,6 +21,7 @@ import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentTransactionsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AccountUi
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.ui.AccountAdapter
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
@@ -71,7 +72,7 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         startDate = LocalDate.now(timeAndLocaleHandler.getClock())
         endDate = LocalDate.now(timeAndLocaleHandler.getClock())
         addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
-        adapter = TransactionItemsAdapter(emptyList(), this)
+        adapter = TransactionItemsAdapter(emptyList(), timeAndLocaleHandler, this)
         return binding.root
     }
 
@@ -136,10 +137,10 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             this.accountId = it.accountId
         }
         viewModel.homeTotalIncome.observe(viewLifecycleOwner) {
-            binding.textViewTransactionsTotalIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
+            binding.textViewTransactionsTotalIncome.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
         }
         viewModel.homeTotalExpense.observe(viewLifecycleOwner) {
-            binding.textViewTransactionsTotalExpense.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", it)
+            binding.textViewTransactionsTotalExpense.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
         }
 
         binding.fabTransactions.setOnClickListener(this)
@@ -155,7 +156,6 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         super.onResume()
         if(viewModel.doesDraftExist()) {
             badgeDrawable.setVisible(true)
-            ""
             BadgeUtils.attachBadgeDrawable(badgeDrawable, binding.fabTransactions)
         } else {
             badgeDrawable.setVisible(false)

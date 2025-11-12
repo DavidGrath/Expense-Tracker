@@ -6,9 +6,11 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDetailsItemBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
+import com.davidgrath.expensetracker.formatDecimal
 
-class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionDetailItemUi>): RecyclerView.Adapter<TransactionDetailsItemRecyclerAdapter.TransactionDetailsItemViewHolder>() {
+class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionDetailItemUi>, val timeAndLocaleHandler: TimeAndLocaleHandler): RecyclerView.Adapter<TransactionDetailsItemRecyclerAdapter.TransactionDetailsItemViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TransactionDetailsItemViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -22,8 +24,8 @@ class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionD
             holder.binding.let { binding ->
                 binding.textViewTransactionDetailsItemDescription.text = item.description
                 binding.imageViewTransactionDetailsItemCategory.setImageResource(item.primaryCategory.iconId)
-                //TODO Locales and formatting
-                binding.textViewTransactionDetailsItemPrice.text = "${item.accountCurrencyCode} ${item.amount}"
+                //TODO Currency symbol, maybe
+                binding.textViewTransactionDetailsItemPrice.text = "${item.accountCurrencyCode} ${formatDecimal(item.amount, timeAndLocaleHandler.getLocale())}"
                 val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images)
                 val layoutManager = GridLayoutManager(binding.root.context, 5)
                 binding.recyclerViewTransactionDetailsItemImages.adapter = adapter

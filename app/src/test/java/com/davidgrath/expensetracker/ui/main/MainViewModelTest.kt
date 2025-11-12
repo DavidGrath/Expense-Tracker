@@ -77,12 +77,12 @@ class MainViewModelTest {
             val today = LocalDate.parse("2025-06-30")
             // Daily - assert StartDate == EndDate, consider xLyoffset
             viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
-            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.startDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
 
             viewModel.setXLyOffset(-6)
-            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.filter.endDay)
         }
     }
 
@@ -94,14 +94,14 @@ class MainViewModelTest {
             // PastXDays - assert StartDate is correct
             viewModel.setDateMode(StatisticsConfig.DateMode.PastXDays)
             viewModel.setXDaysPast(-1) //Should default to 1
-            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.startDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
             viewModel.setXDaysPast(7)
             assertEquals(
                 LocalDate.parse("2025-06-24"), //"Today" is counted as a day, so only 6 is subtracted
-                viewModel.statisticsConfig.rangeStartDay
+                viewModel.statisticsConfig.filter.startDay
             )
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
         }
     }
 
@@ -114,9 +114,9 @@ class MainViewModelTest {
             // PastWeek - assert StartDate is correct, DayOfWeek is correct
             viewModel.setDateMode(StatisticsConfig.DateMode.PastWeek)
             assertEquals(DayOfWeek.MONDAY, today.getDayOfWeek())
-            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(DayOfWeek.TUESDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(DayOfWeek.TUESDAY, viewModel.statisticsConfig.filter.startDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
         }
     }
 
@@ -131,10 +131,10 @@ class MainViewModelTest {
 
 
             viewModel.setDateMode(StatisticsConfig.DateMode.Weekly)
-            assertEquals(today, viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.filter.startDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.filter.startDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.filter.endDay!!.dayOfWeek)
         }
 
 
@@ -146,22 +146,22 @@ class MainViewModelTest {
 
 
             viewModel.setDateMode(StatisticsConfig.DateMode.Weekly)
-            assertEquals(LocalDate.parse("2025-06-29"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-29"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.filter.startDay!!.dayOfWeek)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(DayOfWeek.MONDAY, viewModel.statisticsConfig.filter.endDay!!.dayOfWeek)
 
             viewModel.setXLyOffset(-1)
-            assertEquals(LocalDate.parse("2025-06-22"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
-            assertEquals(LocalDate.parse("2025-06-28"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(DayOfWeek.SATURDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-22"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(DayOfWeek.SUNDAY, viewModel.statisticsConfig.filter.startDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-28"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(DayOfWeek.SATURDAY, viewModel.statisticsConfig.filter.endDay!!.dayOfWeek)
 
             viewModel.setFirstWeekDay(DayOfWeek.WEDNESDAY)
-            assertEquals(LocalDate.parse("2025-06-18"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(DayOfWeek.WEDNESDAY, viewModel.statisticsConfig.rangeStartDay!!.dayOfWeek)
-            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(DayOfWeek.TUESDAY, viewModel.statisticsConfig.rangeEndDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-18"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(DayOfWeek.WEDNESDAY, viewModel.statisticsConfig.filter.startDay!!.dayOfWeek)
+            assertEquals(LocalDate.parse("2025-06-24"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(DayOfWeek.TUESDAY, viewModel.statisticsConfig.filter.endDay!!.dayOfWeek)
         }
     }
 
@@ -180,35 +180,35 @@ class MainViewModelTest {
 
 
             viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
-            assertEquals(LocalDate.parse("2025-05-31"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-05-31"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--05-31"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay!!)
             ) //Redundant, I know
-            assertEquals(todayWhereMonthDaysLessThanPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(MonthDay.parse("--06-30"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+            assertEquals(todayWhereMonthDaysLessThanPreviousMonthDays, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(MonthDay.parse("--06-30"), MonthDay.from(viewModel.statisticsConfig.filter.endDay!!))
 
             timeAndLocaleHandler.changeClock(Clock.fixed(todayWhereMonthDaysEqualToPreviousMonthDays.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
 
             viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
-            assertEquals(LocalDate.parse("2025-08-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-08-01"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--08-01"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay!!)
             )
-            assertEquals(todayWhereMonthDaysEqualToPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(MonthDay.parse("--08-31"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+            assertEquals(todayWhereMonthDaysEqualToPreviousMonthDays, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(MonthDay.parse("--08-31"), MonthDay.from(viewModel.statisticsConfig.filter.endDay!!))
 
             timeAndLocaleHandler.changeClock(Clock.fixed(todayWhereMonthDaysGreaterThanPreviousMonthDays.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
 
             viewModel.setDateMode(StatisticsConfig.DateMode.PastMonth)
-            assertEquals(LocalDate.parse("2025-06-17"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-06-17"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--06-17"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay!!)
             )
-            assertEquals(todayWhereMonthDaysGreaterThanPreviousMonthDays, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(MonthDay.parse("--07-16"), MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!))
+            assertEquals(todayWhereMonthDaysGreaterThanPreviousMonthDays, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(MonthDay.parse("--07-16"), MonthDay.from(viewModel.statisticsConfig.filter.endDay!!))
 
         }
     }
@@ -222,73 +222,73 @@ class MainViewModelTest {
             // Monthly - assert StartDate is correct, consider monthlyDayOfMonth, consider xLyOffset
             viewModel.setXLyOffset(0)
             viewModel.setDateMode(StatisticsConfig.DateMode.Monthly)
-            assertEquals(LocalDate.parse("2025-06-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-06-01"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 1,
-                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+                viewModel.statisticsConfig.filter.startDay!!.dayOfMonth
             ) //Redundant, I know
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(30, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(30, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             // Assert same day if first day
 
             var newToday = LocalDate.parse("2025-05-01")
             timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
             viewModel.setDateMode(StatisticsConfig.DateMode.Monthly)
-            assertEquals(newToday, viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(newToday, viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 1,
-                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+                viewModel.statisticsConfig.filter.startDay!!.dayOfMonth
             )
-            assertEquals(newToday, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(1, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(newToday, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(1, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             //Assert StartDate coerced to "today" if dayOfMonth set after "today"
             newToday = LocalDate.parse("2025-05-15")
             timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
             viewModel.setMonthlyDayOfMonth(22)
-            assertEquals(LocalDate.parse("2025-04-22"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-04-22"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 22,
-                viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth
+                viewModel.statisticsConfig.filter.startDay!!.dayOfMonth
             )
-            assertEquals(newToday, viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(15, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(newToday, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(15, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             timeAndLocaleHandler.changeClock(Clock.fixed(LocalDateTime.parse("2025-06-30T08:00:00.000").toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
 
             // Account for months less than 31 days
             viewModel.setXLyOffset(-2) //April
             viewModel.setMonthlyDayOfMonth(31)
-            assertEquals(LocalDate.parse("2025-04-30"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(30, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
-            assertEquals(LocalDate.parse("2025-05-29"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(29, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-04-30"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(30, viewModel.statisticsConfig.filter.startDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-05-29"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(29, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             viewModel.setXLyOffset(-4) //Leap Day
             viewModel.setMonthlyDayOfMonth(29)
-            assertEquals(LocalDate.parse("2025-02-28"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(28, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
-            assertEquals(LocalDate.parse("2025-03-27"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(27, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-02-28"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(28, viewModel.statisticsConfig.filter.startDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-03-27"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(27, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
             viewModel.setXLyOffset(-16)
-            assertEquals(LocalDate.parse("2024-02-29"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(29, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
-            assertEquals(LocalDate.parse("2024-03-28"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(28, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2024-02-29"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(29, viewModel.statisticsConfig.filter.startDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2024-03-28"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(28, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             viewModel.setXLyOffset(-3)
             viewModel.setMonthlyDayOfMonth(1)
-            assertEquals(LocalDate.parse("2025-03-01"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(1, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
-            assertEquals(LocalDate.parse("2025-03-31"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(31, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-03-01"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(1, viewModel.statisticsConfig.filter.startDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-03-31"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(31, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
             viewModel.setMonthlyDayOfMonth(15)
-            assertEquals(LocalDate.parse("2025-03-15"), viewModel.statisticsConfig.rangeStartDay)
-            assertEquals(15, viewModel.statisticsConfig.rangeStartDay!!.dayOfMonth)
-            assertEquals(LocalDate.parse("2025-04-14"), viewModel.statisticsConfig.rangeEndDay)
-            assertEquals(14, viewModel.statisticsConfig.rangeEndDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-03-15"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(15, viewModel.statisticsConfig.filter.startDay!!.dayOfMonth)
+            assertEquals(LocalDate.parse("2025-04-14"), viewModel.statisticsConfig.filter.endDay)
+            assertEquals(14, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
         }
     }
 
@@ -299,15 +299,15 @@ class MainViewModelTest {
             val today = LocalDate.parse("2025-06-30")
             // PastYear - assert StartDate is correct, MonthDay is correct. Ignore Feb 29th for now
             viewModel.setDateMode(StatisticsConfig.DateMode.PastYear)
-            assertEquals(LocalDate.parse("2024-07-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2024-07-01"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--07-01"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay!!)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay!!)
             )
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
             assertEquals(
                 MonthDay.parse("--06-30"),
-                MonthDay.from(viewModel.statisticsConfig.rangeEndDay!!)
+                MonthDay.from(viewModel.statisticsConfig.filter.endDay!!)
             )
         }
     }
@@ -321,41 +321,41 @@ class MainViewModelTest {
             // Yearly -  assert StartDate is correct, MonthDay is correct, consider xLyOffset, monthDayOfYear. Disregard --02-29 for the time being
             viewModel.setXLyOffset(0)
             viewModel.setDateMode(StatisticsConfig.DateMode.Yearly)
-            assertEquals(LocalDate.parse("2025-01-01"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-01-01"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--01-01"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay)
             )
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
             assertEquals(
                 MonthDay.parse("--06-30"),
-                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.endDay)
             )
 
             viewModel.setMonthDayOfYear(MonthDay.parse("--02-15"))
 
-            assertEquals(LocalDate.parse("2025-02-15"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2025-02-15"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--02-15"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay)
             )
-            assertEquals(today, viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(today, viewModel.statisticsConfig.filter.endDay)
             assertEquals(
                 MonthDay.parse("--06-30"),
-                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.endDay)
             )
 
             viewModel.setXLyOffset(-1)
 
-            assertEquals(LocalDate.parse("2024-02-15"), viewModel.statisticsConfig.rangeStartDay)
+            assertEquals(LocalDate.parse("2024-02-15"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 MonthDay.parse("--02-15"),
-                MonthDay.from(viewModel.statisticsConfig.rangeStartDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.startDay)
             )
-            assertEquals(LocalDate.parse("2025-02-14"), viewModel.statisticsConfig.rangeEndDay)
+            assertEquals(LocalDate.parse("2025-02-14"), viewModel.statisticsConfig.filter.endDay)
             assertEquals(
                 MonthDay.parse("--02-14"),
-                MonthDay.from(viewModel.statisticsConfig.rangeEndDay)
+                MonthDay.from(viewModel.statisticsConfig.filter.endDay)
             )
         }
     }
@@ -369,8 +369,8 @@ class MainViewModelTest {
             // Range - if both dates equal, reset to null; if user can somehow unselect both dates from the Material Dialog, then set to All
             viewModel.setDateMode(StatisticsConfig.DateMode.Daily)
             viewModel.setDateMode(StatisticsConfig.DateMode.Range)
-            assertNull(viewModel.statisticsConfig.rangeStartDay)
-            assertNull(viewModel.statisticsConfig.rangeEndDay)
+            assertNull(viewModel.statisticsConfig.filter.startDay)
+            assertNull(viewModel.statisticsConfig.filter.endDay)
         }
     }
 
@@ -383,8 +383,8 @@ class MainViewModelTest {
 
             // All - assert both dates null, but try and take note of the earliest date from the user's transactions and use to offset visualisations
             viewModel.setDateMode(StatisticsConfig.DateMode.All)
-            assertNull(viewModel.statisticsConfig.rangeStartDay)
-            assertNull(viewModel.statisticsConfig.rangeEndDay)
+            assertNull(viewModel.statisticsConfig.filter.startDay)
+            assertNull(viewModel.statisticsConfig.filter.endDay)
         }
     }
 

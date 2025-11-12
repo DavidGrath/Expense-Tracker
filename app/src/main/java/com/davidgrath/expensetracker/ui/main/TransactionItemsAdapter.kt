@@ -11,13 +11,15 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionItemBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDateBinding
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
+import com.davidgrath.expensetracker.formatDecimal
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import java.io.File
 import java.text.DecimalFormat
 
-class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>, var listener: TransactionClickListener? = null): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
+class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem>, val timeAndLocaleHandler: TimeAndLocaleHandler, var listener: TransactionClickListener? = null): RecyclerView.Adapter<TransactionItemsAdapter.SealedViewHolder>() {
 
     fun interface TransactionClickListener {
         fun onTransactionClicked(transactionId: Long)
@@ -59,7 +61,7 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                 items[position].transactionItem!!.let { transactionItem ->
                     holder.binding.let { binding ->
                         binding.textViewTransactionItemStore.visibility = View.GONE
-                        binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + decimalFormat.format(transactionItem.amount)
+                        binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + formatDecimal(transactionItem.amount, timeAndLocaleHandler.getLocale())
                         binding.textViewTransactionItemDescription.text = transactionItem.description
                         binding.imageViewTransactionItemCategory.setImageResource(transactionItem.category.iconId)
                         val image = transactionItem.images.firstOrNull()

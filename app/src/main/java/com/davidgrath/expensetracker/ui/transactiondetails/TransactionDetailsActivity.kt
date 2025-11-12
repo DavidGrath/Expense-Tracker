@@ -15,6 +15,7 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityTransactionDetailsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.EvidenceRepository
@@ -93,7 +94,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
 
         viewModel.transaction.observe(this) { transaction ->
             binding.transactionDetailsNote.text = transaction.note
-            binding.textViewTransactionDetailsTotal.text = transaction.currencyCode + " " + transaction.amount
+            binding.textViewTransactionDetailsTotal.text = transaction.currencyCode + " " + formatDecimal(transaction.amount, timeAndLocaleHandler.getLocale())
             binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)

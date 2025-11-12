@@ -75,9 +75,15 @@ class TransactionItemRepository
         val categoriesEmpty = categories.isEmpty()
         return transactionItemDao.getTransactionItemCount(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
             .subscribeOn(Schedulers.io())
-            .doOnNext {
-                LOGGER.debug("getTransactionItemCount: {}", it)
-            }
+    }
+
+    fun getTransactionItemCountSingle(profileId: Long,
+                                fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Single<TransactionAndItemCount> {
+        val emptyAccounts = accountIds.isEmpty()
+        val datesEmpty = dates.isEmpty()
+        val categoriesEmpty = categories.isEmpty()
+        return transactionItemDao.getTransactionItemCountSingle(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+            .subscribeOn(Schedulers.io())
     }
 
     companion object {

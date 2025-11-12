@@ -37,7 +37,7 @@
                     android:layout_height="56dp"
                     tools:text="3,000,000"
                     android:gravity="center"
-                    app:autoSizeMinTextSize="40sp"
+                    app:autoSizeMinTextSize="20sp"
                     app:autoSizeMaxTextSize="56sp"
                     app:autoSizeTextType="uniform"
                     android:textAlignment="center"
@@ -59,7 +59,7 @@
             tools:text="30"
             android:gravity="center"
             app:autoSizeTextType="uniform"
-            app:autoSizeMinTextSize="40sp"
+            app:autoSizeMinTextSize="20sp"
             app:autoSizeMaxTextSize="56sp"
             android:textAlignment="center"
             android:layout_marginHorizontal="8dp"/>

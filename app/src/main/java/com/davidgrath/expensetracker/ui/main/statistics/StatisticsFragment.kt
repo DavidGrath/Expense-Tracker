@@ -16,6 +16,7 @@ import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.ui.SpinnerStatisticModeAdapter
 import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
 import com.davidgrath.expensetracker.ui.dialogs.WeekDayDialogFragment
@@ -74,9 +75,8 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
         super.onViewCreated(view, savedInstanceState)
         val adapter = SpinnerStatisticModeAdapter(viewModel.statisticsConfig.xDays, requireContext(), dateModes)
         viewModel.statisticsConfigLiveData.observe(viewLifecycleOwner) { stats ->
-            LOGGER.debug("config: {}", stats)
-            rangeStartDate = stats.rangeStartDay
-            rangeEndDate = stats.rangeEndDay
+            rangeStartDate = stats.filter.startDay
+            rangeEndDate = stats.filter.endDay
             when(stats.dateMode) {
                 StatisticsConfig.DateMode.Daily -> {
                     binding.imageButtonStatisticsCycleModeLeft.isEnabled = true
@@ -133,7 +133,7 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     binding.imageButtonStatisticsCycleModeRight.isEnabled = false
                     binding.imageViewStatisticsConfigureCurrentMode.isEnabled = true
                     binding.imageViewStatisticsConfigureCurrentMode.alpha = 1f
-                    if(stats.rangeStartDay == null && stats.rangeEndDay == null) {
+                    if(stats.filter.startDay == null && stats.filter.endDay == null) {
                         LOGGER.info("No dates selected for DateMode Range. Opening dialog")
                         openDateRangeDialog()
                     }
@@ -167,10 +167,10 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
             }
         }
         viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTotalIncome.text = it.toString()
+            binding.textViewStatisticsTotalIncome.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
         }
         viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTotalExpenses.text = it.toString()
+            binding.textViewStatisticsTotalExpenses.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
         }
         binding.barChartStatisticsCategories.legend.isEnabled = false
         binding.barChartStatisticsCategories.description.isEnabled = false
@@ -343,7 +343,10 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                     requireActivity().startActivityForResult(intent, MainActivity.REQUEST_CODE_OPEN_FILTER)
                 }
                 binding.imageViewStatisticsViewItems -> {
-
+                    //TODO Don't bother if empty
+                    viewModel.saveStatisticsFilterToFile().blockingSubscribe()
+                    val intent = Intent(requireContext(), FilteredTransactionsActivity::class.java)
+                    requireActivity().startActivityForResult(intent, MainActivity.REQUEST_CODE_OPEN_FILTER)
                 }
                 binding.imageButtonStatisticsCycleModeLeft -> {
                     viewModel.decrementXLyOffset()

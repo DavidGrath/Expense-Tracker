@@ -20,10 +20,14 @@ import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsFragment
 import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsViewModelFactory
 import com.davidgrath.expensetracker.ui.main.images.ImageStatsFragment
 import com.davidgrath.expensetracker.ui.main.images.ImageStatsViewModelFactory
+import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsActivity
+import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsViewModel
+import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsViewModelFactory
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterViewModelFactory
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
+import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsItemsFragment
 import dagger.Component
 import javax.inject.Singleton
 
@@ -55,4 +59,7 @@ interface MainComponent {
     fun inject(addDetailedTransactionGetImageActivity: AddDetailedTransactionGetImageActivity)
     fun inject(documentStatsFragment: DocumentStatsFragment)
     fun inject(documentStatsViewModelFactory: DocumentStatsViewModelFactory)
+    fun inject(transactionDetailsItemsFragment: TransactionDetailsItemsFragment)
+    fun inject(filteredTransactionsViewModelFactory: FilteredTransactionsViewModelFactory)
+    fun inject(filteredTransactionsActivity: FilteredTransactionsActivity)
 }

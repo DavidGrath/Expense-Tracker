@@ -9,6 +9,7 @@ import com.davidgrath.expensetracker.databinding.RecyclerviewAccountBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
+import com.davidgrath.expensetracker.formatDecimal
 import java.util.Locale
 
 class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, val timeAndLocaleHandler: TimeAndLocaleHandler, var listener: AccountClickListener? = null): RecyclerView.Adapter<AccountsRecyclerAdapter.AccountsViewHolder>() {
@@ -34,8 +35,8 @@ class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, val 
                 } else {
                     binding.textViewAccountCurrencyCode.text = "${account.currencyDisplayName} (${account.currencyCode})"
                 }
-                binding.textViewAccountIncome.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", account.income)
-                binding.textViewAccountExpenses.text = String.format(timeAndLocaleHandler.getLocale(), "%.2f", account.expenses)
+                binding.textViewAccountIncome.text = formatDecimal(account.income, timeAndLocaleHandler.getLocale())
+                binding.textViewAccountExpenses.text = formatDecimal(account.expenses, timeAndLocaleHandler.getLocale())
                 binding.textViewAccountTransactionCount.text = "${account.transactionCount} transactions"
                 binding.textViewAccountItemCount.text = "${account.itemCount} items"
                 binding.imageViewAccountEdit.setOnClickListener {

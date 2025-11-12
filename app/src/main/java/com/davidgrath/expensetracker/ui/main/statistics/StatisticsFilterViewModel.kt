@@ -7,12 +7,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
+import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.LocalDateGsonAdapter
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
+import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
@@ -21,6 +24,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.DayOfWeek
+import org.threeten.bp.LocalDate
 import java.io.File
 import javax.inject.Inject
 
@@ -34,21 +38,22 @@ class StatisticsFilterViewModel
     private val profileRepository: ProfileRepository
 ) : AndroidViewModel(application) {
 
-    private var currentProfile = -1L
     private var statisticsFilter: StatisticsFilter
     private var _statisticsFilterLiveData : MutableLiveData<StatisticsFilter>
     val statisticsFilterLiveData: LiveData<StatisticsFilter>
     val accounts: List<AccountUi>
-    private val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
+        .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
+        .create()
 
     init {
-        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
-        val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
-        val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
-        currentProfile = profile.id!!
-        accounts = accountRepository.getAccountsForProfileSingle(currentProfile).map { accounts ->
+        val app = application as ExpenseTracker
+        val profile = app.profileObservable.blockingFirst()
+        accounts = accountRepository.getAccountsForProfileSingle(profile.id!!).map { accounts ->
             accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
         }.blockingGet()
+//        val file = file(application.filesDir, "profiles", profile.stringId, Constants.FILE_NAME_STATS_FILTER_DATA) //TODO Move all files to profiles/<stringId>
         val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
         if(file.exists()) {
             val size = file.length()

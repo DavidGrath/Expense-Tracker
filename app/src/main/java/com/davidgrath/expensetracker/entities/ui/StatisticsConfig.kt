@@ -15,8 +15,6 @@ data class StatisticsConfig(
     val weeklyFirstDay: DayOfWeek = WeekFields.of(locale).firstDayOfWeek,
     val monthlyDayOfMonth: Int = 1,
     val monthDayOfYear: MonthDay = MonthDay.of(Month.JANUARY, 1),
-    val rangeStartDay: LocalDate? = null,
-    val rangeEndDay: LocalDate? = null,
     val xLyOffset: Int = 0,
     val filter: StatisticsFilter = StatisticsFilter()
 ) {

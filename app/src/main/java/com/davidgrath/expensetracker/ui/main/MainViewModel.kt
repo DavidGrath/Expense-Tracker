@@ -12,6 +12,8 @@ import androidx.lifecycle.toLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.DraftFileHandler
+import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.LocalDateGsonAdapter
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.accountWithStatsDbToAccountWithStatsUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -26,6 +28,7 @@ import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
+import com.davidgrath.expensetracker.getFilteredWeekDays
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
@@ -79,20 +82,22 @@ constructor(
     //TODO For refreshing at midnight
 //    private val minuteTicker = Observable.interval(1, TimeUnit.MINUTES)
 
-    var statisticsConfig = StatisticsConfig(timeAndLocaleHandler.getLocale(), rangeStartDay = LocalDate.now(timeAndLocaleHandler.getClock()), rangeEndDay = LocalDate.now(timeAndLocaleHandler.getClock()))
+    var statisticsConfig = StatisticsConfig(timeAndLocaleHandler.getLocale(), filter = StatisticsFilter(startDay = LocalDate.now(timeAndLocaleHandler.getClock()), endDay = LocalDate.now(timeAndLocaleHandler.getClock())))
         private set
     private var pastXLyMode: StatisticsConfig.DateMode? = null
     private val _statisticsConfigLiveData = MutableLiveData<StatisticsConfig>()
     val statisticsConfigLiveData: LiveData<StatisticsConfig> = _statisticsConfigLiveData
     val accountWithStatsLiveData: LiveData<List<AccountWithStatsUi>>
     val accountsLiveData: LiveData<List<AccountUi>>
-    private val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
+        .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
+        .create()
     private var currentProfile = -1L
 
     init {
-        val preferences = application.getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE) //TODO Create profile Observable in Application
-        val currentProfileId = preferences.getString(Constants.PreferenceKeys.Device.CURRENT_PROFILE, null)
-        val profile = profileRepository.getByStringId(currentProfileId!!).blockingGet()
+        val app = application as ExpenseTracker
+        val profile = app.profileObservable.blockingFirst()
         currentProfile = profile.id!!
         val profilePreferences = application.getSharedPreferences(profile.stringId, Context.MODE_PRIVATE)
         val homeAccountId = profilePreferences.getLong(Constants.PreferenceKeys.Profile.DEFAULT_ACCOUNT_ID, -1) //TODO Use Spinner
@@ -145,11 +150,11 @@ constructor(
         }
         statsTotalByCategory = statisticsConfigLiveData.switchMap {
             val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it)
+            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
             Observable.combineLatest(
-                transactionItemRepository.getTotalExpenseByCategory(profile.id!!, it.rangeStartDay?.toString(), it.rangeEndDay?.toString(), accountIds, dates, categories),
-                transactionItemRepository.getTotalIncomeByCategory(profile.id!!, it.rangeStartDay?.toString(), it.rangeEndDay?.toString(), accountIds, dates, categories)
+                transactionItemRepository.getTotalExpenseByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories),
+                transactionItemRepository.getTotalIncomeByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories)
             ) { expenseList, incomeList ->
                 val categoryIds =
                     (expenseList.map { it.categoryId } + incomeList.map { it.categoryId })
@@ -161,29 +166,20 @@ constructor(
                 categoryIds.forEachIndexed { index, id ->
                     val expenseIndex = expenseList.indexOfFirst { it.categoryId == id }
                     val incomeIndex = incomeList.indexOfFirst { it.categoryId == id }
-                    val expenseSum = if(expenseIndex >= 0) {
-                        expenseList[expenseIndex].sum.toFloat()
-                    } else {
-                        0f
-                    }
-                    val incomeSum = if(incomeIndex >= 0) {
-                        incomeList[incomeIndex].sum.toFloat()
-                    } else {
-                        0f
-                    }
                     val cat = itemSumToCategoryUi(if(expenseIndex >= 0) {
                         expenseList[expenseIndex]
                     } else {
                         incomeList[incomeIndex]
                     })
-                    LOGGER.debug("cat: {}", cat)
-                    expenseEntries.add(BarEntry(index.toFloat(), expenseSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
-                    incomeEntries.add(BarEntry(index.toFloat(), incomeSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                    if(expenseIndex >= 0) {
+                        val expenseSum = expenseList[expenseIndex].sum.toFloat()
+                        expenseEntries.add(BarEntry(index.toFloat(), expenseSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                    }
+                    if(incomeIndex >= 0) {
+                        val incomeSum = incomeList[incomeIndex].sum.toFloat()
+                        incomeEntries.add(BarEntry(index.toFloat(), incomeSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                    }
                 }
-                LOGGER.debug("expenseList: {}", expenseList)
-                LOGGER.debug("incomeList: {}", incomeList)
-                LOGGER.debug("expenseEntries: {}", expenseEntries)
-                LOGGER.debug("incomeEntries: {}", incomeEntries)
                 /*val expenseMapped = expenseList.mapIndexed { i, it ->
                     val cat = itemSumToCategoryUi(it)
                     BarEntry(
@@ -225,21 +221,21 @@ constructor(
         }
         statsTotalIncome = statisticsConfigLiveData.switchMap {
             val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it)
+            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
             transactionRepository.getTotalIncome(profile.id!!,
-                it.rangeStartDay?.toString(),
-                it.rangeEndDay?.toString(), accountIds, dates, categories
+                it.filter.startDay?.toString(),
+                it.filter.endDay?.toString(), accountIds, dates, categories
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
         statsTotalExpense = statisticsConfigLiveData.switchMap {
             val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it)
+            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
             transactionRepository.getTotalExpense(profile.id!!,
-                it.rangeStartDay?.toString(),
-                it.rangeEndDay?.toString(), accountIds, dates, categories
+                it.filter.startDay?.toString(),
+                it.filter.endDay?.toString(), accountIds, dates, categories
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
@@ -258,20 +254,20 @@ constructor(
         statsTotalByDay = statisticsConfigLiveData.switchMap {
 
             val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it)
+            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
             Observable.combineLatest(
-                transactionRepository.getTotalAmountByDate(profile.id, true, statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories),
-                transactionRepository.getTotalAmountByDate(profile.id, false, statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories)
+                transactionRepository.getTotalAmountByDate(profile.id, true, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories),
+                transactionRepository.getTotalAmountByDate(profile.id, false, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories)
             ) { expenses, income ->
                 expenses to income
             }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
         statsTransactionAndItemCount = statisticsConfigLiveData.switchMap {
             val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it)
+            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
-            transactionItemRepository.getTransactionItemCount(profile.id!!, statisticsConfig.rangeStartDay?.toString(), statisticsConfig.rangeEndDay?.toString(), accountIds, dates, categories)
+            transactionItemRepository.getTransactionItemCount(profile.id!!, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories)
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
 
@@ -351,19 +347,22 @@ constructor(
                 daysToSubtract *= -1
                 val startDate = LocalDate.now(timeAndLocaleHandler.getClock()).minusDays(daysToSubtract.toLong())
                 val endDate = LocalDate.now(timeAndLocaleHandler.getClock()).minusDays(daysToSubtract.toLong())
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate, xLyOffset = -daysToSubtract)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter, xLyOffset = -daysToSubtract)
 
             }
             StatisticsConfig.DateMode.PastXDays -> {
                 val daysToSubtract = statisticsConfig.xDays - 1
                 val startDate = LocalDate.now(timeAndLocaleHandler.getClock()).minusDays(daysToSubtract.toLong())
                 val endDate = LocalDate.now(timeAndLocaleHandler.getClock())
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.PastWeek -> {
                 val startDate = LocalDate.now(timeAndLocaleHandler.getClock()).minusDays(6)
                 val endDate = LocalDate.now(timeAndLocaleHandler.getClock())
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.Weekly -> {
                 if(pastXLyMode != dateMode) {
@@ -381,13 +380,15 @@ constructor(
                    possibleEndDate = today
                 }
                 val endDate = possibleEndDate
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.PastMonth -> {
                 val startDateMonth = LocalDate.now(timeAndLocaleHandler.getClock()).minusMonths(1)
                 val startDate = startDateMonth.plusDays(1)
                 val endDate = LocalDate.now(timeAndLocaleHandler.getClock())
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.Monthly -> {
                 if(pastXLyMode != dateMode && statisticsConfig.dateMode != dateMode) {
@@ -434,13 +435,15 @@ constructor(
                     }
                     endDate = possibleEndDate
                 }
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.PastYear -> {
                 val startDateMonth = LocalDate.now(timeAndLocaleHandler.getClock()).minusYears(1)
                 val startDate = startDateMonth.plusDays(1)
                 val endDate = LocalDate.now(timeAndLocaleHandler.getClock())
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.Yearly -> {
                 if(pastXLyMode != dateMode) {
@@ -455,19 +458,22 @@ constructor(
                     possibleEndDate = today
                 }
                 val endDate = possibleEndDate
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.Range -> {
-                var startDate = statisticsConfig.rangeStartDay
-                var endDate = statisticsConfig.rangeEndDay
+                var startDate = statisticsConfig.filter.startDay
+                var endDate = statisticsConfig.filter.endDay
                 if(startDate != null && startDate == endDate) { //Previous mode was Daily or PastXDays with 1
                     startDate = null
                     endDate = null
                 }
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+                val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
             StatisticsConfig.DateMode.All -> {
-                statisticsConfig = statisticsConfig.copy(rangeStartDay = null, rangeEndDay = null)
+                val filter = statisticsConfig.filter.copy(startDay = null, endDay = null)
+                statisticsConfig = statisticsConfig.copy(filter = filter)
             }
         }
         statisticsConfig = statisticsConfig.copy(dateMode = dateMode)
@@ -509,7 +515,8 @@ constructor(
     }
 
     fun setDateRange(startDate: LocalDate?, endDate: LocalDate?) {
-        this.statisticsConfig = this.statisticsConfig.copy(rangeStartDay = startDate, rangeEndDay = endDate)
+        val filter = statisticsConfig.filter.copy(startDay = startDate, endDay = endDate)
+        statisticsConfig = statisticsConfig.copy(filter = filter)
         setDateMode(this.statisticsConfig.dateMode)
     }
 
@@ -603,36 +610,6 @@ constructor(
         return fileHandler.draftExists()
     }
 
-
-
-    private fun getFilteredWeekDays(profileId: Long, config: StatisticsConfig): List<String> {
-        val dates = mutableListOf<String>()
-        val accountIds = config.filter.accountIds
-        if(config.dateMode != StatisticsConfig.DateMode.Daily) {
-            if(config.filter.weekdays.isNotEmpty()) {
-                val earliestDate =
-                    transactionRepository.getEarliestTransactionDate(profileId, accountIds).blockingGet()
-                if (earliestDate != null) {
-                    val today = LocalDate.now(timeAndLocaleHandler.getClock())
-                    val startDate = config.rangeStartDay ?: earliestDate
-                    val endDate = config.rangeEndDay?: today
-                    if (startDate <= endDate) {
-                        var runningDate = startDate
-                        while (runningDate <= endDate) {
-                            if(runningDate.dayOfWeek in config.filter.weekdays) {
-                                dates.add(runningDate.toString())
-                            }
-                            runningDate = runningDate.plusDays(1)
-                        }
-                    }
-                } else {
-
-                }
-            }
-        }
-        LOGGER.info("Picked out {} days from weekdays filter", dates.size)
-        return dates
-    }
 
     data class HomeConfig(
         val accountId: Long,

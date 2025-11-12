@@ -82,7 +82,23 @@ constructor(
 
     fun getTransactions(profileId: Long, accountId: Long, startDate: String?, endDate: String?): Observable<List<TransactionWithItemAndCategory>> {
         return transactionItemDao.getItemsWithTransactionsAndCategory(profileId,
-            startDate, endDate, false, listOf(accountId), true, emptyList()
+            startDate, endDate, false, listOf(accountId), true, emptyList(), true, emptyList()
+        )
+            .subscribeOn(Schedulers.io())
+            .timeInterval()
+            .map {
+                LOGGER.info("getItemsWithTransactionsAndCategoryFrom time: {} ms", it.time(TimeUnit.MILLISECONDS))
+                LOGGER.info("getItemsWithTransactionsAndCategoryFrom size: {}", it.value().size)
+                it.value()
+            }
+    }
+
+    fun getTransactionsFiltered(profileId: Long, startDate: String?, endDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Single<List<TransactionWithItemAndCategory>> {
+        val emptyAccounts = accountIds.isEmpty()
+        val datesEmpty = dates.isEmpty()
+        val categoriesEmpty = categories.isEmpty()
+        return transactionItemDao.getItemsWithTransactionsAndCategorySingle(profileId,
+            startDate, endDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories
         )
             .subscribeOn(Schedulers.io())
             .timeInterval()

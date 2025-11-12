@@ -28,6 +28,7 @@
         <activity android:name="com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity" />
         <activity android:name="com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageActivity" />
         <activity android:name="com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity" />
+        <activity android:name="com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsActivity" />
 
         <provider
             android:authorities="${applicationId}.provider"

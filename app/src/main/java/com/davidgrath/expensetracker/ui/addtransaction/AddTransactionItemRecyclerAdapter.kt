@@ -74,7 +74,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldAmountWatcher != null) {
                     binding.editTextAddDetailedTransactionItemAmount.removeTextChangedListener(oldAmountWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(timeAndLocaleHandler.getLocale(), "%.2f", cachedItem.amount))
+                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(timeAndLocaleHandler.getLocale(), "%.2f", cachedItem.amount)) //TODO format=as-you-type listener
                 val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
 //                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
                     val absPosition = holder.absoluteAdapterPosition

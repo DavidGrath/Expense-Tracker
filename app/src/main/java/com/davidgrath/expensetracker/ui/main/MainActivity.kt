@@ -10,6 +10,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DayOfWeekGsonAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.LocalDateGsonAdapter
 import com.davidgrath.expensetracker.databinding.ActivityMainBinding
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
@@ -22,6 +23,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.google.gson.GsonBuilder
 import org.slf4j.LoggerFactory
 import org.threeten.bp.DayOfWeek
+import org.threeten.bp.LocalDate
 import java.io.File
 import javax.inject.Inject
 
@@ -33,6 +35,10 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
     @Inject
     lateinit var profileRepository: ProfileRepository
+    val gson = GsonBuilder()
+        .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
+        .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
+        .create()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +125,7 @@ class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListen
                     if(file.exists()) {
                         val size = file.length()
                         val reader = file.bufferedReader()
-                        val gson = GsonBuilder().registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter()).create()
+
                         val statisticsFilter = gson.fromJson(reader, StatisticsFilter::class.java)
                         LOGGER.info("Read {} bytes from existing statistics JSON file", size)
                         viewModel.setFilter(statisticsFilter)

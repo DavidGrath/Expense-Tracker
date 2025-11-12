@@ -20,13 +20,19 @@ import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.ImageUi
+import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
+import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
 import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
+import com.davidgrath.expensetracker.repositories.TransactionRepository
+import com.davidgrath.expensetracker.ui.main.MainViewModel
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import com.ibm.icu.number.NumberFormatter
+import com.ibm.icu.number.Precision
 import com.ibm.icu.text.MeasureFormat
 import com.ibm.icu.util.Measure
 import com.ibm.icu.util.MeasureUnit
@@ -44,9 +50,11 @@ import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.format.DateTimeParseException
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.math.BigDecimal
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.Currency
@@ -286,6 +294,20 @@ class DayOfWeekGsonAdapter: TypeAdapter<DayOfWeek>() {
         }
     }
 }
+class LocalDateGsonAdapter: TypeAdapter<LocalDate>() {
+    override fun write(out: JsonWriter?, value: LocalDate?) {
+        out!!.value(value?.toString())
+    }
+
+    override fun read(`in`: JsonReader?): LocalDate? {
+        return try {
+            LocalDate.parse(`in`?.nextString()!!)
+        } catch (e: DateTimeParseException) {
+            LOGGER.warn("Could not parse date", e)
+            null
+        }
+    }
+}
 fun file(vararg segments: String): File {
     val sep = File.separator
     val fullPath = segments.joinToString(sep)
@@ -345,4 +367,40 @@ fun Long.formatBytes(locale: Locale): String {
     val measure = Measure(this/divisor, unit)
     val format = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT)
     return format.formatMeasures(measure)
+}
+
+val numberFormatterSettings = NumberFormatter.with().grouping(NumberFormatter.GroupingStrategy.ON_ALIGNED).precision(
+    Precision.fixedFraction(2))
+fun formatDecimal(bigDecimal: BigDecimal, locale: Locale): String {
+    val numberFormatter = numberFormatterSettings.locale(locale)
+    return numberFormatter.format(bigDecimal).toString()
+}
+
+fun getFilteredWeekDays(profileId: Long, filter: StatisticsFilter, dateMode: StatisticsConfig.DateMode, timeAndLocaleHandler: TimeAndLocaleHandler, transactionRepository: TransactionRepository): List<String> {
+    val dates = mutableListOf<String>()
+    val accountIds = filter.accountIds
+    if(dateMode != StatisticsConfig.DateMode.Daily) {
+        if(filter.weekdays.isNotEmpty()) {
+            val earliestDate =
+                transactionRepository.getEarliestTransactionDate(profileId, accountIds).blockingGet()
+            if (earliestDate != null) {
+                val today = LocalDate.now(timeAndLocaleHandler.getClock())
+                val startDate = filter.startDay ?: earliestDate
+                val endDate = filter.endDay ?: today
+                if (startDate <= endDate) {
+                    var runningDate = startDate
+                    while (runningDate <= endDate) {
+                        if(runningDate.dayOfWeek in filter.weekdays) {
+                            dates.add(runningDate.toString())
+                        }
+                        runningDate = runningDate.plusDays(1)
+                    }
+                }
+            } else {
+
+            }
+        }
+    }
+    LOGGER.info("Picked out {} days from weekdays filter", dates.size)
+    return dates
 }

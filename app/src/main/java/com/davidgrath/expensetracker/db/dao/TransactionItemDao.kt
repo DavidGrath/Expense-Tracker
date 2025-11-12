@@ -84,13 +84,39 @@ interface TransactionItemDao {
             "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
             "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal") //TODO Think about ordinals later
     fun getItemsWithTransactionsAndCategory(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
-        datesEmpty: Boolean, dates: List<String>
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
     ): Observable<List<TransactionWithItemAndCategory>>
+    @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
+            "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.debitOrCredit, " +
+            "ti.description, t.createdAt AS transactionCreatedAt, t.createdAtOffset AS transactionCreatedAtOffset, " +
+            "t.createdAtTimezone AS transactionCreatedAtTimezone, t.datedAt AS transactionDatedAt, " +
+            "t.datedAtTime AS transactionDatedAtTime, " +
+            "c.stringId AS categoryStringId, c.isCustom AS categoryIsCustom, c.name AS categoryName " +
+            "FROM TransactionItemDb ti " +
+            "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
+            "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
+            "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal") //TODO Think about ordinals later
+    fun getItemsWithTransactionsAndCategorySingle(
+        profileId: Long,
+        fromDate: String? = null, toDate: String? = null,
+        emptyAccounts: Boolean, accountIds: List<Long>,
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
+    ): Single<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
     fun getByIdSingle(id: Long): Single<TransactionItemDb>
@@ -112,6 +138,24 @@ interface TransactionItemDao {
         datesEmpty: Boolean, dates: List<String>,
         categoriesEmpty: Boolean, categories: List<Long>
     ): Observable<TransactionAndItemCount>
+
+    @Query("SELECT count(distinct(t.id)) as transactionCount, count(ti.id) as itemCount " +
+            "FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id " +
+            "INNER JOIN AccountDb a ON a.id = t.accountId " +
+            "WHERE a.profileId=:profileId " +
+            "AND (:fromDate IS NULL OR date(datedAt) >= date(:fromDate)) " +
+            "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
+            "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
+            "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) "
+    )
+    fun getTransactionItemCountSingle(
+        profileId: Long,
+        fromDate: String? = null, toDate: String? = null,
+        emptyAccounts: Boolean, accountIds: List<Long>,
+        datesEmpty: Boolean, dates: List<String>,
+        categoriesEmpty: Boolean, categories: List<Long>
+    ): Single<TransactionAndItemCount>
     // endregion
 
     //region Update

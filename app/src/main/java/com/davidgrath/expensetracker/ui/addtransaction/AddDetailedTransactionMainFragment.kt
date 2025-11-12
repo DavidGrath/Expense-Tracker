@@ -22,6 +22,7 @@ import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
 import com.google.android.material.snackbar.Snackbar
@@ -112,7 +113,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
 
         viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
             val currencyCode = account.currencyCode
-            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + String.format(timeAndLocaleHandler.getLocale(), "%.2f", total) //TODO General number formatting, UCUM/UOM
+            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + formatDecimal(total, timeAndLocaleHandler.getLocale()) //TODO Currency symbols, maybe
         }
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
 
