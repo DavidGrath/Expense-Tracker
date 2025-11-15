@@ -452,6 +452,7 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
         val id = dataBuilder.createTransaction()
             .withItem("Description", "miscellaneous", BigDecimal(110.00))
+            .atTime(MOCKED_TIME)
             .commit().first()
 
 

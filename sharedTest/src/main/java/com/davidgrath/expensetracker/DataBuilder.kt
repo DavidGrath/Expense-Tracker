@@ -38,6 +38,8 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         private var defaultItemPrice: BigDecimal? = null
         private var debitOrCredit: Boolean = true
         private var date: LocalDate? = null
+        private var time: LocalTime? = null
+        private var timeSet = false
 
         private val categoryDao = expenseTrackerDatabase.categoryDao()
         private val profileDao = expenseTrackerDatabase.profileDao()
@@ -101,6 +103,12 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             return this
         }
 
+        override fun atTime(time: LocalTime): TransactionBuilder {
+            this.time = time
+            this.timeSet = true
+            return this
+        }
+
         override fun debitOrCredit(debitOrCredit: Boolean): TransactionBuilder {
             this.debitOrCredit = debitOrCredit
             return this
@@ -120,7 +128,11 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             val sum = items.map { it.amount }.reduce { acc, bigDecimal -> acc.plus(bigDecimal) }
             val account = newAccount?: account
             val firstDate = this.date?: LocalDate.now(timeAndLocaleHandler.getClock())
-            val time = LocalTime.now(timeAndLocaleHandler.getClock())
+            val time = if(timeSet) {
+                this.time?: LocalTime.now(timeAndLocaleHandler.getClock())
+            } else {
+                this.time
+            }
             val (dateTime, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
 
             val repeats = listOf(firstDate) + repeatDates
@@ -129,7 +141,7 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             val classLoader = TransactionItemBuilderImpl::class.java.classLoader
             val ids = repeats.map { repeatDate ->
                 val ordinal = transactionDao.getMaxOrdinalInDayForAccount(account.id!!, repeatDate.toString()).subscribeOn(Schedulers.io()).blockingGet()?: 0
-                val transaction = TransactionDb(null, account.id!!, sum, account.currencyCode, null, debitOrCredit, TransactionMode.Other,null, null, null, dateTime, offset, zone, ordinal + 1, repeatDate.toString(), time.toString())
+                val transaction = TransactionDb(null, account.id!!, sum, account.currencyCode, null, debitOrCredit, TransactionMode.Other,null, null, null, dateTime, offset, zone, ordinal + 1, repeatDate.toString(), time?.toString())
                 val transactionId = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
 
                 items.forEachIndexed { index, item ->
@@ -264,6 +276,7 @@ interface TransactionBuilder: Commit {
      */
     fun repeatIntoDateRange(startDate: LocalDate, endDate: LocalDate): TransactionBuilder
     fun atDate(date: LocalDate): TransactionBuilder
+    fun atTime(time: LocalTime): TransactionBuilder
 }
 
 interface TransactionItemBuilder: Commit {

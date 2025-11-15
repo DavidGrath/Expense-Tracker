@@ -71,6 +71,12 @@ interface EvidenceDao {
     fun getAllByProfileIdSingle(profileId: Long): Single<List<EvidenceWithTransactionDateAndOrdinal>>
     //endregion
 
+    //region Update
+    @Query("UPDATE EvidenceDb SET uri = :uri " +
+            "WHERE id=:id")
+    fun updateEvidenceUri(id: Long, uri: String): Single<Int>
+    //endregion
+
     //region Delete
 
     @Query("DELETE FROM EvidenceDb " +

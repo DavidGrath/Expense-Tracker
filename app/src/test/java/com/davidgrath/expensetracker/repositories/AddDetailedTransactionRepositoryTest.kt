@@ -1,6 +1,7 @@
 package com.davidgrath.expensetracker.repositories
 
 import android.net.Uri
+import androidx.core.net.toFile
 import androidx.core.net.toUri
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DataBuilder
@@ -52,6 +53,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
@@ -110,6 +112,7 @@ class AddDetailedTransactionRepositoryTest {
 
         val MOCKED_DATE = LocalDate.of(2025, 6, 30)
         val MOCKED_TIME = LocalTime.of(8, 0)
+        val LOGGER = LoggerFactory.getLogger(AddDetailedTransactionRepositoryTest::class.java)
     }
 
     @Before
@@ -1152,7 +1155,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.restoreDraft().blockingSubscribe()
 
         val localDate = MOCKED_DATE
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        val localTime = LocalTime.of(1, 0, 30)
         repository.setDate(localDate)
         repository.setTime(localTime)
 
@@ -1160,7 +1163,7 @@ class AddDetailedTransactionRepositoryTest {
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val transactionTime = LocalTime.parse(transaction.datedAtTime!!)
 
-        assertEquals(0, localTime.compareTo(transactionTime))
+        assertEquals(localTime, transactionTime)
     }
 
     @Test
@@ -1188,7 +1191,7 @@ class AddDetailedTransactionRepositoryTest {
         repository.restoreDraft().blockingSubscribe()
 
         val localDate = LocalDate.of(2025, 1, 1)
-        val localTime = LocalTime.of(1, 0, 30, 123_000_000)
+        val localTime = LocalTime.of(1, 0, 30)
         repository.setDate(localDate)
         repository.setTime(localTime)
 
@@ -1196,7 +1199,7 @@ class AddDetailedTransactionRepositoryTest {
         val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
         val transactionTime = LocalTime.parse(transaction.datedAtTime!!)
 
-        assertEquals(0, localTime.compareTo(transactionTime))
+        assertEquals(localTime, transactionTime)
     }
 
     @Test
@@ -1224,11 +1227,154 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
-    @Ignore("Save for later")
     fun givenModeIsEditAndTransactionDateDifferentFromOriginalDateAndTransactionHasDocumentsWhenSaveThenEvidenceIsInNewLocation() {
-        assertTrue(false)
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+//        val mainEvidenceFolder = file(app.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        val mainEvidenceFolder = file(app.filesDir, Constants.FOLDER_NAME_PROFILES,  profile.stringId, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_DOCUMENTS, "2025", "06", "30")
+        mainEvidenceFolder.mkdirs()
+
+        val (id, itemId) = saveBasicTransaction(BigDecimal.TEN).subscribeOn(Schedulers.io()).blockingGet()
+
+        val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader
+        val resource = TestData.Resource.Documents.EVIDENCE_IMAGE
+        addContentProviderResources(app, classLoader, resource)
+
+        val mainEvidence = File(mainEvidenceFolder, "45402cd3-2452-4804-981a-7ea5515dec74.jpg")
+        val evidenceId = saveEvidenceToDevice(id, resource).blockingGet()
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingSubscribe()
+
+        val newDate = LocalDate.parse("2025-06-15")
+        repository.setDate(newDate)
+        repository.finishTransaction().blockingSubscribe()
+        val evidence = evidenceDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet().first()
+        val file = evidence.uri.toUri().toFile()
+        val dateSegment = file.parentFile
+        val monthSegment = dateSegment.parentFile
+        val yearSegment = monthSegment.parentFile
+        val folderDate = LocalDate.of(yearSegment.name.toInt(),monthSegment.name.toInt(),dateSegment.name.toInt())
+        assertEquals(newDate, folderDate)
     }
 
+    @Test
+    fun givenTransactionTimeIsChangedAndNoOtherTransactionsWithinTheSameDateHaveTimeWhenSaveTransactionThenTransactionIsLast() {
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .commit().first()
+        val id2 = dataBuilder.createTransaction()
+            .withItem("niotpircseD", "fitness", BigDecimal(30))
+            .commit().first()
+        val id3 = dataBuilder.createTransaction()
+            .withItem("D", "food", BigDecimal(30))
+            .commit().first()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal < transaction2.ordinal)
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingSubscribe()
+        repository.setTime(LocalTime.parse("08:03:00"))
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
+        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
+        assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal > transaction3.ordinal)
+    }
+
+    @Test
+    fun givenTransactionTimeIsChangedAndAnotherTransactionWithinTheSameDateHasTimeWhenSaveTransactionThenTransactionAdjacentToExistingTransaction() {
+
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .atTime(LocalTime.parse("08:00:00"))
+            .commit().first()
+        val id2 = dataBuilder.createTransaction()
+            .withItem("niotpircseD", "fitness", BigDecimal(30))
+            .atTime(LocalTime.parse("08:01:00"))
+            .commit().first()
+        val id3 = dataBuilder.createTransaction()
+            .withItem("D", "food", BigDecimal(30))
+            .atTime(LocalTime.parse("08:02:00"))
+            .commit().first()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal < transaction2.ordinal)
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id2).blockingSubscribe()
+        repository.setTime(LocalTime.parse("07:00"))
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal > transaction2.ordinal)
+    }
+
+    @Test
+    fun givenTransactionTimeIsChangedAndAnotherTransactionWithinTheSameDateHasTimeAndYetAnotherTransactionAfterThatHasNoTimeWhenSaveTransactionThenTransactionAdjacentToExistingTransactionWithTime() {
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .commit().first()
+        val id2 = dataBuilder.createTransaction()
+            .withItem("niotpircseD", "fitness", BigDecimal(30))
+            .atTime(LocalTime.parse("08:01:00"))
+            .commit().first()
+        val id3 = dataBuilder.createTransaction()
+            .withItem("D", "food", BigDecimal(30))
+            .commit().first()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal < transaction2.ordinal)
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingSubscribe()
+        repository.setTime(LocalTime.parse("08:03:00"))
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
+        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
+        assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
+    }
+
+    @Test
+    fun timeInBetweenTest() {
+
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .atTime(LocalTime.parse("08:00:00"))
+            .commit().first()
+        val id2 = dataBuilder.createTransaction()
+            .withItem("niotpircseD", "fitness", BigDecimal(30))
+            .atTime(LocalTime.parse("08:01:00"))
+            .commit().first()
+        val id3 = dataBuilder.createTransaction()
+            .withItem("D", "food", BigDecimal(30))
+            .atTime(LocalTime.parse("08:03:00"))
+            .commit().first()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal < transaction2.ordinal)
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingSubscribe()
+        repository.setTime(LocalTime.parse("08:02:00"))
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
+        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
+        assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
+    }
 
     @Test
     @Ignore("Save for later")

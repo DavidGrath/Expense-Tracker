@@ -9,6 +9,7 @@ import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
+import com.davidgrath.expensetracker.entities.db.views.TransactionIdAndOrdinal
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Maybe
@@ -200,6 +201,34 @@ constructor(
 
     fun getMaxOrdinalInDayForAccount(accountId: Long, date: String): Maybe<Int> {
         return transactionDao.getMaxOrdinalInDayForAccount(accountId, date)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId: Long, accountId: Long, date: String, time: String): Maybe<TransactionDb> {
+        return transactionDao.getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId, accountId, date, time)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId: Long, accountId: Long, date: String, time: String): Maybe<TransactionDb> {
+        return transactionDao.getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId, accountId, date, time)
+            .subscribeOn(Schedulers.io())
+    }
+    fun getHighestTimeBeforeTimeInDayForAccount(accountId: Long, date: String, time: String): Maybe<TransactionDb> {
+        return transactionDao.getHighestTimeBeforeTimeInDayForAccount(accountId, date, time)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getLowestTimeAfterTimeInDayForAccount(accountId: Long, date: String, time: String): Maybe<TransactionDb> {
+        return transactionDao.getLowestTimeAfterTimeInDayForAccount(accountId, date, time)
+            .subscribeOn(Schedulers.io())
+    }
+
+    fun getIdsAndOrdinalsFromDateForAccountSingle(accountId: Long, date: String, startingOrdinal: Int): Single<List<TransactionIdAndOrdinal>> {
+        return transactionDao.getIdsAndOrdinalsFromDateForAccountSingle(accountId, date, startingOrdinal)
+            .subscribeOn(Schedulers.io())
+    }
+    fun updateOrdinal(id: Long, ordinal: Int): Single<Int> {
+        return transactionDao.updateOrdinal(id, ordinal)
             .subscribeOn(Schedulers.io())
     }
 

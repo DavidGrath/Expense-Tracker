@@ -7,6 +7,7 @@ import androidx.room.Update
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
+import com.davidgrath.expensetracker.entities.db.views.TransactionIdAndOrdinal
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -95,11 +96,43 @@ interface TransactionDao {
             "AND date(datedAt) = date(:date)")
     fun getMaxOrdinalInDayForAccount(accountId: Long, date: String): Maybe<Int>
 
+    @Query("SELECT t.*  FROM TransactionDb t " +
+            "WHERE t.id = " +
+            "(SELECT id FROM (SELECT tt.id, max(tt.ordinal)  FROM TransactionDb tt WHERE tt.accountId = :accountId AND date(tt.datedAt) = date(:date) AND time(:time) > time(tt.datedAtTime)))"
+    )
+    fun getHighestTimeBeforeTimeInDayForAccount(accountId: Long, date: String, time: String): Maybe<TransactionDb>
+    @Query("SELECT t.*  FROM TransactionDb t " +
+            "WHERE t.id = " +
+            "(SELECT id FROM (SELECT tt.id, max(tt.ordinal)  FROM TransactionDb tt WHERE tt.accountId = :accountId AND date(tt.datedAt) = date(:date) AND time(:time) > time(tt.datedAtTime) AND tt.id != :transactionId))"
+    )
+    fun getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId: Long, accountId: Long, date: String, time: String): Maybe<TransactionDb>
+    @Query("SELECT t.*  FROM TransactionDb t " +
+            "WHERE t.id = " +
+            "(SELECT id FROM (SELECT tt.id, min(tt.ordinal)  FROM TransactionDb tt WHERE tt.accountId = :accountId AND date(tt.datedAt) = date(:date) AND time(:time) <= time(tt.datedAtTime)  AND tt.id != :transactionId))"
+    )
+    fun getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId: Long, accountId: Long, date: String, time: String): Maybe<TransactionDb>
+    @Query("SELECT t.*  FROM TransactionDb t " +
+            "WHERE t.id = " +
+            "(SELECT id FROM (SELECT tt.id, min(tt.ordinal)  FROM TransactionDb tt WHERE tt.accountId = :accountId AND date(tt.datedAt) = date(:date) AND time(:time) <= time(tt.datedAtTime)))"
+    )
+    fun getLowestTimeAfterTimeInDayForAccount(accountId: Long, date: String, time: String): Maybe<TransactionDb>
+
+    @Query("SELECT t.id AS transactionId, t.ordinal AS transactionOrdinal " +
+            "FROM TransactionDb t " +
+            "WHERE t.accountId = :accountId " +
+            "AND t.datedAt = :date " +
+            "AND t.ordinal >= :startingOrdinal ")
+    fun getIdsAndOrdinalsFromDateForAccountSingle(accountId: Long, date: String, startingOrdinal: Int): Single<List<TransactionIdAndOrdinal>>
+
     //endregion
 
     //region Update
     @Update
     fun updateTransaction(transactionDb: TransactionDb): Single<Int>
+
+    @Query("UPDATE TransactionDb SET ordinal = :ordinal WHERE id=:id")
+    fun updateOrdinal(id: Long, ordinal: Int): Single<Int>
+
     //endregion
 
     //region Delete

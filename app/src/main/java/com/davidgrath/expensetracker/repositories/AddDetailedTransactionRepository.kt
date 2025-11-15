@@ -62,6 +62,7 @@ constructor(
     private var currentMode = "add"
     private var transactionId: Long? = null
     private var profileId: Long? = null
+    private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     fun setMode(mode: String) {
         currentMode = mode
@@ -627,14 +628,57 @@ constructor(
             LOGGER.debug("AccountID: {}, Draft: {}", draft.accountId, draft)
             val account = accountRepository.getAccountByIdSingle(draft.accountId).blockingGet()!!
             val maxOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
-            val ordinal = maxOrdinal + 1
-            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, draft.mode, note, null, null, dateTimeString, offset, zone, ordinal, datedDate, datedTime)
+            var transactionOrdinal = maxOrdinal + 1
+
+            if(datedTime != null) {
+                val nextTransaction = transactionRepository.getLowestTimeAfterTimeInDayForAccount(draft.accountId, datedDate, datedTime).blockingGet()
+                LOGGER.debug("nextTransaction: {}, datedTime: {}", nextTransaction, datedTime)
+                val prevTransaction = transactionRepository.getHighestTimeBeforeTimeInDayForAccount(draft.accountId, datedDate, datedTime).blockingGet()
+                if(nextTransaction != null) {
+                    LOGGER.debug("prevTransaction: {}", prevTransaction)
+//                        if(prevTransaction != null) {
+//                            LOGGER.debug("Shift ordinals")
+//                        } else {
+                    transactionOrdinal = nextTransaction.ordinal
+                    val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                    val _ordinalsSize = _ordinals.size
+                    val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                    LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+                    _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+
+                        val newOrdinal = transactionOrdinal + 1 + _ordinalsSize + index + max
+                        LOGGER.debug("newOrdinal: {}", newOrdinal)
+                        transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
+                    }
+//                        }
+                } else if(prevTransaction != null) {
+                    transactionOrdinal = prevTransaction.ordinal + 1
+                    val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                    val _ordinalsSize = _ordinals.size
+                    val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                    LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+                    _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+                        val newOrdinal = transactionOrdinal + 2 + _ordinalsSize + index + max
+                        LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
+                        LOGGER.debug("newOrdinal: {}", newOrdinal)
+                        transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
+                    }
+                } else {
+                    val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                    transactionOrdinal = maxTransactionOrdinal + 1
+                }
+            } else {
+                val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                transactionOrdinal = maxTransactionOrdinal + 1
+            }
+
+            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, draft.mode, note, null, null, dateTimeString, offset, zone, transactionOrdinal, datedDate, datedTime)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
                 LOGGER.info("saveDraft: Created new transaction")
                 draft.evidence.map { evidence ->
                     val file = evidence.uri.toFile()
-                    val localDate = LocalDate.now(timeAndLocaleHandler.getClock())
+                    val localDate = draft.customDate ?: LocalDate.now(timeAndLocaleHandler.getClock())
                     val year = String.format("%04d", localDate.year)
                     val month = String.format("%02d", localDate.monthValue)
                     val day = String.format("%02d", localDate.dayOfMonth)
@@ -759,7 +803,7 @@ constructor(
                             item.dbId,
                             item.amount!!,
                             item.brand,
-                            1,
+                            item.quantity,
                             item.description!!,
                             item.category.id
                         ).blockingGet()
@@ -854,12 +898,102 @@ constructor(
 //            val customDateTime = ZonedDateTime.of(customDate.atTime(customTime), timeAndLocaleHandler.getZone()).withZoneSameInstant(ZoneId.of("UTC"))
 
             val datedDate = customDate.toString()
-            val datedTime = customTime?.toString()
+            val datedTime = customTime?.format(TIME_FORMATTER)
 
             var transactionOrdinal = transaction.ordinal
-            if(transaction.datedAt != datedDate) {
-                val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
-                transactionOrdinal = maxTransactionOrdinal + 1
+            if(transaction.datedAt != datedDate || transaction.accountId != draft.accountId) {
+                if(datedTime != null) {
+                    val nextTransaction = transactionRepository.getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                    LOGGER.debug("nextTransaction: {}, datedTime: {}", nextTransaction, datedTime)
+                    val prevTransaction = transactionRepository.getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                    if(nextTransaction != null) {
+                        LOGGER.debug("prevTransaction: {}", prevTransaction)
+//                        if(prevTransaction != null) {
+//                            LOGGER.debug("Shift ordinals")
+//                        } else {
+                            transactionOrdinal = nextTransaction.ordinal
+                            val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                            val _ordinalsSize = _ordinals.size
+                            val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                            LOGGER.debug("newOrdinal: {}", _ordinals)
+                            _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+                                if(transactionIdAndOrdinal.transactionId != transactionId) {
+                                    val newOrdinal = index + max + 1
+                                    LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
+                                    LOGGER.debug("newOrdinal: {}", newOrdinal)
+                                    transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
+                                }
+                            }
+//                        }
+                    } else if(prevTransaction != null) {
+                        transactionOrdinal = prevTransaction.ordinal + 1
+                        val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                        val _ordinalsSize = _ordinals.size
+                        val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                        _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+                            if(transactionIdAndOrdinal.transactionId != transactionId) {
+                                val newOrdinal = index + max + 2
+                                LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
+                                LOGGER.debug("newOrdinal: {}", newOrdinal)
+                                transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
+                            }
+                        }
+                    } else {
+                        val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                        transactionOrdinal = maxTransactionOrdinal + 1
+                    }
+                } else {
+                    val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                    transactionOrdinal = maxTransactionOrdinal + 1
+                }
+            } else {
+                if(datedTime != null) {
+                    val nextTransaction = transactionRepository.getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                    LOGGER.debug("nextTransaction: {}, datedTime: {}", nextTransaction, datedTime)
+                    val prevTransaction = transactionRepository.getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                    if(nextTransaction != null) {
+                        LOGGER.debug("prevTransaction: {}", prevTransaction)
+//                        if(prevTransaction != null) {
+//                            LOGGER.debug("Shift ordinals")
+//                        } else {
+                            transactionOrdinal = nextTransaction.ordinal
+                            val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                            val _ordinalsSize = _ordinals.size
+                            val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                            LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+                            _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+                                if(transactionIdAndOrdinal.transactionId != transactionId) {
+                                    val newOrdinal = index + max + 1
+                                    LOGGER.debug("newOrdinalX: {}, index: {}", newOrdinal, index)
+                                    transactionRepository.updateOrdinal(
+                                        transactionIdAndOrdinal.transactionId,
+                                        newOrdinal
+                                    ).blockingSubscribe()
+                                }
+                            }
+//                        }
+                    } else if(prevTransaction != null) {
+                        transactionOrdinal = prevTransaction.ordinal + 1
+                        val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
+                        val _ordinalsSize = _ordinals.size
+                        val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
+                        LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+                        _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
+                            if(transactionIdAndOrdinal.transactionId != transactionId) {
+                                val newOrdinal = index + max + 2
+                                LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
+                                LOGGER.debug("newOrdinal: {}", newOrdinal)
+                                transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
+                            }
+                        }
+                    } else {
+                        val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                        transactionOrdinal = maxTransactionOrdinal + 1
+                    }
+                } else {
+                    val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+                    transactionOrdinal = maxTransactionOrdinal + 1
+                }
             }
             updatedTransaction =
                 updatedTransaction.copy(datedAt = datedDate, datedAtTime = datedTime, ordinal = transactionOrdinal)
@@ -948,15 +1082,28 @@ constructor(
             }
             LOGGER.info("Transaction {}: Deleted {} items", transactionId, draft.deletedDbEvidence.size)
             var addedEvidenceCount = 0
+            var movedEvidenceCount = 0
             for(evidence in draft.evidence) {
                 if(evidence.dbId != null) {
+                    if(transaction.datedAt != datedDate) {
+                        val file = evidence.uri.toFile()
+
+                        val year = String.format("%04d", customDate.year)
+                        val month = String.format("%02d", customDate.monthValue)
+                        val day = String.format("%02d", customDate.dayOfMonth)
+                        val mainFile = fileHandler.moveFileToMain(file, Constants.SUBFOLDER_NAME_DOCUMENTS + File.separator + year + File.separator + month + File.separator + day).blockingGet()
+                        val finalUri = mainFile.toUri()
+
+                        evidenceDao.updateEvidenceUri(evidence.dbId!!, finalUri.toString()).blockingGet()
+                        movedEvidenceCount++
+                    }
                     continue
                 }
                 val file = evidence.uri.toFile()
-                val localDate = LocalDate.now(timeAndLocaleHandler.getClock())
-                val year = String.format("%04d", localDate.year)
-                val month = String.format("%02d", localDate.monthValue)
-                val day = String.format("%02d", localDate.dayOfMonth)
+
+                val year = String.format("%04d", customDate.year)
+                val month = String.format("%02d", customDate.monthValue)
+                val day = String.format("%02d", customDate.dayOfMonth)
                 val mainFile = fileHandler.moveFileToMain(file, Constants.SUBFOLDER_NAME_DOCUMENTS + File.separator + year + File.separator + month + File.separator + day).blockingGet()
                 val finalUri = mainFile.toUri()
 
@@ -965,7 +1112,7 @@ constructor(
                 evidenceDao.insertEvidence(evidence).blockingGet()
                 addedEvidenceCount++
             }
-            LOGGER.info("Transaction {}: Evidence: Created: {};", transactionId, addedEvidenceCount)
+            LOGGER.info("Transaction {}: Evidence: Created: {}; Moved: {}", transactionId, addedEvidenceCount, movedEvidenceCount)
         }.timeInterval().map {
             val time = it.time(TimeUnit.MILLISECONDS)
             LOGGER.info("saveEdit: took {} ms", time)
@@ -1135,7 +1282,12 @@ constructor(
         } else {
             customTime = draft.customTime ?: LocalTime.now(timeAndLocaleHandler.getClock())
         }
-        return customDate.toString() to customTime?.toString()
+        val time = if(customTime != null) {
+            customTime.format(TIME_FORMATTER)
+        } else {
+            null
+        }
+        return customDate.toString() to time
     }
 
     /**

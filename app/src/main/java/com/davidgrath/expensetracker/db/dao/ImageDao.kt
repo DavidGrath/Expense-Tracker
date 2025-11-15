@@ -71,6 +71,12 @@ interface ImageDao {
     fun getImageStatsSingle(id: Long): Single<TransactionAndItemCount>
     //endregion
 
+    //region Update
+    @Query("UPDATE ImageDb SET uri = :uri WHERE id = :id")
+    fun updateUri(id: Long, uri: String): Single<Int>
+
+    //endregion
+
     //region Delete
 
     @Query("DELETE FROM ImageDb " +
