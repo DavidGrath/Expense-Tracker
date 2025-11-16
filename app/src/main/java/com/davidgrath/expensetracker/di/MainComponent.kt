@@ -10,6 +10,7 @@ import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionMai
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionViewModelFactory
 import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.AddTransactionDialogFragment
 import com.davidgrath.expensetracker.ui.dialogs.WeekDayDialogFragment
 import com.davidgrath.expensetracker.ui.dialogs.YearDayDialogFragment
 import com.davidgrath.expensetracker.ui.main.MainActivity
@@ -65,4 +66,5 @@ interface MainComponent {
     fun inject(filteredTransactionsViewModelFactory: FilteredTransactionsViewModelFactory)
     fun inject(filteredTransactionsActivity: FilteredTransactionsActivity)
     fun inject(transactionDetailsViewModelFactory: TransactionDetailsViewModelFactory)
+    fun inject(addTransactionDialogFragment: AddTransactionDialogFragment)
 }

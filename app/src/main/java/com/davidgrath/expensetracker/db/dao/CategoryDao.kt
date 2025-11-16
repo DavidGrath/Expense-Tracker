@@ -16,11 +16,13 @@ interface CategoryDao {
     //endregion
 
     //region Read
-    @Query("SELECT * FROM CategoryDb")
-    fun getAll(): Observable<List<CategoryDb>>
+    @Query("SELECT * FROM CategoryDb " +
+            "WHERE profileId = :profileId")
+    fun getAll(profileId: Long, ): Observable<List<CategoryDb>>
 
-    @Query("SELECT * FROM CategoryDb")
-    fun getAllSingle(): Single<List<CategoryDb>>
+    @Query("SELECT * FROM CategoryDb " +
+            "WHERE profileId = :profileId")
+    fun getAllSingle(profileId: Long, ): Single<List<CategoryDb>>
 
     @Query("SELECT * FROM  CategoryDb WHERE id = :id")
     fun findById(id: Long): Maybe<CategoryDb>

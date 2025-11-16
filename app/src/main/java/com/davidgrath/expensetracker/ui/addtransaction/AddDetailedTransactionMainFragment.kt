@@ -166,7 +166,6 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     override fun onRequestAddImage(position: Int, itemId: Int) {
         val atLeastOneImageExists = viewModel.getImageCount().blockingGet() > 0
         val externalMediaDialog = AddExternalMediaDialogFragment.newInstance(true, itemId, atLeastOneImageExists)
-        externalMediaDialog.listener = this
         externalMediaDialog.show(childFragmentManager, DIALOG_TAG_EXTERNAL_MEDIA_PICKER)
         LOGGER.info("Opened dialog externalMediaPicker")
     }

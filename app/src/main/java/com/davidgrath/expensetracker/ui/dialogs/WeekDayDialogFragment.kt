@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -27,9 +28,21 @@ class WeekDayDialogFragment: DialogFragment() {
     private lateinit var spinner: Spinner
     private var weekDayArray = arrayOf<DayOfWeek>()
     private var weekDay: DayOfWeek? = null
-    var listener: WeekdayDialogListener? = null
+    private var listener: WeekdayDialogListener? = null
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is WeekdayDialogListener) {
+            listener = context
+        } else if(parentFragment != null && parentFragment is WeekdayDialogListener) {
+            listener = parentFragment as WeekdayDialogListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

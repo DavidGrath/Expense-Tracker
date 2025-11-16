@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -21,14 +22,31 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="numberDecimal"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Description"/>
-    <EditText
-        android:id="@+id/edit_text_add_detailed_transaction_item_description"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Description"/>
+        <TextView
+            android:id="@+id/text_view_add_detailed_transaction_description_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0/0" />
+    </LinearLayout>
+<!--    <com.google.android.material.textfield.TextInputLayout-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">-->
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/edit_text_add_detailed_transaction_item_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"/>
+<!--    </com.google.android.material.textfield.TextInputLayout>-->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -54,18 +72,42 @@
             android:id="@+id/check_box_add_detailed_transaction_is_reduction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Brand"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Brand"
+                android:layout_weight="1"/>
+            <TextView
+                android:id="@+id/text_view_add_detailed_transaction_item_brand_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/0" />
+        </LinearLayout>
+
     <EditText
         android:id="@+id/edit_text_add_detailed_transaction_item_brand"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Variation"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Variation"
+                android:layout_weight="1"/>
+            <TextView
+                android:id="@+id/text_view_add_detailed_transaction_item_variation_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/0" />
+        </LinearLayout>
     <EditText
         android:id="@+id/edit_text_add_detailed_transaction_item_variation"
         android:layout_width="match_parent"
@@ -80,10 +122,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="number"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Reference Number"/>
+        android:text="Reference Number"
+        android:layout_weight="1"/>
+            <TextView
+                android:id="@+id/text_view_add_detailed_transaction_item_ref_num_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/0" />
+        </LinearLayout>
     <EditText
         android:id="@+id/edit_text_add_detailed_transaction_item_reference"
         android:layout_width="match_parent"

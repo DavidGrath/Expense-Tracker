@@ -439,7 +439,9 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
         val accountId = accountRepository.createAccount(profile.id!!, "British", "GBP").blockingGet()
         LOGGER.debug("Account ID: {}", accountId)
         onView(withId(R.id.spinner_add_detailed_transaction_account)).perform(click())
-        onData(allOf(AccountUiIdMatcher(accountId))).perform(click())
+        onData(allOf(AccountUiIdMatcher(accountId)))
+//            .inAdapterView(withId(R.id.spinner_add_detailed_transaction_account))
+            .perform(click())
         val draft = addDetailedTransactionRepository.getDraftValue()
         assertEquals(accountId, draft.accountId)
     }

@@ -2,12 +2,14 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
 import android.widget.Spinner
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.MaxCodePointWatcher
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
 import com.davidgrath.expensetracker.databinding.DialogFragmentCreateAccountBinding
@@ -16,6 +18,7 @@ import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.CurrencyAdapter
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.util.Currency
 import javax.inject.Inject
@@ -26,8 +29,20 @@ class AddSellerLocationDialogFragment : DialogFragment() {
         fun onAddSellerLocation(location: String, sellerId: Long)
     }
 
-    var listener: AddSellerLocationListener? = null
+    private var listener: AddSellerLocationListener? = null
     lateinit var binding: DialogFragmentCreateSellerBinding
+    private var location: String? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is AddSellerLocationListener) {
+            this.listener = context
+        } else if(parentFragment != null && parentFragment is AddSellerLocationListener) {
+            listener = parentFragment as AddSellerLocationListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         binding = DialogFragmentCreateSellerBinding.inflate(
@@ -35,6 +50,17 @@ class AddSellerLocationDialogFragment : DialogFragment() {
             null,
             false
         )
+
+        if(savedInstanceState != null) {
+            location = savedInstanceState.getString(ARG_LOCATION)
+        }
+
+        binding.textViewCreateSellerNameIndicator.text = (location?:"").codePointCount(0, (location?:"").length).toString() + "/" + MAX_NAME_LENGTH
+        binding.editTextCreateSellerName.setText(location)
+        val textWatcher = MaxCodePointWatcher(binding.editTextCreateSellerName, MAX_NAME_LENGTH, binding.textViewCreateSellerNameIndicator) { text ->
+            this.location = text
+        }
+        binding.editTextCreateSellerName.addTextChangedListener(textWatcher)
 
         return AlertDialog.Builder(requireContext())
             .setView(binding.root)
@@ -46,6 +72,11 @@ class AddSellerLocationDialogFragment : DialogFragment() {
             })
             .create()
 
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(ARG_LOCATION, location)
     }
 
     override fun onResume() {
@@ -71,6 +102,9 @@ class AddSellerLocationDialogFragment : DialogFragment() {
 
     companion object {
         private const val ARG_SELLER_ID = "sellerId"
+        private const val ARG_LOCATION = "location"
+        private const val MAX_NAME_LENGTH = 50
+        private val LOGGER = LoggerFactory.getLogger(AddSellerLocationDialogFragment::class.java)
 
         @JvmStatic
         fun createDialog(sellerId: Long): AddSellerLocationDialogFragment {

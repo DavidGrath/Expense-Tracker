@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
 import android.text.InputType
@@ -19,7 +20,19 @@ class NumberDialogFragment: DialogFragment() {
     }
 
     private lateinit var editText: EditText
-    var listener: NumberDialogListener? = null
+    private var listener: NumberDialogListener? = null
+
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is NumberDialogListener) {
+            listener = context
+        } else if(parentFragment != null && parentFragment is NumberDialogListener) {
+            listener = parentFragment as NumberDialogListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -54,7 +67,9 @@ class NumberDialogFragment: DialogFragment() {
                 editText.setText(number.toString())
             }
         }
+        val title = args.getString(ARG_TITLE)!!
         return AlertDialog.Builder(requireContext())
+            .setTitle(title)
             .setView(editText)
             .setPositiveButton("Ok") { dialog, which -> }
             .setNegativeButton("Cancel") { dialog, which -> }
@@ -105,17 +120,19 @@ class NumberDialogFragment: DialogFragment() {
         private const val ARG_INITIAL_NUMBER_VALUE = "initialNumberValue"
         private const val ARG_MAX_VALUE = "maxValue"
         private const val ARG_DISAMBIGUATION_TAG = "disambiguationTag"
+        private const val ARG_TITLE = "title"
         private val LOGGER = LoggerFactory.getLogger(NumberDialogFragment::class.java)
 
         /**
          * @param disambiguationTag For when multiple instances are attached with their listeners to
          * the same Fragment host
          */
-        fun newInstance(initialNumber: Int? = null, maxValue: Int? = null, disambiguationTag: String = ""): NumberDialogFragment {
+        fun newInstance(title: String, initialNumber: Int? = null, maxValue: Int? = null, disambiguationTag: String = ""): NumberDialogFragment {
             val bundle = bundleOf(
                 ARG_INITIAL_NUMBER_VALUE to initialNumber,
                 ARG_MAX_VALUE to maxValue,
-                ARG_DISAMBIGUATION_TAG to disambiguationTag
+                ARG_DISAMBIGUATION_TAG to disambiguationTag,
+                ARG_TITLE to title
             )
             val fragment = NumberDialogFragment()
             fragment.arguments = bundle

@@ -40,6 +40,7 @@ import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.di.TestComponent
+import com.davidgrath.expensetracker.di.TestTimeAndLocaleHandler
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
@@ -164,7 +165,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, basicAmount
+            R.id.edit_text_add_detailed_transaction_item_amount, "300"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -208,7 +209,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, "300.00"
+            R.id.edit_text_add_detailed_transaction_item_amount, "300"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -223,7 +224,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,
-            R.id.edit_text_add_detailed_transaction_item_amount, "10.00"
+            R.id.edit_text_add_detailed_transaction_item_amount, "10"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -430,23 +431,20 @@ class AddDetailedTransactionActivityTest {
     }
 
     @Test
-    @Ignore("When I get to general number formatting")
     fun numberFormatTest() {
-        //TODO Locale,DecimalFormat/NumberFormat, probably inject
-        //TODO Maybe make a superclass TextWatcher so that it's guaranteed to be consistent across all
-        // EditTexts in the app
+
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
-            "1000.000"
+            "1234.567"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, "1,000.00"
+            R.id.edit_text_add_detailed_transaction_item_amount, "1,234.56"
         )
         clearTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -455,20 +453,20 @@ class AddDetailedTransactionActivityTest {
         )
 
         //There is a wide variety of locales, so just testing for one that will be different from the current
-        RuntimeEnvironment.setQualifiers("de-DE")
+        timeAndLocaleHandler.changeLocale(Locale("de", "DE"))
         addDetailedTransactionActivityScenario.recreate()
 
 
-        typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+        inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
             R.id.edit_text_add_detailed_transaction_item_amount,
-            "1000,000"
+            "1000,017"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, "1.000,00"
+            R.id.edit_text_add_detailed_transaction_item_amount, "1.000,01"
         )
 
     }
@@ -525,7 +523,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, basicAmount
+            R.id.edit_text_add_detailed_transaction_item_amount, "100"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -566,7 +564,7 @@ class AddDetailedTransactionActivityTest {
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
-            R.id.edit_text_add_detailed_transaction_item_amount, String.format(timeAndLocaleHandler.getLocale(), "%.2f", transactionItem.amount)
+            R.id.edit_text_add_detailed_transaction_item_amount, "10"
         )
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,

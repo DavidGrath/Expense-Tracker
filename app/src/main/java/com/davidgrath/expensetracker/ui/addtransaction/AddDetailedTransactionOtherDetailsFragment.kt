@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.MaxCodePointWatcher
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -111,7 +112,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         binding.spinnerAddDetailedTransactionMode.adapter = modeAdapter
         binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = modeListener
 
-        val textWatcher = object : TextWatcher {
+        /*val textWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
 
             }
@@ -151,6 +152,10 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                     viewModel.setNote(text)
                 }
             }
+        }*/
+        val textWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionNote, Constants.MAX_NOTE_CODEPOINT_LENGTH, binding.textViewAddDetailedTransactionNoteLengthIndicator) {
+            LOGGER.debug("Description: \"{}\"", it)
+            viewModel.setNote(it)
         }
 
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
@@ -219,6 +224,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 binding.editTextAddDetailedTransactionNote.setText(draft.note)
                 binding.editTextAddDetailedTransactionNote.addTextChangedListener(textWatcher)
             }
+            val noteText = draft.note?:""
+            binding.textViewAddDetailedTransactionNoteLengthIndicator.text = noteText.codePointCount(0, noteText.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
         }
         val accountAdapter = AccountAdapter(requireContext(), mutableListOf<AccountUi>())
 
@@ -342,8 +349,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             adapter.setItems(items, renderers)
         }
 
-        val noteText = binding.editTextAddDetailedTransactionNote.text.toString()
-        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = noteText.codePointCount(0, noteText.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
         binding.editTextAddDetailedTransactionNote.addTextChangedListener(textWatcher)
     }
 
@@ -356,7 +361,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                         return
                     }
                     val externalMediaDialog = AddExternalMediaDialogFragment.newInstance(false)
-                    externalMediaDialog.listener = this
                     externalMediaDialog.show(childFragmentManager,
                         DIALOG_TAG_EXTERNAL_MEDIA_PICKER
                     )
@@ -439,7 +443,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                         addSellerDialogFragment = AddSellerDialogFragment()
                     }
                     if(!(addSellerDialogFragment?.dialog?.isShowing?:false)) {
-                        addSellerDialogFragment?.listener = this
                         addSellerDialogFragment?.show(childFragmentManager,
                             DIALOG_TAG_ADD_SELLER
                         )
@@ -452,7 +455,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                         addSellerLocationDialogFragment = AddSellerLocationDialogFragment.createDialog(viewModel.getSellerId()!!)
                     }
                     if(!(addSellerLocationDialogFragment?.dialog?.isShowing?:false)) {
-                        addSellerLocationDialogFragment?.listener = this
                         addSellerLocationDialogFragment?.show(childFragmentManager,
                             DIALOG_TAG_ADD_SELLER_LOCATION
                         )

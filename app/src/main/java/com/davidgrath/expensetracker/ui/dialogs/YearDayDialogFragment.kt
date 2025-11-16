@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -34,6 +35,18 @@ class YearDayDialogFragment: DialogFragment() {
     var listener: YearDayDialogListener? = null
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is YearDayDialogListener) {
+            listener = context
+        } else if(parentFragment != null && parentFragment is YearDayDialogListener) {
+            listener = parentFragment as YearDayDialogListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

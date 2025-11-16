@@ -30,6 +30,11 @@ class UtilsTest {
         val format = SimpleQuantityFormat.getInstance()
         val quantityFormat = NumberDelimiterQuantityFormat.getInstance(NumberFormat.getNumberInstance(Locale.getDefault()), SimpleUnitFormat.getInstance(SimpleUnitFormat.Flavor.ASCII))
         println(quantityFormat.format(quantity))
+
+        println(1023L.formatBytes(Locale.US))
+        println(4096L.formatBytes(Locale("en", "IN")))
+        println(MB.formatBytes(Locale.GERMANY))
+        println(GB.formatBytes(Locale.CHINA))
     }
 
     @Test

@@ -265,7 +265,7 @@ class AddDetailedTransactionViewModel(
     }
 
     fun getCategories(): Single<List<CategoryDb>> {
-        return categoryRepository.getCategoriesSingle()
+        return categoryRepository.getCategoriesSingle(profile.id!!)
     }
 
     fun validateDraft(): Boolean {
@@ -349,7 +349,7 @@ class AddDetailedTransactionViewModel(
 
     fun addSellerLocation(location: String, sellerId: Long) {
         val id = sellerRepository.createSellerLocation(location, sellerId).blockingGet()
-        addDetailedTransactionRepository.setSeller(id)
+        addDetailedTransactionRepository.setSellerLocation(SellerLocationUi(id, sellerId, location, false, null, null, null))
         LOGGER.info("Created seller location {} for profile {}", id, profile.id)
     }
 

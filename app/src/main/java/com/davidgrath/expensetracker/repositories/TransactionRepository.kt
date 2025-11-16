@@ -38,7 +38,7 @@ constructor(
     private val accountRepository: AccountRepository
 ) {
 
-    fun addTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
+    fun addTransaction(accountId: Long, debitOrCredit: Boolean, amount: BigDecimal, description: String, categoryId: Long): Single<Long> {
         val date = ZonedDateTime.now(timeAndLocaleHandler.getClock())
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
         val dateTimeString = utcDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -56,7 +56,7 @@ constructor(
             amount,
             account.currencyCode,
             null,
-            false,
+            debitOrCredit,
             TransactionMode.Other,
             null,
             null,

@@ -15,12 +15,12 @@ class CategoryRepository
     constructor(
     private val categoryDao: CategoryDao) {
 
-    fun getCategories(): Observable<List<CategoryDb>> {
-        return categoryDao.getAll()
+    fun getCategories(profileId: Long, ): Observable<List<CategoryDb>> {
+        return categoryDao.getAll(profileId)
     }
 
-    fun getCategoriesSingle(): Single<List<CategoryDb>> {
-        return categoryDao.getAllSingle()
+    fun getCategoriesSingle(profileId: Long): Single<List<CategoryDb>> {
+        return categoryDao.getAllSingle(profileId)
             .subscribeOn(Schedulers.io())
             .doOnSuccess {
                 LOGGER.info("getCategories: {} items", it.size)

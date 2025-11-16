@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -21,7 +22,18 @@ class AddExternalMediaDialogFragment: DialogFragment() {
     private var selection: Selection? = null
     private lateinit var binding: DialogFragmentAddExternalMediaBinding
     private val background = ColorDrawable(Color.RED)
-    var listener: ExternalMediaListener? = null
+    private var listener: ExternalMediaListener? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is ExternalMediaListener) {
+            listener = context
+        } else if(parentFragment != null && parentFragment is ExternalMediaListener) {
+            listener = parentFragment as ExternalMediaListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

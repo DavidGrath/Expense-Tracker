@@ -303,21 +303,18 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                         }
                         StatisticsConfig.DateMode.PastXDays -> {
                             val x = viewModel.statisticsConfig.xDays
-                            val numberDialogFragment = NumberDialogFragment.newInstance(x, null, DISAMBIGUATION_TAG_X_DAYS)
-                            numberDialogFragment.listener = this
+                            val numberDialogFragment = NumberDialogFragment.newInstance("Choose number of days", x, null, DISAMBIGUATION_TAG_X_DAYS)
                             numberDialogFragment.show(childFragmentManager, DIALOG_TAG_NUMBER)
                         }
                         StatisticsConfig.DateMode.Weekly -> {
                             val firstDay = WeekFields.of(timeAndLocaleHandler.getLocale()).firstDayOfWeek
                             val weekDay = viewModel.statisticsConfig.weeklyFirstDay
                             val weekDayDialogFragment = WeekDayDialogFragment.newInstance(firstDay.value, weekDay.value)
-                            weekDayDialogFragment.listener = this
                             weekDayDialogFragment.show(childFragmentManager, DIALOG_TAG_WEEKDAY)
                         }
                         StatisticsConfig.DateMode.Monthly -> {
                             val x = viewModel.statisticsConfig.monthlyDayOfMonth
-                            val numberDialogFragment = NumberDialogFragment.newInstance(x, 31, DISAMBIGUATION_TAG_MONTHLY)
-                            numberDialogFragment.listener = this
+                            val numberDialogFragment = NumberDialogFragment.newInstance("Choose day of month", x, 31, DISAMBIGUATION_TAG_MONTHLY)
                             numberDialogFragment.show(childFragmentManager, DIALOG_TAG_NUMBER)
                         }
                         StatisticsConfig.DateMode.Yearly -> {

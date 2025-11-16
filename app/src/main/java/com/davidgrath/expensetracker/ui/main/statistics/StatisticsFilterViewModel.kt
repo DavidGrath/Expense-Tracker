@@ -13,6 +13,7 @@ import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.ProfileDb
 import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
@@ -50,10 +51,11 @@ class StatisticsFilterViewModel
         .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
         .create()
+    val profile: ProfileDb
 
     init {
         val app = application as ExpenseTracker
-        val profile = app.profileObservable.blockingFirst()
+        profile = app.profileObservable.blockingFirst()
         accounts = accountRepository.getAccountsForProfileSingle(profile.id!!).map { accounts ->
             accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
         }.blockingGet()
@@ -96,7 +98,7 @@ class StatisticsFilterViewModel
     }
 
     fun getCategories(): Single<List<CategoryDb>> {
-        return categoryRepository.getCategoriesSingle()
+        return categoryRepository.getCategoriesSingle(profile.id!!)
     }
 
     fun toggleWeekDay(dayOfWeek: DayOfWeek) {

@@ -168,16 +168,12 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
             when(view) {
                 binding.fabTransactions -> {
                     if(addTransactionDialog == null) {
-                        val categories = viewModel.getCategories()
-                            .blockingGet()
-                        val accounts = viewModel.getAccounts().blockingGet()
-                        addTransactionDialog = AddTransactionDialogFragment()
-                        addTransactionDialog!!.categories = categories.map { categoryDbToCategoryUi(it) } //TODO Refresh this
-                        addTransactionDialog!!.accounts = accounts.toMutableList()
+
+                        addTransactionDialog = AddTransactionDialogFragment.createDialog(viewModel.currentProfile)
                     }
                     if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
-                        addTransactionDialog?.listener = this
                         addTransactionDialog?.show(childFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
+                        LOGGER.info("Showed addTransactionDialog")
                     }
                 }
                 binding.imageButtonTransactionsCycleDateLeft -> {
@@ -243,15 +239,15 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         }
     }
 
-    override fun onGoToDetails(accountId: Long, amount: BigDecimal?, description: String?, categoryId: Long?) {
+    override fun onGoToDetails(accountId: Long, debitOrCredit: Boolean, amount: BigDecimal?, description: String?, categoryId: Long?) {
         val bundle = AddDetailedTransactionActivity.createBundle(accountId, amount?.toString(), description, categoryId)
         val intent = Intent(requireActivity(), AddDetailedTransactionActivity::class.java)
         intent.putExtras(bundle)
         startActivity(intent)
     }
 
-    override fun onAddTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long) {
-        viewModel.saveTransaction(accountId, amount, description, categoryId)
+    override fun onAddTransaction(accountId: Long, debitOrCredit: Boolean, amount: BigDecimal, description: String, categoryId: Long) {
+        viewModel.saveTransaction(accountId, debitOrCredit, amount, description, categoryId)
     }
 
     override fun onTransactionClicked(transactionId: Long) {

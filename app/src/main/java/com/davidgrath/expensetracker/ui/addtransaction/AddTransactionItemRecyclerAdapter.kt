@@ -15,11 +15,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.MaxCodePointWatcher
+import com.davidgrath.expensetracker.NumberFormatTextWatcher
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
 import org.slf4j.LoggerFactory
@@ -75,8 +78,12 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 if(oldAmountWatcher != null) {
                     binding.editTextAddDetailedTransactionItemAmount.removeTextChangedListener(oldAmountWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) "" else String.format(timeAndLocaleHandler.getLocale(), "%.2f", cachedItem.amount)) //TODO format=as-you-type listener
-                val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
+                binding.editTextAddDetailedTransactionItemAmount.setText(if(cachedItem.amount == null) {
+                    ""
+                } else {
+                    formatDecimal(cachedItem.amount, timeAndLocaleHandler.getLocale())
+                })
+                /*val newAmountWatcher = binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener { text: Editable? ->
 //                    if(binding.editTextAddDetailedTransactionItemAmount.hasFocus()) { //Commented out because of Robolectric
                     val absPosition = holder.absoluteAdapterPosition
                     var latestItem = _items[absPosition]
@@ -90,15 +97,26 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                             listener?.onItemChanged(absPosition, latestItem.copy(amount = amount))
                         }
 //                    }
+                }*/
+                val newAmountWatcher = NumberFormatTextWatcher(binding.editTextAddDetailedTransactionItemAmount, BigDecimal(1_000_000), timeAndLocaleHandler.getLocale()) { amount ->
+                    val absPosition = holder.absoluteAdapterPosition
+                    var latestItem = _items[absPosition]
+                    currentItem = absPosition
+                    if (latestItem.amount != amount) {
+                        listener?.onItemChanged(absPosition, latestItem.copy(amount = amount))
+                    }
                 }
+                binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener(newAmountWatcher)
                 textWatcherAmountMap[binding.editTextAddDetailedTransactionItemAmount.hashCode()] = newAmountWatcher
 
                 val oldDescriptionWatcher = textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()]
                 if(oldDescriptionWatcher != null) {
                     binding.editTextAddDetailedTransactionItemDescription.removeTextChangedListener(oldDescriptionWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemDescription.setText(cachedItem.description?:"")
-                val newDescriptionWatcher = binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener { text: Editable? ->
+                val cachedDescription = cachedItem.description?:""
+                binding.editTextAddDetailedTransactionItemDescription.setText(cachedDescription)
+                binding.textViewAddDetailedTransactionDescriptionIndicator.text = cachedDescription.codePointCount(0, cachedDescription.length).toString() + "/" + MAX_TEXT_LENGTH
+                /*val newDescriptionWatcher = binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener { text: Editable? ->
                     val absPosition = holder.absoluteAdapterPosition
                     currentItem = absPosition
                     var latestItem = _items[absPosition]
@@ -107,7 +125,18 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                             listener?.onItemChanged(absPosition, latestItem.copy(description = text.toString()))
                         }
                     }
+                }*/
+                val newDescriptionWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionItemDescription, MAX_TEXT_LENGTH, binding.textViewAddDetailedTransactionDescriptionIndicator) { text ->
+                    val absPosition = holder.absoluteAdapterPosition
+                    currentItem = absPosition
+                    var latestItem = _items[absPosition]
+                    if(binding.editTextAddDetailedTransactionItemDescription.hasFocus()) {
+                        if (latestItem.description != text) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(description = text))
+                        }
+                    }
                 }
+                binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener(newDescriptionWatcher)
                 textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()] = newDescriptionWatcher
 
                 var categoryPosition = categories.indexOf(cachedItem.category)
@@ -160,29 +189,43 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     listener?.onItemChangedInvalidate(absPosition, latestItem)
                 }
 
+                //region Brand
                 val oldBrandWatcher = textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()]
                 if(oldBrandWatcher != null) {
                     binding.editTextAddDetailedTransactionItemBrand.removeTextChangedListener(oldBrandWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemBrand.setText(cachedItem.brand?:"")
-                val newBrandWatcher = binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener { text: Editable? ->
+
+                val cachedBrand = cachedItem.brand?:""
+                binding.editTextAddDetailedTransactionItemBrand.setText(cachedBrand)
+                binding.textViewAddDetailedTransactionItemBrandIndicator.text = cachedBrand.codePointCount(0, cachedBrand.length).toString() + "/" + MAX_TEXT_LENGTH
+
+                val newBrandWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionItemBrand, MAX_TEXT_LENGTH, binding.textViewAddDetailedTransactionItemBrandIndicator) { text ->
                     val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemBrand.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
-                        if (latestItem.brand != text.toString()) {
-                            listener?.onItemChanged(absPosition, latestItem.copy(brand = text.toString()))
+                        if (latestItem.brand != text) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(brand = text))
                         }
                     }
                 }
+                binding.editTextAddDetailedTransactionItemBrand.addTextChangedListener(newBrandWatcher)
                 textWatcherBrandMap[binding.editTextAddDetailedTransactionItemBrand.hashCode()] = newBrandWatcher
+                //endregion
+
+                //region Variation
 
                 val oldVariationWatcher = textWatcherVariationMap[binding.editTextAddDetailedTransactionItemVariation.hashCode()]
                 if(oldVariationWatcher != null) {
                     binding.editTextAddDetailedTransactionItemVariation.removeTextChangedListener(oldVariationWatcher)
                 }
-                binding.editTextAddDetailedTransactionItemVariation.setText(cachedItem.variation?:"")
-                val newVariationWatcher = binding.editTextAddDetailedTransactionItemVariation.addTextChangedListener { text: Editable? ->
+
+                val cachedVariation = cachedItem.variation
+                binding.editTextAddDetailedTransactionItemVariation.setText(cachedVariation)
+                binding.textViewAddDetailedTransactionItemVariationIndicator.text = cachedVariation.codePointCount(0, cachedVariation.length).toString() + "/" + MAX_TEXT_LENGTH
+
+
+                val newVariationWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionItemVariation, MAX_TEXT_LENGTH, binding.textViewAddDetailedTransactionItemVariationIndicator) { text ->
                     if(binding.editTextAddDetailedTransactionItemVariation.hasFocus()) {
                         val absPosition = holder.absoluteAdapterPosition
                         currentItem = absPosition
@@ -192,47 +235,54 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                         }
                     }
                 }
+                binding.editTextAddDetailedTransactionItemVariation.addTextChangedListener(newVariationWatcher)
                 textWatcherVariationMap[binding.editTextAddDetailedTransactionItemVariation.hashCode()] = newVariationWatcher
+                //endregion
 
                 val oldQuantityWatcher = textWatcherQuantityMap[binding.editTextAddDetailedTransactionItemQuantity.hashCode()]
                 if(oldQuantityWatcher != null) {
                     binding.editTextAddDetailedTransactionItemQuantity.removeTextChangedListener(oldQuantityWatcher)
                 }
+
                 binding.editTextAddDetailedTransactionItemQuantity.setText(cachedItem.quantity.toString())
-                val newQuantityWatcher = binding.editTextAddDetailedTransactionItemQuantity.addTextChangedListener { text: Editable? ->
+
+                val newQuantityWatcher = NumberFormatTextWatcher(binding.editTextAddDetailedTransactionItemQuantity, BigDecimal(100), timeAndLocaleHandler.getLocale()) { amount ->
                     val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemQuantity.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
-                        val number = try {
-                            Integer.valueOf(text.toString())
-                        } catch (e: NumberFormatException) {
-                            LOGGER.warn("Error parsing number", e)
-                            1
-                        }
-                        if (latestItem.quantity != number) {
-                            listener?.onItemChanged(absPosition, latestItem.copy(quantity = text.toString().toInt()))
+
+                        if (latestItem.quantity != (amount?.toInt() ?: 1)) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(quantity = amount?.toInt() ?: 1))
                         }
                     }
                 }
+                binding.editTextAddDetailedTransactionItemQuantity.addTextChangedListener(newQuantityWatcher)
                 textWatcherQuantityMap[binding.editTextAddDetailedTransactionItemQuantity.hashCode()] = newQuantityWatcher
 
+                //region RefNum
                 val oldReferenceListener = textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()]
                 if(oldReferenceListener != null) {
                     binding.editTextAddDetailedTransactionItemReference.removeTextChangedListener(oldReferenceListener)
                 }
-                binding.editTextAddDetailedTransactionItemReference.setText(cachedItem.referenceNumber)
-                val newReferenceWatcher = binding.editTextAddDetailedTransactionItemReference.addTextChangedListener { text: Editable? ->
+                val cachedRefNum = cachedItem.referenceNumber?:""
+                binding.editTextAddDetailedTransactionItemReference.setText(cachedRefNum)
+                binding.textViewAddDetailedTransactionItemRefNumIndicator.text = cachedRefNum.codePointCount(0, cachedRefNum.length).toString() + "/" + MAX_TEXT_LENGTH
+
+                val newReferenceWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionItemReference, MAX_TEXT_LENGTH, binding.textViewAddDetailedTransactionItemRefNumIndicator) { text ->
                     val absPosition = holder.absoluteAdapterPosition
                     if(binding.editTextAddDetailedTransactionItemReference.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
-                        if (latestItem.referenceNumber != text.toString()) {
-                            listener?.onItemChanged(absPosition, latestItem.copy(referenceNumber = text?.toString()))
+                        if (latestItem.referenceNumber != text) {
+                            listener?.onItemChanged(absPosition, latestItem.copy(referenceNumber = text))
                         }
                     }
                 }
+                binding.editTextAddDetailedTransactionItemReference.addTextChangedListener(newReferenceWatcher)
                 textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()] = newReferenceWatcher
+
+                //endregion
 
                 val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images, object: AddTransactionItemImagesRecyclerAdapter.ItemImageClickListener {
 
@@ -281,6 +331,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(AddTransactionItemRecyclerAdapter::class.java)
+        const val MAX_TEXT_LENGTH = 100
     }
 }
 

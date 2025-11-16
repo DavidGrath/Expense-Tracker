@@ -2,20 +2,14 @@ package com.davidgrath.expensetracker.ui.dialogs
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
-import android.widget.Spinner
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
-import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
-import com.davidgrath.expensetracker.databinding.DialogFragmentCreateAccountBinding
+import com.davidgrath.expensetracker.MaxCodePointWatcher
 import com.davidgrath.expensetracker.databinding.DialogFragmentEditAccountBinding
-import com.davidgrath.expensetracker.entities.ui.CategoryUi
-import com.davidgrath.expensetracker.ui.CurrencyAdapter
-import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
-import java.math.BigDecimal
-import java.util.Currency
+import org.slf4j.LoggerFactory
 
 class EditAccountDialogFragment : DialogFragment() {
 
@@ -23,8 +17,20 @@ class EditAccountDialogFragment : DialogFragment() {
         fun onEditAccount(accountId: Long, name: String)
     }
 
-    var listener: EditAccountListener? = null
+    private var listener: EditAccountListener? = null
     lateinit var binding: DialogFragmentEditAccountBinding
+    var accountName: String? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if(context is EditAccountListener) {
+            listener = context
+        } else if(parentFragment != null && parentFragment is EditAccountListener) {
+            listener = parentFragment as EditAccountListener
+        } else {
+            LOGGER.warn("No listener attached")
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         binding = DialogFragmentEditAccountBinding.inflate(
@@ -32,10 +38,22 @@ class EditAccountDialogFragment : DialogFragment() {
             null,
             false
         )
-        val args = requireArguments()
-        val accountName = args.getString(ARG_ACCOUNT_NAME)
+        if(savedInstanceState != null) {
+            accountName = savedInstanceState.getString(ARG_SAVED_ACCOUNT_NAME)
+        } else {
+            val args = requireArguments()
+            accountName = args.getString(BUNDLE_ARG_ACCOUNT_NAME)
+
+        }
+
         binding.editTextEditAccountName.setText(accountName)
+        binding.textViewEditAccountNameIndicator.text = (accountName?:"").codePointCount(0, (accountName?:"").length).toString() + "/" + MAX_NAME_LENGTH
+        val textWatcher = MaxCodePointWatcher(binding.editTextEditAccountName, MAX_NAME_LENGTH, binding.textViewEditAccountNameIndicator) { text ->
+            this.accountName = text
+        }
+        binding.editTextEditAccountName.addTextChangedListener(textWatcher)
         return AlertDialog.Builder(requireContext())
+            .setTitle("Edit Account Name")
             .setView(binding.root)
             .setPositiveButton("Done", DialogInterface.OnClickListener { dialog, which ->
 
@@ -47,11 +65,16 @@ class EditAccountDialogFragment : DialogFragment() {
 
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(ARG_SAVED_ACCOUNT_NAME, accountName)
+    }
+
     override fun onResume() {
         super.onResume()
 
         val args = requireArguments()
-        val accountId = args.getLong(ARG_ACCOUNT_ID)
+        val accountId = args.getLong(BUNDLE_ARG_ACCOUNT_ID)
 
         val d = dialog as AlertDialog
         val positiveButton = d.getButton(Dialog.BUTTON_POSITIVE)
@@ -67,11 +90,14 @@ class EditAccountDialogFragment : DialogFragment() {
     }
 
     companion object {
-        private const val ARG_ACCOUNT_ID = "accountId"
-        private const val ARG_ACCOUNT_NAME = "accountName"
+        private const val BUNDLE_ARG_ACCOUNT_ID = "accountId"
+        private const val BUNDLE_ARG_ACCOUNT_NAME = "accountName"
+        private const val ARG_SAVED_ACCOUNT_NAME = "savedAccountName"
+        private const val MAX_NAME_LENGTH = 50
+        private val LOGGER = LoggerFactory.getLogger(EditAccountDialogFragment::class.java)
 
         fun createDialog(accountId: Long, initialName: String): EditAccountDialogFragment {
-            val args = bundleOf(ARG_ACCOUNT_ID to accountId, ARG_ACCOUNT_NAME to initialName)
+            val args = bundleOf(BUNDLE_ARG_ACCOUNT_ID to accountId, BUNDLE_ARG_ACCOUNT_NAME to initialName)
             val dialog = EditAccountDialogFragment()
             dialog.arguments = args
             return dialog

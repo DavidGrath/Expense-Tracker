@@ -64,15 +64,13 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
     override fun onClick(v: View?) {
         when(v) {
             binding.fabAccounts -> {
-                val currencies = Currency.getAvailableCurrencies().sortedBy { it.currencyCode }
-                LOGGER.info("Loaded {} currencies", currencies.size)
+
+
                 if(addAccountDialogFragment == null) {
                     LOGGER.info("AddAccount dialog is null, creating")
                     addAccountDialogFragment = AddAccountDialogFragment()
-                    addAccountDialogFragment!!.currencies = currencies
                 }
                 if(!(addAccountDialogFragment?.dialog?.isShowing?:false)) {
-                    addAccountDialogFragment?.listener = this
                     addAccountDialogFragment?.show(childFragmentManager,
                         FRAGMENT_TAG_ADD_ACCOUNT
                     )
@@ -88,7 +86,6 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
             editAccountDialogFragment = EditAccountDialogFragment.createDialog(accountId, accountName)
         }
         if(!(editAccountDialogFragment?.dialog?.isShowing?:false)) {
-            editAccountDialogFragment?.listener = this
             editAccountDialogFragment?.show(childFragmentManager,
                 FRAGMENT_TAG_EDIT_ACCOUNT
             )

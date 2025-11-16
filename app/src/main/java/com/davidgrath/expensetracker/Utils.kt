@@ -3,6 +3,10 @@ package com.davidgrath.expensetracker
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.EditText
+import android.widget.TextView
 import androidx.core.net.toFile
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
@@ -13,7 +17,6 @@ import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.db.SellerLocationDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
-import com.davidgrath.expensetracker.entities.db.views.EvidenceWithTransactionDateAndOrdinal
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
@@ -31,12 +34,13 @@ import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.repositories.TransactionRepository
-import com.davidgrath.expensetracker.ui.main.MainViewModel
+import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragment
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import com.ibm.icu.number.NumberFormatter
 import com.ibm.icu.number.Precision
+import com.ibm.icu.text.BreakIterator
 import com.ibm.icu.text.DecimalFormatSymbols
 import com.ibm.icu.text.MeasureFormat
 import com.ibm.icu.text.NumberFormat
@@ -48,7 +52,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.DayOfWeek
-import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
@@ -62,7 +65,9 @@ import java.io.IOException
 import java.io.InputStream
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.math.RoundingMode
 import java.security.MessageDigest
+import java.text.ParseException
 import java.util.Currency
 import java.util.Locale
 
@@ -392,7 +397,8 @@ fun Long.formatBytes(locale: Locale): String {
         MeasureUnit.GIGABYTE
     }
     val measure = Measure(this/divisor, unit)
-    val format = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT)
+    val numberFormat = NumberFormat.getInstance(locale).apply { maximumFractionDigits = 1; minimumFractionDigits = 1; roundingMode = RoundingMode.HALF_UP.ordinal }
+    val format = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT, numberFormat)
     return format.formatMeasures(measure)
 }
 
@@ -401,7 +407,7 @@ val numberFormatterSettings = NumberFormatter.with().grouping(NumberFormatter.Gr
 fun formatDecimal(bigDecimal: BigDecimal, locale: Locale): String {
 //    val numberFormatter = numberFormatterSettings.locale(locale)
 //    return numberFormatter.format(bigDecimal).toString()
-    return NumberFormat.getInstance(locale).apply { maximumFractionDigits = 2; minimumFractionDigits = 2 }.format(bigDecimal)
+    return NumberFormat.getInstance(locale).apply { maximumFractionDigits = 2; minimumFractionDigits = 0; roundingMode = RoundingMode.DOWN.ordinal }.format(bigDecimal)
 }
 
 fun parseDecimal(decimal: String, locale: Locale): BigDecimal {
@@ -443,4 +449,112 @@ fun getFilteredWeekDays(profileId: Long, filter: StatisticsFilter, dateMode: Sta
     }
     LOGGER.info("Picked out {} days from weekdays filter", dates.size)
     return dates
+}
+
+class NumberFormatTextWatcher(val editText: EditText, val maxAmount: BigDecimal, val locale: Locale, val num: (n: BigDecimal?) -> Unit): TextWatcher {
+    private val formatSymbols = DecimalFormatSymbols.getInstance(locale)
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+    }
+
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+    }
+
+    override fun afterTextChanged(s: Editable?) {
+        LOGGER.debug("afterTextChanged: {}", locale.getDisplayCountry(Locale.US))
+        val decimal = formatSymbols.decimalSeparatorString
+        val grouping = formatSymbols.groupingSeparatorString
+        var originalEndsWithDecimal = false
+        var amount = try {
+            var string = s.toString()
+            val indexOfDecimal = string.indexOf(decimal)
+            if(string.length > 1 && indexOfDecimal == string.length - 1) {
+                originalEndsWithDecimal = true
+                string = string.substring(0, string.length - 1)
+            }
+            parseDecimal(string, locale)
+        } catch (e: NumberFormatException) {
+            null
+        } catch (e: ParseException) {
+            null
+        }
+        if(amount != null) {
+            if(amount.compareTo(maxAmount) > 0) {
+                amount = maxAmount
+            }
+        } else {
+            amount = BigDecimal.ZERO
+        }
+        val originalSelectionStart = editText.selectionStart
+        val originalSelectionEnd = editText.selectionEnd
+        editText.removeTextChangedListener(this)
+        val formatted = formatDecimal(amount!!, locale) + if(originalEndsWithDecimal) {
+            decimal
+        } else {
+            ""
+        }
+        editText.setText(formatted)
+        if(originalSelectionStart == originalSelectionEnd && originalSelectionStart >= 0) {
+//            val plainString = amount!!.toPlainString()
+//            val groupingCountsBeforeOriginalStringPosition = s?.toString()?.substring(0, originalSelectionStart)?.count { it == grouping.toCharArray()[0] }?:0
+            val originalPosition = originalSelectionStart
+            if(originalPosition == (s?.toString()?.length ?: -1)) {
+                editText.setSelection(formatted.length)
+            } else {
+                if(formatted.length > (s?.toString()?.length ?: 0) && originalSelectionStart + 1 <= formatted.length) {
+                    editText.setSelection(originalSelectionStart + 1)
+                } else if (formatted.length < (s?.toString()?.length ?: 0) && originalSelectionStart - 1 >= 0){
+                    editText.setSelection(originalSelectionStart - 1)
+                } else {
+                    editText.setSelection(originalSelectionStart)
+                }
+            }
+        }
+        num.invoke(amount.setScale(2, RoundingMode.DOWN))
+        editText.addTextChangedListener(this)
+    }
+}
+
+class MaxCodePointWatcher(val editText: EditText, val maxLength: Int, val indicator: TextView?, val textChanged: (s: String) -> Unit): TextWatcher {
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+    }
+
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+    }
+
+    override fun afterTextChanged(s: Editable?) {
+        LOGGER.debug("afterTextChanged")
+        val text = s!!.toString()
+        val length = text.length
+        val codePointCount = text.codePointCount(0, length)
+        indicator?.text = codePointCount.toString() + "/" + maxLength
+        if(codePointCount > maxLength) {
+            LOGGER.info("afterTextChanged: Reached max code point count")
+            val breakIterator = BreakIterator.getCharacterInstance()
+            breakIterator.setText(text)
+            val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, maxLength))) {
+                text.offsetByCodePoints(0, maxLength)
+            } else {
+                breakIterator.preceding(text.offsetByCodePoints(0, maxLength))
+            }
+            if(lastGraphemePosition != BreakIterator.DONE) {
+                editText.removeTextChangedListener(this)
+                val substring = text.substring(0, lastGraphemePosition)
+                val trimmed = substring.trim()
+                editText.setText(
+                    trimmed
+                )
+                textChanged.invoke(trimmed)
+                indicator?.text = substring.codePointCount(0, trimmed.length).toString() + "/" + maxLength
+                editText.setSelection(if(lastGraphemePosition > trimmed.length) trimmed.length else lastGraphemePosition)
+                editText.addTextChangedListener(this)
+            }
+        } else {
+//            textChanged.invoke(text.trim())
+            textChanged.invoke(text.trim())
+        }
+    }
 }

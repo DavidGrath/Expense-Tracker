@@ -93,7 +93,8 @@ constructor(
         .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
         .create()
-    private var currentProfile = -1L
+    var currentProfile = -1L
+    private set
 
     init {
         val app = application as ExpenseTracker
@@ -293,18 +294,8 @@ constructor(
         }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     }
 
-    fun getCategories(): Single<List<CategoryDb>> {
-        return categoryRepository.getCategoriesSingle()
-    }
-
-    fun getAccounts(): Single<List<AccountUi>> {
-        return accountRepository.getAccountsForProfileSingle(currentProfile).map { accounts ->
-            accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
-        }
-    }
-
-    fun saveTransaction(accountId: Long, amount: BigDecimal, description: String, categoryId: Long) {
-        transactionRepository.addTransaction(accountId, amount, description, categoryId)
+    fun saveTransaction(accountId: Long, debitOrCredit: Boolean, amount: BigDecimal, description: String, categoryId: Long) {
+        transactionRepository.addTransaction(accountId, debitOrCredit, amount, description, categoryId)
             .subscribe({ id -> }, {})
     }
 
