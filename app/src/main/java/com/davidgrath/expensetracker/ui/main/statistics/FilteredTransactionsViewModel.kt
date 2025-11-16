@@ -67,7 +67,7 @@ class FilteredTransactionsViewModel
             val app = application as ExpenseTracker
             val profile = app.profileObservable.blockingFirst()
             val dates = getFilteredWeekDays(profile.id!!, statisticsFilter, StatisticsConfig.DateMode.All, timeAndLocaleHandler, transactionRepository)
-            transactionsAndItems = transactionRepository.getTransactionsFiltered(profile.id!!, statisticsFilter.startDay?.toString(), statisticsFilter.endDay?.toString(), statisticsFilter.accountIds, dates, statisticsFilter.categories).map {
+            transactionsAndItems = transactionRepository.getTransactionsFiltered(profile.id!!, statisticsFilter.startDay?.toString(), statisticsFilter.endDay?.toString(), statisticsFilter.accountIds, dates, statisticsFilter.categories, statisticsFilter.modes, statisticsFilter.sellerIds).map {
                     transactionsAndItems ->
                 val list = arrayListOf<TransactionWithItemAndCategoryUi>()
                 for (item in transactionsAndItems) {
@@ -104,38 +104,9 @@ class FilteredTransactionsViewModel
                 transactionsToTransactionItems(list)
             }.toFlowable().toLiveData()
 
-            statsTransactionAndItemCount = transactionItemRepository.getTransactionItemCountSingle(profile.id!!, statisticsFilter.startDay?.toString(), statisticsFilter.endDay?.toString(), statisticsFilter.accountIds, dates, statisticsFilter.categories)
+            statsTransactionAndItemCount = transactionItemRepository.getTransactionItemCountSingle(profile.id!!, statisticsFilter.startDay?.toString(), statisticsFilter.endDay?.toString(), statisticsFilter.accountIds, dates, statisticsFilter.categories, statisticsFilter.modes, statisticsFilter.sellerIds)
                 .toFlowable().toLiveData()
         }
-
-//    private fun getFilteredWeekDays(profileId: Long, filter: StatisticsFilter, transactionRepository: TransactionRepository): List<String> {
-//        val dates = mutableListOf<String>()
-//        val accountIds = filter.accountIds
-////        if(config.dateMode != StatisticsConfig.DateMode.Daily) {
-//            if(filter.weekdays.isNotEmpty()) {
-//                val earliestDate =
-//                    transactionRepository.getEarliestTransactionDate(profileId, accountIds).blockingGet()
-//                if (earliestDate != null) {
-//                    val today = LocalDate.now(timeAndLocaleHandler.getClock())
-//                    val startDate = config.rangeStartDay ?: earliestDate
-//                    val endDate = config.rangeEndDay?: today
-//                    if (startDate <= endDate) {
-//                        var runningDate = startDate
-//                        while (runningDate <= endDate) {
-//                            if(runningDate.dayOfWeek in config.filter.weekdays) {
-//                                dates.add(runningDate.toString())
-//                            }
-//                            runningDate = runningDate.plusDays(1)
-//                        }
-//                    }
-//                } else {
-//
-//                }
-//            }
-////        }
-//        LOGGER.info("Picked out {} days from weekdays filter", dates.size)
-//        return dates
-//    }
 
     override fun onCleared() {
         val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)

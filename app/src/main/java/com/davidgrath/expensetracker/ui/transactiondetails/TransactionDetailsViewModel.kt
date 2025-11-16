@@ -14,6 +14,7 @@ import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.EvidenceRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
+import com.davidgrath.expensetracker.repositories.SellerRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.transactionDbToTransactionDetailedUi
@@ -27,7 +28,8 @@ class TransactionDetailsViewModel(
     private val categoryRepository: CategoryRepository,
     private val evidenceRepository: EvidenceRepository,
     private val accountRepository: AccountRepository,
-    private val timeAndLocaleHandler: TimeAndLocaleHandler
+    private val timeAndLocaleHandler: TimeAndLocaleHandler,
+    private val sellerRepository: SellerRepository
 ) : ViewModel() {
 
     val transaction: LiveData<TransactionDetailsUi>
@@ -38,7 +40,18 @@ class TransactionDetailsViewModel(
         transaction = transactionRepository.getTransactionById(transactionId) //TODO Replace with Join query
             .map {
                 val account = accountRepository.getAccountByIdSingle(it.accountId).blockingGet()!!
-                transactionDbToTransactionDetailedUi(it, account)
+                val seller = if(it.sellerId == null) {
+                    null
+                } else {
+                    sellerRepository.getSellerByIdSingle(it.sellerId).blockingGet()
+                }
+                val sellerLocation = if(it.sellerLocationId == null) {
+                    null
+                } else {
+                    sellerRepository.getSellerLocationByIdSingle(it.sellerLocationId).blockingGet()
+                }
+
+                transactionDbToTransactionDetailedUi(it, account, seller, sellerLocation)
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         items = transactionItemRepository.getTransactionItems(transactionId)
@@ -50,7 +63,7 @@ class TransactionDetailsViewModel(
                         .map { image -> imageDbToImageUi(image) }
                     val category = categoryDbToCategoryUi(categoryRepository.getById(item.primaryCategoryId).blockingGet())
                     val secondaryCategories = categoryRepository.getOtherItemCategories(item.id).blockingGet().map { categoryDbToCategoryUi(it) }
-                    TransactionDetailItemUi(item.id!!, item.transactionId, item.amount, account.currencyCode, item.description, category, secondaryCategories, item.brand, images)
+                    TransactionDetailItemUi(item.id!!, item.transactionId, item.amount, account.currencyCode, item.description, category, secondaryCategories, item.brand, item.quantity, item.referenceNumber, item.variation, item.isReduction, images)
                 }
             }
             .toFlowable(BackpressureStrategy.BUFFER).toLiveData()

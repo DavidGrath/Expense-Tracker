@@ -25,7 +25,15 @@ class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionD
                 binding.textViewTransactionDetailsItemDescription.text = item.description
                 binding.imageViewTransactionDetailsItemCategory.setImageResource(item.primaryCategory.iconId)
                 //TODO Currency symbol, maybe
-                binding.textViewTransactionDetailsItemPrice.text = "${item.accountCurrencyCode} ${formatDecimal(item.amount, timeAndLocaleHandler.getLocale())}"
+                binding.textViewTransactionDetailsItemPrice.text = if(item.isReduction) {
+                    "${item.accountCurrencyCode} -${formatDecimal(item.amount, timeAndLocaleHandler.getLocale())}"
+                } else {
+                    "${item.accountCurrencyCode} ${formatDecimal(item.amount, timeAndLocaleHandler.getLocale())}"
+                }
+                binding.textViewTransactionDetailsItemVariation.text = item.variation
+                binding.textViewTransactionDetailsItemReferenceNumber.text = item.referenceNumber
+                binding.textViewTransactionDetailsItemQuantity.text = item.quantity.toString()
+                binding.textViewTransactionDetailsItemBrand.text = item.brand
                 val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images)
                 val layoutManager = GridLayoutManager(binding.root.context, 5)
                 binding.recyclerViewTransactionDetailsItemImages.adapter = adapter

@@ -8,6 +8,8 @@ import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.ProfileDao
+import com.davidgrath.expensetracker.db.dao.SellerDao
+import com.davidgrath.expensetracker.db.dao.SellerLocationDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
@@ -66,6 +68,15 @@ class MainModule(private val application: Application, private val fileHandler: 
     @Provides
     fun accountDao(): AccountDao {
         return appDatabase().accountDao()
+    }
+    @Provides
+    fun sellerDao(): SellerDao {
+        return appDatabase().sellerDao()
+    }
+
+    @Provides
+    fun sellerLocationDao(): SellerLocationDao {
+        return appDatabase().sellerLocationDao()
     }
 
 

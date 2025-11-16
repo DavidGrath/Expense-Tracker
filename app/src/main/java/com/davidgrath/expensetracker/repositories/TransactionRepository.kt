@@ -83,7 +83,7 @@ constructor(
 
     fun getTransactions(profileId: Long, accountId: Long, startDate: String?, endDate: String?): Observable<List<TransactionWithItemAndCategory>> {
         return transactionItemDao.getItemsWithTransactionsAndCategory(profileId,
-            startDate, endDate, false, listOf(accountId), true, emptyList(), true, emptyList()
+            startDate, endDate, false, listOf(accountId), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()
         )
             .subscribeOn(Schedulers.io())
             .timeInterval()
@@ -94,12 +94,18 @@ constructor(
             }
     }
 
-    fun getTransactionsFiltered(profileId: Long, startDate: String?, endDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Single<List<TransactionWithItemAndCategory>> {
+    fun getTransactionsFiltered(profileId: Long, startDate: String?, endDate: String?,
+                                accountIds: List<Long>, dates: List<String>, categories: List<Long>,
+                                modes: List<TransactionMode>, sellers: List<Long>
+                                ): Single<List<TransactionWithItemAndCategory>> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
         return transactionItemDao.getItemsWithTransactionsAndCategorySingle(profileId,
-            startDate, endDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories
+            startDate, endDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty,
+            categories, modesEmpty, modes, sellersEmpty, sellers
         )
             .subscribeOn(Schedulers.io())
             .timeInterval()
@@ -120,26 +126,41 @@ constructor(
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalExpense(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+    fun getTotalExpense(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>,
+                        dates: List<String>, categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>
+    ): Observable<BigDecimal> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionDao.getTransactionDebitSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionDao.getTransactionDebitSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories, modesEmpty, modes, sellersEmpty, sellers)
             .subscribeOn(Schedulers.io())
     }
-    fun getTotalIncome(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<BigDecimal> {
+    fun getTotalIncome(profileId: Long, fromDate: String?, toDate: String?, accountIds: List<Long>,
+                       dates: List<String>, categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>): Observable<BigDecimal> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionDao.getTransactionCreditSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionDao.getTransactionCreditSum(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories, modesEmpty, modes, sellersEmpty, sellers)
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTotalAmountByDate(profileId: Long, debitOrCredit: Boolean, fromDate: String?, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<List<DateAmountSummary>> {
+    fun getTotalAmountByDate(
+        profileId: Long, debitOrCredit: Boolean, fromDate: String?, toDate: String? = null,
+        accountIds: List<Long>, dates: List<String>, categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>
+    ): Observable<List<DateAmountSummary>> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        val originalSummary = transactionDao.getTransactionSumByDate(profileId, debitOrCredit, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        val originalSummary =
+            transactionDao.getTransactionSumByDate(profileId, debitOrCredit, fromDate, toDate,
+                emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories,
+                modesEmpty, modes, sellersEmpty, sellers)
         val filledSummary = originalSummary.map { list ->
             var zeroCount = 0
             val start = if(fromDate == null) {

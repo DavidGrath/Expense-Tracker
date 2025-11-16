@@ -21,6 +21,7 @@ import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
+import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -203,7 +204,13 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     if(binding.editTextAddDetailedTransactionItemQuantity.hasFocus()) {
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
-                        if (latestItem.quantity.toString() != text.toString()) {
+                        val number = try {
+                            Integer.valueOf(text.toString())
+                        } catch (e: NumberFormatException) {
+                            LOGGER.warn("Error parsing number", e)
+                            1
+                        }
+                        if (latestItem.quantity != number) {
                             listener?.onItemChanged(absPosition, latestItem.copy(quantity = text.toString().toInt()))
                         }
                     }

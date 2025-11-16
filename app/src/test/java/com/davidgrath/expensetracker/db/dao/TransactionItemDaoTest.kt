@@ -80,14 +80,14 @@ class TransactionItemDaoTest {
             .commit()
 
 
-        val sumList = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumList = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         var foodSum = sumList.find { it.categoryId == food.id }!!.sum
         var fitnessSum = sumList.find { it.categoryId == fitness.id }!!.sum
         LOGGER.debug("sumList: {}", sumList)
         assertEqualsBD(BigDecimal(5_500), foodSum)
         assertEqualsBD(BigDecimal(12_500), fitnessSum)
 
-        val sumListTo = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), toDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
+        val sumListTo = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), toDate.toString(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         foodSum = sumListTo.find { it.categoryId == food.id }!!.sum
         fitnessSum = sumListTo.find { it.categoryId == fitness.id }!!.sum
 

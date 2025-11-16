@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
 )
 data class SellerLocationDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long,
+    val id: Long?,
     val sellerId: Long,
     /**
      * Short, descriptive name, basically "branch name"

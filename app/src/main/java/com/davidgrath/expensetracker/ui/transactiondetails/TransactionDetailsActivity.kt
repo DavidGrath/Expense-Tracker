@@ -35,18 +35,6 @@ class TransactionDetailsActivity: AppCompatActivity() {
     lateinit var binding: ActivityTransactionDetailsBinding
     lateinit var viewModel: TransactionDetailsViewModel
     @Inject
-    lateinit var transactionRepository: TransactionRepository
-    @Inject
-    lateinit var transactionItemRepository: TransactionItemRepository
-    @Inject
-    lateinit var imageRepository: ImageRepository
-    @Inject
-    lateinit var categoryRepository: CategoryRepository
-    @Inject
-    lateinit var evidenceRepository: EvidenceRepository
-    @Inject
-    lateinit var accountRepository: AccountRepository
-    @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
@@ -63,10 +51,7 @@ class TransactionDetailsActivity: AppCompatActivity() {
         val component = app.appComponent
         component.inject(this)
         viewModel = ViewModelProvider.create(viewModelStore,
-            TransactionDetailsViewModelFactory(transactionId, transactionRepository,
-                transactionItemRepository, imageRepository, categoryRepository, evidenceRepository,
-                accountRepository, timeAndLocaleHandler
-            )
+            TransactionDetailsViewModelFactory(transactionId, component)
         ).get(TransactionDetailsViewModel::class)
         setSupportActionBar(binding.toolbarTransactionDetails)
         val pagerAdapter = object : FragmentStateAdapter(this) {
@@ -98,7 +83,6 @@ class TransactionDetailsActivity: AppCompatActivity() {
             binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
-//            binding.textViewTransactionDetailsTime.text = timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS)) //TODO ordinals, ignore, we must, for now
             binding.textViewTransactionDetailsTime.text = if(transaction.datedTime != null) {
                 timeFormat.format(transaction.datedTime!!.truncatedTo(ChronoUnit.SECONDS))
             } else {
@@ -110,6 +94,23 @@ class TransactionDetailsActivity: AppCompatActivity() {
             } else {
                 binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
             }
+            if(transaction.seller == null) {
+                binding.textViewTransactionDetailsSeller.visibility = View.GONE
+                binding.textViewTransactionDetailsSeller.text = ""
+                binding.textViewTransactionDetailsSellerLocation.visibility = View.GONE
+                binding.textViewTransactionDetailsSellerLocation.text = ""
+            } else {
+                binding.textViewTransactionDetailsSeller.visibility = View.VISIBLE
+                binding.textViewTransactionDetailsSeller.text = transaction.seller.name
+                if(transaction.sellerLocation != null) {
+                    binding.textViewTransactionDetailsSellerLocation.visibility = View.VISIBLE
+                    binding.textViewTransactionDetailsSellerLocation.text = transaction.sellerLocation.location
+                } else {
+                    binding.textViewTransactionDetailsSellerLocation.visibility = View.GONE
+                    binding.textViewTransactionDetailsSellerLocation.text = ""
+                }
+            }
+            binding.textViewTransactionDetailsMode.text = transaction.mode.toString()
         }
         setContentView(binding.root)
     }

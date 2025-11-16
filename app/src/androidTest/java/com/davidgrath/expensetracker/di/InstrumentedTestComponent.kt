@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.di
 
+import com.davidgrath.expensetracker.db.ExpenseTrackerDatabaseTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivityInstrumentedTest
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionOtherDetailsFragmentInstrumentedTest
 import com.davidgrath.expensetracker.ui.main.MainActivityInstrumentedTest
@@ -18,4 +19,5 @@ interface InstrumentedTestComponent: MainComponent {
     fun inject(transactionDetailsActivityTest: TransactionDetailsActivityInstrumentedTest)
     fun inject(statisticsFragmentInstrumentedTest: StatisticsFragmentInstrumentedTest)
     fun inject(statisticsFilterActivityInstrumentedTest: StatisticsFilterActivityInstrumentedTest)
+    fun inject(expenseTrackerDatabaseTest: ExpenseTrackerDatabaseTest)
 }

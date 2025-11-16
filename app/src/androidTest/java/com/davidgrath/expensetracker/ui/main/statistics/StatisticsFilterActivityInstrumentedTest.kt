@@ -70,7 +70,7 @@ class StatisticsFilterActivityInstrumentedTest {
         onView(withText(containsString("Default Account"))).perform(click())
         onView(withText(containsString("Second"))).perform(click())
         // Finish
-        onView(withId(R.id.image_view_statistics_filter_done)).perform(click())
+        onView(withId(R.id.fab_statistics_filter_done)).perform(click())
         // Assert relevant LiveData updated - income total, expense total, transaction count, item count
         onView(withId(R.id.fragment_statistics)).check(matches(isDisplayed()))
         onView(withId(R.id.text_view_statistics_total_expenses)).check(matches(withText(Matchers.matchesRegex(".*\\b300\\b.*"))))

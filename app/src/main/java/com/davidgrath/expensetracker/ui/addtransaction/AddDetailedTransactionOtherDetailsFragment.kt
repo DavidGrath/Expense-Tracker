@@ -15,8 +15,6 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.AdapterView
-import android.widget.CompoundButton
-import android.widget.CompoundButton.OnCheckedChangeListener
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -28,10 +26,18 @@ import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
+import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
+import com.davidgrath.expensetracker.entities.ui.SellerUi
 import com.davidgrath.expensetracker.ui.AccountAdapter
+import com.davidgrath.expensetracker.ui.SellerAdapter
+import com.davidgrath.expensetracker.ui.SellerLocationAdapter
+import com.davidgrath.expensetracker.ui.TransactionModeAdapter
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.AddSellerDialogFragment
+import com.davidgrath.expensetracker.ui.dialogs.AddSellerLocationDialogFragment
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -50,7 +56,8 @@ import java.io.File
 import javax.inject.Inject
 
 class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
-    MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
+    MaterialPickerOnPositiveButtonClickListener<Long>, AddTransactionEvidenceRecyclerAdapter.EvidenceClickListener, AddExternalMediaDialogFragment.ExternalMediaListener,
+    AddSellerDialogFragment.AddSellerListener, AddSellerLocationDialogFragment.AddSellerLocationListener {
 
     private lateinit var binding: FragmentAddDetailedTransactionOtherDetailsBinding
     private lateinit var viewModel: AddDetailedTransactionViewModel
@@ -62,6 +69,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    private var addSellerDialogFragment: AddSellerDialogFragment? = null
+    private var addSellerLocationDialogFragment: AddSellerLocationDialogFragment? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
@@ -80,11 +89,70 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         binding.textViewAddDetailedTransactionCustomTime.setOnClickListener(this)
         binding.imageViewAddDetailedTransactionCustomDateRemove.setOnClickListener(this)
         binding.imageViewAddDetailedTransactionCustomTimeRemove.setOnClickListener(this)
+        binding.imageViewAddDetailedTransactionAddSeller.setOnClickListener(this)
 
         val adapter = AddTransactionEvidenceRecyclerAdapter(emptyList(), emptyMap(), this)
         binding.recyclerviewAddDetailedTransactionEvidence.adapter = adapter
         binding.recyclerviewAddDetailedTransactionEvidence.layoutManager = LinearLayoutManager(requireContext())
         val mode = viewModel.mode
+
+        val modeAdapter = TransactionModeAdapter(requireContext(), TransactionMode.values().toList())
+
+        val modeListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val transactionMode = modeAdapter._objects[position]
+                viewModel.setTransactionMode(transactionMode)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+        }
+        binding.spinnerAddDetailedTransactionMode.adapter = modeAdapter
+        binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = modeListener
+
+        val textWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                LOGGER.debug("afterTextChanged")
+                val text = s!!.toString()
+                val length = text.length
+                val codePointCount = text.codePointCount(0, length)
+                binding.textViewAddDetailedTransactionNoteLengthIndicator.text = codePointCount.toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
+                if(codePointCount > Constants.MAX_NOTE_CODEPOINT_LENGTH) {
+                    LOGGER.info("afterTextChanged: Reached max code point count")
+                    val breakIterator = BreakIterator.getCharacterInstance()
+                    breakIterator.setText(text)
+                    val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))) {
+                        text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH)
+                    } else {
+                        breakIterator.preceding(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))
+                    }
+                    if(lastGraphemePosition != BreakIterator.DONE) {
+                        binding.editTextAddDetailedTransactionNote.removeTextChangedListener(this)
+                        val substring = text.substring(0, lastGraphemePosition)
+                        binding.editTextAddDetailedTransactionNote.setText(
+                            substring
+                        )
+                        //TODO 2-way binding
+                        viewModel.setNote(text)
+                        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = substring.codePointCount(0, substring.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
+                        binding.editTextAddDetailedTransactionNote.setSelection(lastGraphemePosition)
+                        binding.editTextAddDetailedTransactionNote.addTextChangedListener(this)
+                    }
+                } else {
+                    viewModel.setNote(text)
+                }
+            }
+        }
+
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { (draft, _, _) ->
             items = draft.evidence
             adapter.setItems(items, renderers)
@@ -119,10 +187,42 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 binding.textViewAddDetailedTransactionCustomTime.text = timeFormat.format(draft.customTime)
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.VISIBLE
             }
+
+            if(draft.sellerId != null) {
+                binding.linearLayoutAddDetailedTransactionSellerLocation.visibility = View.VISIBLE
+                binding.imageViewAddDetailedTransactionAddSellerLocation.setOnClickListener(this)
+            } else {
+                binding.linearLayoutAddDetailedTransactionSellerLocation.visibility = View.GONE
+                binding.imageViewAddDetailedTransactionAddSellerLocation.setOnClickListener(null)
+            }
+
+            val transactionMode = draft.mode
+            if(binding.spinnerAddDetailedTransactionMode.selectedItemPosition == Spinner.INVALID_POSITION) {
+                binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = null
+                binding.spinnerAddDetailedTransactionMode.setSelection(0)
+                binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = modeListener
+            }
+
+            val modePosition = modeAdapter._objects.indexOfFirst { it == transactionMode }
+            binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = null
+
+            if(modePosition == -1) {
+                LOGGER.warn("Current mode not available in spinner")
+                binding.spinnerAddDetailedTransactionMode.setSelection(0)
+            } else {
+                LOGGER.info("Current mode of spinner changed")
+                binding.spinnerAddDetailedTransactionMode.setSelection(modePosition)
+            }
+            binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = modeListener
+            if(!binding.editTextAddDetailedTransactionNote.hasFocus()) {
+                binding.editTextAddDetailedTransactionNote.removeTextChangedListener(textWatcher)
+                binding.editTextAddDetailedTransactionNote.setText(draft.note)
+                binding.editTextAddDetailedTransactionNote.addTextChangedListener(textWatcher)
+            }
         }
         val accountAdapter = AccountAdapter(requireContext(), mutableListOf<AccountUi>())
 
-        val listener = object : AdapterView.OnItemSelectedListener {
+        val accountListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val account = accountAdapter._objects[position]
                 viewModel.setAccountId(account.id)
@@ -133,7 +233,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             }
         }
         binding.spinnerAddDetailedTransactionAccount.adapter = accountAdapter
-        binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
+        binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = accountListener
 
 //        viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
         viewModel.mediator.observe(viewLifecycleOwner) { (accounts, account, total) ->
@@ -141,7 +241,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             if(binding.spinnerAddDetailedTransactionAccount.selectedItemPosition == Spinner.INVALID_POSITION) {
                 binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = null
                 binding.spinnerAddDetailedTransactionAccount.setSelection(0)
-                binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
+                binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = accountListener
             }
 
             val accountPosition = accountAdapter._objects.indexOfFirst { it.id == account.id }
@@ -154,52 +254,94 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 LOGGER.info("Current Account of spinner changed")
                 binding.spinnerAddDetailedTransactionAccount.setSelection(accountPosition)
             }
-            binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = listener
+            binding.spinnerAddDetailedTransactionAccount.onItemSelectedListener = accountListener
         }
+
+        val sellerAdapter = SellerAdapter(requireContext(), mutableListOf<SellerUi>())
+
+        val sellerListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if(position == 0) {
+                    viewModel.setSeller(null)
+                } else {
+                    val seller = sellerAdapter._objects[position]
+                    viewModel.setSeller(seller?.id)
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+        }
+        binding.spinnerAddDetailedTransactionSeller.adapter = sellerAdapter
+        binding.spinnerAddDetailedTransactionSeller.onItemSelectedListener = sellerListener
+
+        viewModel.sellersMediatorLiveData.observe(viewLifecycleOwner) { (seller, sellers) ->
+            sellerAdapter.setItems(sellers)
+            if(binding.spinnerAddDetailedTransactionSeller.selectedItemPosition == Spinner.INVALID_POSITION) {
+                binding.spinnerAddDetailedTransactionSeller.onItemSelectedListener = null
+                binding.spinnerAddDetailedTransactionSeller.setSelection(0)
+                binding.spinnerAddDetailedTransactionSeller.onItemSelectedListener = sellerListener
+            }
+
+            val sellerPosition = sellerAdapter._objects.indexOfFirst { it != null && it.id == seller }
+            binding.spinnerAddDetailedTransactionSeller.onItemSelectedListener = null
+
+            if(sellerPosition == -1) {
+                LOGGER.warn("Current Seller not available in spinner. Changing selection to the null item")
+                binding.spinnerAddDetailedTransactionSeller.setSelection(0)
+            } else {
+                LOGGER.info("Current seller of spinner changed")
+                binding.spinnerAddDetailedTransactionSeller.setSelection(sellerPosition)
+            }
+            binding.spinnerAddDetailedTransactionSeller.onItemSelectedListener = sellerListener
+        }
+
+        val sellerLocationAdapter = SellerLocationAdapter(requireContext(), mutableListOf<SellerLocationUi>())
+
+        val sellerLocationListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if(position == 0) {
+                    viewModel.setSellerLocation(null)
+                } else {
+                    val sellerLocation = sellerLocationAdapter._objects[position]
+                    viewModel.setSellerLocation(sellerLocation)
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+        }
+        binding.spinnerAddDetailedTransactionSellerLocation.adapter = sellerLocationAdapter
+        binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
+
+        viewModel.sellerLocationsMediatorLiveData.observe(viewLifecycleOwner) { (sellerLocationUi, sellers) ->
+            sellerLocationAdapter.setItems(sellers)
+            if(binding.spinnerAddDetailedTransactionSellerLocation.selectedItemPosition == Spinner.INVALID_POSITION) {
+                binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
+                binding.spinnerAddDetailedTransactionSellerLocation.setSelection(0)
+                binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
+            }
+
+            val sellerLocationPosition = sellerLocationAdapter._objects.indexOfFirst { it.id == sellerLocationUi?.id }
+            binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
+
+            if(sellerLocationPosition == -1) {
+                LOGGER.warn("Current Seller location not available in spinner. Changing selection to the null item")
+                binding.spinnerAddDetailedTransactionSellerLocation.setSelection(0)
+            } else {
+                LOGGER.info("Current seller location of spinner changed")
+                binding.spinnerAddDetailedTransactionSellerLocation.setSelection(sellerLocationPosition)
+            }
+            binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
+        }
+
         viewModel.rendererLiveData.observe(viewLifecycleOwner) { map ->
             renderers = map
             adapter.setItems(items, renderers)
         }
-        val textWatcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
 
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                val text = s!!.toString()
-                val length = text.length
-                val codePointCount = text.codePointCount(0, length)
-                binding.textViewAddDetailedTransactionNoteLengthIndicator.text = codePointCount.toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
-                if(codePointCount > Constants.MAX_NOTE_CODEPOINT_LENGTH) {
-                    LOGGER.info("afterTextChanged: Reached max code point count")
-                    val breakIterator = BreakIterator.getCharacterInstance()
-                    breakIterator.setText(text)
-                    val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))) {
-                        text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH)
-                    } else {
-                        breakIterator.preceding(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))
-                    }
-                    if(lastGraphemePosition != BreakIterator.DONE) {
-                        binding.editTextAddDetailedTransactionNote.removeTextChangedListener(this)
-                        val substring = text.substring(0, lastGraphemePosition)
-                        binding.editTextAddDetailedTransactionNote.setText(
-                            substring
-                        )
-                        //TODO 2-way binding
-                        viewModel.setNote(text)
-                        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = substring.codePointCount(0, substring.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
-                        binding.editTextAddDetailedTransactionNote.setSelection(lastGraphemePosition)
-                        binding.editTextAddDetailedTransactionNote.addTextChangedListener(this)
-                    }
-                } else {
-                    viewModel.setNote(text)
-                }
-            }
-        }
         val noteText = binding.editTextAddDetailedTransactionNote.text.toString()
         binding.textViewAddDetailedTransactionNoteLengthIndicator.text = noteText.codePointCount(0, noteText.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
         binding.editTextAddDetailedTransactionNote.addTextChangedListener(textWatcher)
@@ -291,6 +433,32 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 binding.imageViewAddDetailedTransactionCustomTimeRemove -> {
                     viewModel.setCustomTime(null)
                 }
+                binding.imageViewAddDetailedTransactionAddSeller -> {
+                    if(addSellerDialogFragment == null) {
+                        LOGGER.info("AddSeller dialog is null, creating")
+                        addSellerDialogFragment = AddSellerDialogFragment()
+                    }
+                    if(!(addSellerDialogFragment?.dialog?.isShowing?:false)) {
+                        addSellerDialogFragment?.listener = this
+                        addSellerDialogFragment?.show(childFragmentManager,
+                            DIALOG_TAG_ADD_SELLER
+                        )
+                        LOGGER.info("Showed addSellerDialog")
+                    }
+                }
+                binding.imageViewAddDetailedTransactionAddSellerLocation -> {
+                    if(addSellerLocationDialogFragment == null) {
+                        LOGGER.info("AddSellerLocation dialog is null, creating")
+                        addSellerLocationDialogFragment = AddSellerLocationDialogFragment.createDialog(viewModel.getSellerId()!!)
+                    }
+                    if(!(addSellerLocationDialogFragment?.dialog?.isShowing?:false)) {
+                        addSellerLocationDialogFragment?.listener = this
+                        addSellerLocationDialogFragment?.show(childFragmentManager,
+                            DIALOG_TAG_ADD_SELLER_LOCATION
+                        )
+                        LOGGER.info("Showed addSellerLocationDialog")
+                    }
+                }
             }
         }
     }
@@ -345,6 +513,14 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         viewModel.onDeleteEvidence(position, uri)
     }
 
+    override fun onAddSeller(name: String) {
+        viewModel.addSeller(name)
+    }
+
+    override fun onAddSellerLocation(location: String, sellerId: Long) {
+        viewModel.addSellerLocation(location, sellerId)
+    }
+
     companion object {
         @JvmStatic
         fun newInstance(): AddDetailedTransactionOtherDetailsFragment {
@@ -356,5 +532,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         private const val DIALOG_TAG_DATE = "dateDialog"
         private const val DIALOG_TAG_TIME = "timeDialog"
         private const val DIALOG_TAG_EXTERNAL_MEDIA_PICKER = "externalMediaPicker"
+        private const val DIALOG_TAG_ADD_SELLER = "addSeller"
+        private const val DIALOG_TAG_ADD_SELLER_LOCATION = "addSellerLocation"
     }
 }

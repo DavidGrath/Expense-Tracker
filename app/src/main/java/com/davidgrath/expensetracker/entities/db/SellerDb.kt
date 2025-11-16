@@ -14,7 +14,7 @@ import androidx.room.PrimaryKey
 )
 data class SellerDb(
     @PrimaryKey(autoGenerate = true)
-    val id: Long,
+    val id: Long?,
     val profileId: Long,
     val name: String,
     val createdAt: String,

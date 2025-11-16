@@ -14,6 +14,7 @@ data class StatisticsFilter(
     val categories: List<Long> = emptyList(),
     val weekdays: List<DayOfWeek> = emptyList(),
     val modes: List<TransactionMode> = emptyList(),
+    val sellerIds: List<Long> = emptyList(),
     val startDay: LocalDate? = null,
     val endDay: LocalDate? = null,
 )

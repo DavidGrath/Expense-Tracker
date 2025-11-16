@@ -13,12 +13,14 @@ import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
+import com.davidgrath.expensetracker.repositories.SellerRepository
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -35,13 +37,15 @@ class StatisticsFilterViewModel
     private val categoryRepository: CategoryRepository,
     private val timeAndLocaleHandler: TimeAndLocaleHandler,
     private val accountRepository: AccountRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+        private val sellerRepository: SellerRepository
 ) : AndroidViewModel(application) {
 
     private var statisticsFilter: StatisticsFilter
     private var _statisticsFilterLiveData : MutableLiveData<StatisticsFilter>
     val statisticsFilterLiveData: LiveData<StatisticsFilter>
     val accounts: List<AccountUi>
+    val sellers: List<SellerDb>
     private val gson = GsonBuilder()
         .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
@@ -53,6 +57,7 @@ class StatisticsFilterViewModel
         accounts = accountRepository.getAccountsForProfileSingle(profile.id!!).map { accounts ->
             accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
         }.blockingGet()
+        sellers = sellerRepository.getSellersSingle(profile.id!!).blockingGet()
 //        val file = file(application.filesDir, "profiles", profile.stringId, Constants.FILE_NAME_STATS_FILTER_DATA) //TODO Move all files to profiles/<stringId>
         val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
         if(file.exists()) {
@@ -126,6 +131,17 @@ class StatisticsFilterViewModel
             modes + mode
         }
         statisticsFilter = statisticsFilter.copy(modes = newModes)
+        _statisticsFilterLiveData.postValue(statisticsFilter)
+    }
+
+    fun toggleSeller(sellerId: Long) {
+        val sellers = statisticsFilter.sellerIds
+        val newSellers = if(sellerId in sellers) {
+            sellers - sellerId
+        } else {
+            sellers + sellerId
+        }
+        statisticsFilter = statisticsFilter.copy(sellerIds = newSellers)
         _statisticsFilterLiveData.postValue(statisticsFilter)
     }
 

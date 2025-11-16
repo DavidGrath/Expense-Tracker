@@ -442,6 +442,8 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
     }
 
     companion object {
+
+        @JvmStatic
         fun newInstance(): StatisticsFragment {
             val statisticsFragment = StatisticsFragment()
             return statisticsFragment

@@ -27,5 +27,7 @@ data class AddEditDetailedTransactionDraft(
     val dbOriginalDate: LocalDate? = null,
     val dbOriginalTime: LocalTime? = null,
     val customDate: LocalDate? = null,
-    val customTime: LocalTime? = null //TODO Observable that ticks every few seconds in the ViewModel
+    val customTime: LocalTime? = null, //TODO Observable that ticks every few seconds in the ViewModel
+    val sellerId: Long? = null,
+    val sellerLocation: SellerLocationUi? = null,
 )

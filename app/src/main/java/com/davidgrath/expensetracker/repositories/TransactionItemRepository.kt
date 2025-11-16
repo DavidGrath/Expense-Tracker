@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.repositories
 
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
@@ -23,12 +24,14 @@ class TransactionItemRepository
  ){
 
     fun getTotalExpenseByCategory(profileId: Long,
-        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>
+        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>
     ): Observable<List<ItemSumByCategory>> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionItemDao.getDebitSumByCategory(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionItemDao.getDebitSumByCategory(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories, modesEmpty, modes, sellersEmpty, sellers)
             .map {
                 LOGGER.info("getTotalExpenseByCategory: Item count: {} items", it.size)
                 it
@@ -37,12 +40,14 @@ class TransactionItemRepository
     }
 
     fun getTotalIncomeByCategory(profileId: Long,
-        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>
+        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>
     ): Observable<List<ItemSumByCategory>> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionItemDao.getCreditSumByCategory(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionItemDao.getCreditSumByCategory(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories, modesEmpty, modes, sellersEmpty, sellers)
             .map {
                 LOGGER.info("getTotalIncomeByCategory: Item count: {} items", it.size)
                 it
@@ -69,20 +74,31 @@ class TransactionItemRepository
     }
 
     fun getTransactionItemCount(profileId: Long,
-        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Observable<TransactionAndItemCount> {
+        fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>,
+        categories: List<Long>, modes: List<TransactionMode>, sellers: List<Long>
+    ): Observable<TransactionAndItemCount> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionItemDao.getTransactionItemCount(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionItemDao.getTransactionItemCount(profileId,
+            fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty,
+            categories, modesEmpty, modes, sellersEmpty, sellers)
             .subscribeOn(Schedulers.io())
     }
 
-    fun getTransactionItemCountSingle(profileId: Long,
-                                fromDate: String? = null, toDate: String? = null, accountIds: List<Long>, dates: List<String>, categories: List<Long>): Single<TransactionAndItemCount> {
+    fun getTransactionItemCountSingle(
+        profileId: Long, fromDate: String? = null, toDate: String? = null,
+        accountIds: List<Long>, dates: List<String>, categories: List<Long>,
+        modes: List<TransactionMode>, sellers: List<Long>
+    ): Single<TransactionAndItemCount> {
         val emptyAccounts = accountIds.isEmpty()
         val datesEmpty = dates.isEmpty()
         val categoriesEmpty = categories.isEmpty()
-        return transactionItemDao.getTransactionItemCountSingle(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories)
+        val modesEmpty = modes.isEmpty()
+        val sellersEmpty = sellers.isEmpty()
+        return transactionItemDao.getTransactionItemCountSingle(profileId, fromDate, toDate, emptyAccounts, accountIds, datesEmpty, dates, categoriesEmpty, categories, modesEmpty, modes, sellersEmpty, sellers)
             .subscribeOn(Schedulers.io())
     }
 

@@ -11,5 +11,9 @@ data class TransactionDetailItemUi(
     val primaryCategory: CategoryUi,
     val otherCategories: List<CategoryUi>,
     val brand: String? = null,
+    val quantity: Int,
+    val referenceNumber: String?,
+    val variation: String?,
+    val isReduction: Boolean,
     val images: List<ImageUi> = emptyList()
 )

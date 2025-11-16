@@ -10,6 +10,7 @@ import com.davidgrath.expensetracker.repositories.AddDetailedTransactionReposito
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
+import com.davidgrath.expensetracker.repositories.SellerRepository
 import java.math.BigDecimal
 import javax.inject.Inject
 
@@ -37,11 +38,13 @@ class AddDetailedTransactionViewModelFactory(
         lateinit var imageRepository: ImageRepository
         @Inject
         lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+        @Inject
+        lateinit var sellerRepository: SellerRepository
     init {
         (application as ExpenseTracker).appComponent.inject(this)
     }
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return AddDetailedTransactionViewModel(application, mode, addDetailedTransactionRepository, categoryRepository, accountRepository, profileRepository,
-            imageRepository, timeAndLocaleHandler, profileStringId, transactionId, initialAccountId, initialAmount, initialDescription, initialCategoryId) as T
+            imageRepository, timeAndLocaleHandler, sellerRepository, profileStringId, transactionId, initialAccountId, initialAmount, initialDescription, initialCategoryId) as T
     }
 }

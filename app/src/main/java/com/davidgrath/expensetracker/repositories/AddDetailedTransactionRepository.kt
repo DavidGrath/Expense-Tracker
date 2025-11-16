@@ -15,6 +15,7 @@ import com.davidgrath.expensetracker.db.dao.ImageDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
@@ -23,6 +24,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -96,7 +98,7 @@ constructor(
             .map { transaction ->
                 val existingDraft = fileHandler.getDraft().blockingGet()?: AddEditDetailedTransactionDraft(emptyList(), -1)
                 val transactionItems = transactionItemRepository.getTransactionItemsSingle(transactionId).blockingGet()
-                draft = AddEditDetailedTransactionDraft(emptyList(), transaction.accountId, transaction.debitOrCredit)
+                draft = AddEditDetailedTransactionDraft(emptyList(), transaction.accountId, transaction.debitOrCredit, transaction.mode, sellerId = transaction.sellerId)
                 //Set Items, incrementId
                 val imagesMap = mutableMapOf<String, Uri>()
                 incrementId = 0
@@ -126,8 +128,6 @@ constructor(
                 draft = draft.copy(evidence = evidenceList, evidenceHashes = evidenceMap)
                 //Set Note
                 draft = draft.copy(note = transaction.note)
-                //Set Account
-                //Set Seller
                 //Set Date and Time
                 val localDate = LocalDate.parse(transaction.datedAt)
                 val localTime = if(transaction.datedAtTime != null) {
@@ -570,14 +570,14 @@ constructor(
 
     fun finishTransaction(): Single<Unit> {
         if(!validateDraft()) {
-            return Single.just(Unit).doOnTerminate { setNote("add"); transactionId = null }
+            return Single.just(Unit).doOnTerminate { transactionId = null }
         }
         if(currentMode == "add") {
             return saveDraft().doOnTerminate { transactionId = null }
         } else if(currentMode == "edit"){
-            return saveEdit().doOnTerminate { setNote("add"); transactionId = null }
+            return saveEdit().doOnTerminate { transactionId = null }
         } else {
-            return Single.just(Unit).doOnTerminate { setNote("add"); transactionId = null }
+            return Single.just(Unit).doOnTerminate { transactionId = null }
         }
     }
 
@@ -656,11 +656,10 @@ constructor(
                     val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
                     val _ordinalsSize = _ordinals.size
                     val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
-                    LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+
                     _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
                         val newOrdinal = transactionOrdinal + 2 + _ordinalsSize + index + max
-                        LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
-                        LOGGER.debug("newOrdinal: {}", newOrdinal)
+
                         transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
                     }
                 } else {
@@ -672,7 +671,7 @@ constructor(
                 transactionOrdinal = maxTransactionOrdinal + 1
             }
 
-            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, draft.mode, note, null, null, dateTimeString, offset, zone, transactionOrdinal, datedDate, datedTime)
+            val transaction = TransactionDb(null, account.id!!, total, account.currencyCode, null, draft.debitOrCredit, draft.mode, note, draft.sellerId, draft.sellerLocation?.id, dateTimeString, offset, zone, transactionOrdinal, datedDate, datedTime)
 
             transactionRepository.addTransaction(transaction).flatMap { id ->
                 LOGGER.info("saveDraft: Created new transaction")
@@ -888,7 +887,9 @@ constructor(
                 note = draft.note,
                 accountId = draft.accountId,
                 debitOrCredit = draft.debitOrCredit,
-                currencyCode = account!!.currencyCode
+                currencyCode = account!!.currencyCode,
+                sellerId = draft.sellerId, sellerLocationId = draft.sellerLocation?.id,
+                mode = draft.mode
             )
 
 
@@ -913,14 +914,12 @@ constructor(
 //                        } else {
                             transactionOrdinal = nextTransaction.ordinal
                             val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
-                            val _ordinalsSize = _ordinals.size
+
                             val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
-                            LOGGER.debug("newOrdinal: {}", _ordinals)
+
                             _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
                                 if(transactionIdAndOrdinal.transactionId != transactionId) {
                                     val newOrdinal = index + max + 1
-                                    LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
-                                    LOGGER.debug("newOrdinal: {}", newOrdinal)
                                     transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
                                 }
                             }
@@ -933,8 +932,6 @@ constructor(
                         _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
                             if(transactionIdAndOrdinal.transactionId != transactionId) {
                                 val newOrdinal = index + max + 2
-                                LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
-                                LOGGER.debug("newOrdinal: {}", newOrdinal)
                                 transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
                             }
                         }
@@ -977,12 +974,10 @@ constructor(
                         val _ordinals = transactionRepository.getIdsAndOrdinalsFromDateForAccountSingle(draft.accountId, datedDate, transactionOrdinal).blockingGet()
                         val _ordinalsSize = _ordinals.size
                         val max = _ordinals.maxByOrNull { it.transactionOrdinal }?.transactionOrdinal?: 0
-                        LOGGER.debug("newOrdinal: {}, max: {}", _ordinals, max)
+
                         _ordinals.forEachIndexed { index, transactionIdAndOrdinal ->
                             if(transactionIdAndOrdinal.transactionId != transactionId) {
                                 val newOrdinal = index + max + 2
-                                LOGGER.debug("newOrdinal: {}", transactionRepository.getTransactions(profileId!!, draft.accountId, null, null).blockingFirst())
-                                LOGGER.debug("newOrdinal: {}", newOrdinal)
                                 transactionRepository.updateOrdinal(transactionIdAndOrdinal.transactionId, newOrdinal).blockingSubscribe()
                             }
                         }
@@ -1268,6 +1263,49 @@ constructor(
         draft = draft.copy(debitOrCredit = !debitOrCredit)
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
         LOGGER.info("Toggled debitOrCredit")
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+
+    fun setTransactionMode(transactionMode: TransactionMode) {
+        draft = draft.copy(mode = transactionMode)
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        LOGGER.info("Changed transaction mode")
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun setSeller(sellerId: Long?) {
+        draft = draft.copy(sellerId = sellerId)
+
+        if(sellerId == null) {
+            LOGGER.info("Removed seller")
+            draft = draft.copy(sellerLocation = null)
+            LOGGER.info("Removed seller location")
+        } else {
+            LOGGER.info("Changed seller")
+        }
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
+        if (currentMode == "add") {
+            fileHandler.saveDraft(draft).subscribe()
+        }
+    }
+
+    fun setSellerLocation(sellerLocationUi: SellerLocationUi?) {
+        if(sellerLocationUi != null) {
+            if(draft.sellerId == sellerLocationUi.sellerId) {
+                LOGGER.info("Changed seller location")
+                draft = draft.copy(sellerLocation = sellerLocationUi)
+            } else {
+                LOGGER.info("Seller location does not match seller")
+            }
+        } else {
+            draft = draft.copy(sellerLocation = sellerLocationUi)
+        }
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.None, -1))
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
         }

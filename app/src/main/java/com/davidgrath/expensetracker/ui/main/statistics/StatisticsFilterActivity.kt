@@ -6,12 +6,17 @@ import android.view.View.OnClickListener
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.ActivityStatisticsFilterBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.TransactionMode
+import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsEvidenceFragment
+import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsItemsFragment
+import com.google.android.material.tabs.TabLayoutMediator
 import org.slf4j.LoggerFactory
 import org.threeten.bp.DayOfWeek
 import org.threeten.bp.temporal.WeekFields
@@ -21,101 +26,74 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
 
     lateinit var binding: ActivityStatisticsFilterBinding
     lateinit var viewModel: StatisticsFilterViewModel
-    private var accountsMap = mutableMapOf<Long, CheckBox>()
-    private var weekDaysMap = mutableMapOf<DayOfWeek, CheckBox>()
-    private var categoriesMap = mutableMapOf<Long, CheckBox>()
-    private var modesMap = mutableMapOf<TransactionMode, CheckBox>()
+
     private var statsUsed = false
-    @Inject
-    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStatisticsFilterBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
         val appComponent = app.appComponent
-        appComponent.inject(this)
         viewModel = ViewModelProvider(this, StatisticsFilterViewModelFactory(appComponent)).get(
             StatisticsFilterViewModel::class.java)
 
-        val accounts = viewModel.accounts
-        accounts.forEach { account ->
-            val linearLayout = binding.linearLayoutStatisticsFilterAccounts
-            val checkbox = CheckBox(this)
-            val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            checkbox.layoutParams = layoutParams
-            checkbox.text = "${account.name} (${account.currencyCode})"
-            linearLayout.addView(checkbox)
-            accountsMap[account.id] = checkbox
-            checkbox.setOnClickListener {
-                viewModel.toggleAccountChecked(account.id)
+        val pagerAdapter = object : FragmentStateAdapter(this) {
+            override fun getItemCount(): Int {
+                return FilterScreens.values().size
+            }
+
+            override fun createFragment(position: Int): Fragment {
+                when(position) {
+                    FilterScreens.Accounts.position -> {
+                        return StatisticsFilterAccountsFragment.newInstance()
+                    }
+                    FilterScreens.Weekdays.position -> {
+                        return StatisticsFilterWeekdaysFragment.newInstance()
+                    }
+                    FilterScreens.Categories.position -> {
+                        return StatisticsFilterCategoriesFragment.newInstance()
+                    }
+                    FilterScreens.Modes.position -> {
+                        return StatisticsFilterModesFragment.newInstance()
+                    }
+                    FilterScreens.Sellers.position -> {
+                        return StatisticsFilterSellersFragment.newInstance()
+                    }
+                    else -> {
+                        return StatisticsFilterAccountsFragment.newInstance()
+                    }
+                }
             }
         }
-        val categories = viewModel.getCategories().blockingGet().map { categoryDbToCategoryUi(it) }
-        categories.forEach { cat ->
-            val linearLayout = binding.linearLayoutStatisticsFilterCategories
-            val checkbox = CheckBox(this)
-            val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            checkbox.layoutParams = layoutParams
-            checkbox.text = cat.name
-            linearLayout.addView(checkbox)
-            categoriesMap[cat.id] = checkbox
-            checkbox.setOnClickListener {
-                viewModel.toggleCategory(cat.id)
+        binding.viewPagerStatisticsFilter.adapter = pagerAdapter
+        val tabLayoutMediator = TabLayoutMediator(binding.tabLayoutStatisticsFilter, binding.viewPagerStatisticsFilter) { tab, position ->
+            when(position) {
+                FilterScreens.Accounts.position -> {
+                    tab.text = "Accounts"
+                }
+                FilterScreens.Weekdays.position -> {
+                    tab.text = "Weekdays"
+                }
+                FilterScreens.Categories.position -> {
+                    tab.text = "Categories"
+                }
+                FilterScreens.Modes.position -> {
+                    tab.text = "Modes"
+                }
+                FilterScreens.Sellers.position -> {
+                    tab.text = "Sellers"
+                }
             }
         }
-        val firstDay = WeekFields.of(timeAndLocaleHandler.getLocale()).firstDayOfWeek
-        for(weekdayInt in 0L..6L) {
-            val weekDay = firstDay.plus(weekdayInt)
-            val linearLayout = binding.linearLayoutStatisticsFilterWeekdays
-            val checkbox = CheckBox(this)
-            val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            checkbox.layoutParams = layoutParams
-            checkbox.text = weekDay.toString() //TODO Context and String IDs
-            linearLayout.addView(checkbox)
-            weekDaysMap[weekDay] = checkbox
-            checkbox.setOnClickListener {
-                viewModel.toggleWeekDay(weekDay)
-            }
-        }
-        val modes = TransactionMode.values()
-        for(mode in modes) {
-            val linearLayout = binding.linearLayoutStatisticsFilterModes
-            val checkbox = CheckBox(this)
-            val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            checkbox.layoutParams = layoutParams
-            checkbox.text = mode.toString() //TODO Context and String IDs
-            linearLayout.addView(checkbox)
-            modesMap[mode] = checkbox
-            checkbox.setOnClickListener {
-                viewModel.toggleMode(mode)
-            }
-        }
-        viewModel.statisticsFilterLiveData.observe(this) { filter ->
-            val accountIds = filter.accountIds
-            for((id, cb) in accountsMap) {
-                cb.isChecked = id in accountIds
-            }
-            val weekDays = filter.weekdays
-            for((weekDay, cb) in weekDaysMap) {
-                cb.isChecked = weekDay in weekDays
-            }
-            val categories = filter.categories
-            for((catId, cb) in categoriesMap) {
-                cb.isChecked = catId in categories
-            }
-            val xModes = filter.modes
-            for((mode, cb) in modesMap) {
-                cb.isChecked = mode in xModes
-            }
-        }
-        binding.imageViewStatisticsFilterDone.setOnClickListener(this)
+        tabLayoutMediator.attach()
+
+        binding.fabStatisticsFilterDone.setOnClickListener(this)
         setContentView(binding.root)
     }
 
     override fun onClick(v: View?) {
         when(v) {
-            binding.imageViewStatisticsFilterDone -> {
+            binding.fabStatisticsFilterDone -> {
                 statsUsed = true
                 LOGGER.info("Done with statistics")
                 viewModel.saveStatisticsFilterToFile().blockingSubscribe()
@@ -134,6 +112,14 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
                 LOGGER.info("Statistics discarded")
             }
         }
+    }
+
+    enum class FilterScreens(val position: Int) {
+        Accounts(0),
+        Weekdays(1),
+        Categories(2),
+        Modes(3),
+        Sellers(4)
     }
 
     companion object {

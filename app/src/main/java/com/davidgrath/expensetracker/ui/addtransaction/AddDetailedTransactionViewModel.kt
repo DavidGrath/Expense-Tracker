@@ -19,11 +19,14 @@ import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
+import com.davidgrath.expensetracker.entities.ui.SellerUi
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.loadRenderer
@@ -32,8 +35,13 @@ import com.davidgrath.expensetracker.repositories.AddDetailedTransactionReposito
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
+import com.davidgrath.expensetracker.repositories.SellerRepository
+import com.davidgrath.expensetracker.sellerDbToSellerUi
+import com.davidgrath.expensetracker.sellerLocationDbToSellerLocationUi
+import com.davidgrath.expensetracker.ui.main.MainViewModel
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
@@ -55,6 +63,7 @@ class AddDetailedTransactionViewModel(
     private val profileRepository: ProfileRepository,
     private val imageRepository: ImageRepository,
     private val timeAndLocaleHandler: TimeAndLocaleHandler,
+    private val sellerRepository: SellerRepository,
     private val profileStringId: String,
     private val transactionId: Long?,
     private val initialAccountId: Long?,
@@ -71,6 +80,10 @@ class AddDetailedTransactionViewModel(
     val profile = profileRepository.getByStringId(profileStringId).subscribeOn(Schedulers.io()).blockingGet()
 
     val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+    val sellersMediatorLiveData = MediatorLiveData<Pair<Long?, List<SellerUi>>>()
+    private val sellersLiveData: LiveData<List<SellerUi>> = sellerRepository.getSellers(profile.id!!).map { list -> listOf(SellerUi(-1, "test")) + list.map { sellerDbToSellerUi(it) } } .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+    val sellerLocationsMediatorLiveData = MediatorLiveData<Pair<SellerLocationUi?, List<SellerLocationUi>>>()
+    private val sellerLocationsLiveData: LiveData<List<SellerLocationUi>> = sellerRepository.getSellerLocations(profile.id!!).map { list -> listOf(SellerLocationUi(-1, -1, "", false, null, null, null)) + list.map { sellerLocationDbToSellerLocationUi(it) } } .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     val mediator = MediatorLiveData<Triple<List<AccountDb>, AccountUi, BigDecimal>>()
 
     val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
@@ -115,6 +128,19 @@ class AddDetailedTransactionViewModel(
                     )
                 )
             }
+        }
+        sellersMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerId }) {
+            sellersMediatorLiveData.postValue(it to (sellersLiveData.value?: emptyList()))
+        }
+        sellersMediatorLiveData.addSource(sellersLiveData) {
+            sellersMediatorLiveData.postValue(sellersMediatorLiveData.value?.first to it)
+        }
+
+        sellerLocationsMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerLocation }) {
+            sellerLocationsMediatorLiveData.postValue(it to (sellerLocationsLiveData.value?: emptyList()))
+        }
+        sellerLocationsMediatorLiveData.addSource(sellerLocationsLiveData) {
+            sellerLocationsMediatorLiveData.postValue(sellerLocationsMediatorLiveData.value?.first to it)
         }
 
         if(mode == "add") {
@@ -315,6 +341,32 @@ class AddDetailedTransactionViewModel(
         return imageRepository.getImageCountSingle(profile.id!!)
     }
 
+    fun addSeller(name: String) {
+        val id = sellerRepository.createSeller(profile.id!!, name).blockingGet()
+        addDetailedTransactionRepository.setSeller(id)
+        LOGGER.info("Created seller {} for profile {}", id, profile.id)
+    }
+
+    fun addSellerLocation(location: String, sellerId: Long) {
+        val id = sellerRepository.createSellerLocation(location, sellerId).blockingGet()
+        addDetailedTransactionRepository.setSeller(id)
+        LOGGER.info("Created seller location {} for profile {}", id, profile.id)
+    }
+
+    fun setSeller(sellerId: Long?) {
+        addDetailedTransactionRepository.setSeller(sellerId)
+    }
+    fun setSellerLocation(sellerLocation: SellerLocationUi?) {
+        addDetailedTransactionRepository.setSellerLocation(sellerLocation)
+    }
+
+    fun setTransactionMode(transactionMode: TransactionMode) {
+        addDetailedTransactionRepository.setTransactionMode(transactionMode)
+    }
+
+    fun getSellerId(): Long? {
+        return addDetailedTransactionRepository.getDraftValue().sellerId
+    }
 
     enum class PdfState {
         NOT_PDF,

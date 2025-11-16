@@ -9,6 +9,8 @@ import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.db.SellerDb
+import com.davidgrath.expensetracker.entities.db.SellerLocationDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
 import com.davidgrath.expensetracker.entities.db.views.EvidenceWithTransactionDateAndOrdinal
@@ -20,6 +22,8 @@ import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.ImageUi
+import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
+import com.davidgrath.expensetracker.entities.ui.SellerUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailsUi
@@ -33,7 +37,9 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import com.ibm.icu.number.NumberFormatter
 import com.ibm.icu.number.Precision
+import com.ibm.icu.text.DecimalFormatSymbols
 import com.ibm.icu.text.MeasureFormat
+import com.ibm.icu.text.NumberFormat
 import com.ibm.icu.util.Measure
 import com.ibm.icu.util.MeasureUnit
 import io.reactivex.rxjava3.core.Maybe
@@ -187,16 +193,26 @@ fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
     return category
 }
 
-fun transactionDbToTransactionDetailedUi(transactionDb: TransactionDb, accountDb: AccountDb): TransactionDetailsUi {
+fun transactionDbToTransactionDetailedUi(transactionDb: TransactionDb, accountDb: AccountDb, sellerDb: SellerDb?, sellerLocationDb: SellerLocationDb?): TransactionDetailsUi {
     val createdDateTime = LocalDateTime.parse(transactionDb.createdAt)
-    var datedDate = LocalDate.parse(transactionDb.datedAt)
+    val datedDate = LocalDate.parse(transactionDb.datedAt)
 
     val datedTime = if(transactionDb.datedAtTime == null) {
         null
     } else {
         LocalTime.parse(transactionDb.datedAtTime)
     }
-    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.note, createdDateTime, datedDate, datedTime, null)
+    val sellerUi = if(sellerDb == null) {
+        null
+    } else {
+        sellerDbToSellerUi(sellerDb)
+    }
+    val sellerLocationUi = if(sellerLocationDb == null) {
+        null
+    } else {
+        sellerLocationDbToSellerLocationUi(sellerLocationDb)
+    }
+    val transactionUi = TransactionDetailsUi(transactionDb.id!!, accountDb.name, accountDb.currencyCode, accountDb.referenceNumber, transactionDb.amount, transactionDb.currencyCode, transactionDb.debitOrCredit, transactionDb.note, createdDateTime, datedDate, datedTime, transactionDb.mode, sellerUi, sellerLocationUi)
     return transactionUi
 }
 
@@ -244,6 +260,17 @@ fun accountWithStatsDbToAccountWithStatsUi(accountWithStats: AccountWithStats, l
     val accountUi = AccountWithStatsUi(accountWithStats.id, accountWithStats.profileId, accountWithStats.currencyCode, currencyDisplayName, accountWithStats.name, accountWithStats.expenses, accountWithStats.income, accountWithStats.transactionCount, accountWithStats.itemCount)
     return accountUi
 }
+
+fun sellerDbToSellerUi(sellerDb: SellerDb): SellerUi {
+    val sellerUi = SellerUi(sellerDb.id!!, sellerDb.name)
+    return sellerUi
+}
+
+fun sellerLocationDbToSellerLocationUi(sellerLocationDb: SellerLocationDb): SellerLocationUi {
+    val sellerLocationUi = SellerLocationUi(sellerLocationDb.id!!, sellerLocationDb.sellerId, sellerLocationDb.location, sellerLocationDb.isVirtual, sellerLocationDb.longitude, sellerLocationDb.latitude, sellerLocationDb.address)
+    return sellerLocationUi
+}
+
 fun getSha256(inputStream: InputStream): Single<String> {
     return Single.fromCallable {
         val bufSize = DEFAULT_BUFFER_SIZE
@@ -372,8 +399,21 @@ fun Long.formatBytes(locale: Locale): String {
 val numberFormatterSettings = NumberFormatter.with().grouping(NumberFormatter.GroupingStrategy.ON_ALIGNED).precision(
     Precision.fixedFraction(2))
 fun formatDecimal(bigDecimal: BigDecimal, locale: Locale): String {
-    val numberFormatter = numberFormatterSettings.locale(locale)
-    return numberFormatter.format(bigDecimal).toString()
+//    val numberFormatter = numberFormatterSettings.locale(locale)
+//    return numberFormatter.format(bigDecimal).toString()
+    return NumberFormat.getInstance(locale).apply { maximumFractionDigits = 2; minimumFractionDigits = 2 }.format(bigDecimal)
+}
+
+fun parseDecimal(decimal: String, locale: Locale): BigDecimal {
+//    val decimalSymbols = DecimalFormatSymbols.getInstance(locale)
+//    val sep = decimalSymbols.decimalSeparatorString
+//    val pattern = "[^\\d$sep]"
+//    val replaced = decimal.replace(Regex(pattern), "")
+//    println("Rep: " + replaced)
+    val numberFormat = com.ibm.icu.text.NumberFormat.getInstance(locale)
+//    val number = numberFormat.parse(replaced)
+    val number = numberFormat.parse(decimal)
+    return BigDecimal(number.toString())
 }
 
 fun getFilteredWeekDays(profileId: Long, filter: StatisticsFilter, dateMode: StatisticsConfig.DateMode, timeAndLocaleHandler: TimeAndLocaleHandler, transactionRepository: TransactionRepository): List<String> {

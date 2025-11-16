@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.DateAmountSummary
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
@@ -38,6 +39,8 @@ interface TransactionDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
             "AND debitOrCredit = :debitOrCredit " +
             "GROUP BY aggregateDate ORDER BY aggregateDate")
     fun getTransactionSumByDate(
@@ -45,7 +48,9 @@ interface TransactionDao {
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<List<DateAmountSummary>>
 
     @Query("SELECT sum(t.amount) FROM TransactionDb t " +
@@ -56,13 +61,17 @@ interface TransactionDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
             "AND debitOrCredit")
     fun getTransactionDebitSum(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<BigDecimal>
 
     @Query("SELECT sum(t.amount) FROM TransactionDb t " +
@@ -73,13 +82,17 @@ interface TransactionDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds))" +
             "AND (:datesEmpty OR date(t.datedAt) in (:dates))" +
             "AND (:categoriesEmpty OR t.id in (select t2.id FROM TransactionDb t2 INNER JOIN TransactionItemDb ti2 ON ti2.transactionId=t2.id where (ti2.primaryCategoryId in (:categories)))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
             "AND not(debitOrCredit)")
     fun getTransactionCreditSum(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<BigDecimal>
 
     @Query("SELECT min(date(datedAt)) FROM TransactionDb t " +

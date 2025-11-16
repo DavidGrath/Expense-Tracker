@@ -58,7 +58,7 @@ class TransactionDaoTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fourthTransactionDate.toString()).ordinal(ordinal++).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt("2025-06-18T08:02:00").createdAtOffset("+00:00").datedAt(fifthTransactionDate.toString()).ordinal(ordinal++).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-        val sums = transactionDao.getTransactionSumByDate(profile.id!!, true, firstTransactionDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
+        val sums = transactionDao.getTransactionSumByDate(profile.id!!, true, firstTransactionDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
         val firstSum = sums.find { it.aggregateDate == firstTransactionDate }!!
         val secondSum = sums.find { it.aggregateDate == secondTransactionDate }!!
         val thirdSum = sums.find { it.aggregateDate == thirdTransactionDate }!!
@@ -66,7 +66,7 @@ class TransactionDaoTest {
         assertEquals(0, BigDecimal(300.00).compareTo(secondSum.sum))
         assertEquals(0, BigDecimal(1200.00).compareTo(thirdSum.sum))
 
-        val boundSums = transactionDao.getTransactionSumByDate(profile.id!!, true, firstTransactionDate.toString(), fourthTransactionDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
+        val boundSums = transactionDao.getTransactionSumByDate(profile.id!!, true, firstTransactionDate.toString(), fourthTransactionDate.toString(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
         val fourthSum = boundSums.find { it.aggregateDate == fifthTransactionDate }
         assertNull(fourthSum)
     }
@@ -91,11 +91,11 @@ class TransactionDaoTest {
         transactionDao.insertTransaction(builder.amount(BigDecimal(750.00)).createdAt(fourthTransactionDate.atTime(time).toString()).datedAt(fourthTransactionDate.toString()).ordinal(ordinal++).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
         transactionDao.insertTransaction(builder.amount(BigDecimal(1000.00)).createdAt(fifthTransactionDate.atTime(time).toString()).datedAt(fifthTransactionDate.toString()).ordinal(ordinal++).build()).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-        val firstSum = transactionDao.getTransactionDebitSum(profile.id!!, firstTransactionDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
+        val firstSum = transactionDao.getTransactionDebitSum(profile.id!!, firstTransactionDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
 
         assertEquals(0, BigDecimal(2610.00).compareTo(firstSum))
 
-        val secondSum = transactionDao.getTransactionDebitSum(profile.id!!, firstTransactionDate.toString(), fourthTransactionDate.toString(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
+        val secondSum = transactionDao.getTransactionDebitSum(profile.id!!, firstTransactionDate.toString(), fourthTransactionDate.toString(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).blockingFirst()
         assertEquals(0, BigDecimal(1610.00).compareTo(secondSum))
     }
 

@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
@@ -37,6 +38,8 @@ interface TransactionItemDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
             "AND t.debitOrCredit " +
             "GROUP BY ti.primaryCategoryId " +
             "ORDER BY ti.primaryCategoryId ")
@@ -45,7 +48,9 @@ interface TransactionItemDao {
         fromDate: String?, toDate: String?,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT c.id as categoryId, c.stringId, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " + //TODO how to factor reductions into this?
@@ -58,6 +63,8 @@ interface TransactionItemDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
             "AND not(t.debitOrCredit) " +
             "GROUP BY ti.primaryCategoryId " +
             "ORDER BY ti.primaryCategoryId ")
@@ -66,7 +73,9 @@ interface TransactionItemDao {
         fromDate: String?, toDate: String?,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<List<ItemSumByCategory>>
 
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
@@ -85,13 +94,17 @@ interface TransactionItemDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
-            "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal") //TODO Think about ordinals later
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
+            "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal")
     fun getItemsWithTransactionsAndCategory(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<List<TransactionWithItemAndCategory>>
     @Query("SELECT ti.transactionId, ti.id AS itemId, t.accountId,ti.primaryCategoryId, " +
             "t.amount AS transactionTotal, ti.amount AS itemAmount,t.currencyCode, t.debitOrCredit, " +
@@ -109,13 +122,17 @@ interface TransactionItemDao {
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
             "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
-            "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal") //TODO Think about ordinals later
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) " +
+            "ORDER BY date(t.datedAt), t.ordinal, ti.ordinal")
     fun getItemsWithTransactionsAndCategorySingle(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Single<List<TransactionWithItemAndCategory>>
 
     @Query("SELECT * FROM TransactionItemDb WHERE id = :id")
@@ -129,14 +146,18 @@ interface TransactionItemDao {
             "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
-            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) "
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) "
     )
     fun getTransactionItemCount(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<TransactionAndItemCount>
 
     @Query("SELECT count(distinct(t.id)) as transactionCount, count(ti.id) as itemCount " +
@@ -147,14 +168,18 @@ interface TransactionItemDao {
             "AND (:toDate IS NULL OR date(datedAt) <= date(:toDate)) " +
             "AND (:emptyAccounts OR t.accountId in (:accountIds)) " +
             "AND (:datesEmpty OR date(datedAt) in (:dates)) " +
-            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) "
+            "AND (:categoriesEmpty OR (ti.primaryCategoryId in (:categories))) " +
+            "AND (:modesEmpty OR (t.mode in (:modes))) " +
+            "AND (:sellersEmpty OR (t.sellerId in (:sellers))) "
     )
     fun getTransactionItemCountSingle(
         profileId: Long,
         fromDate: String? = null, toDate: String? = null,
         emptyAccounts: Boolean, accountIds: List<Long>,
         datesEmpty: Boolean, dates: List<String>,
-        categoriesEmpty: Boolean, categories: List<Long>
+        categoriesEmpty: Boolean, categories: List<Long>,
+        modesEmpty: Boolean, modes: List<TransactionMode>,
+        sellersEmpty: Boolean, sellers: List<Long>
     ): Single<TransactionAndItemCount>
     // endregion
 

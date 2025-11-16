@@ -19,7 +19,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemCategoriesDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 
-@Database(version = 1, entities = [
+@Database(version = 2, entities = [
     CategoryDb::class, ImageDb::class, ProfileDb::class, TransactionDb::class, TransactionItemDb::class, TransactionItemImagesDb::class,
     EvidenceDb::class, AccountDb::class, TransactionItemCategoriesDb::class, SellerDb::class, SellerLocationDb::class
 ])

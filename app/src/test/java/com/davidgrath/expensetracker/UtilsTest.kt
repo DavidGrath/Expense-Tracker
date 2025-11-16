@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker
 
 import com.ibm.icu.number.NumberFormatter
 import com.ibm.icu.number.Precision
+import com.ibm.icu.text.DecimalFormatSymbols
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,6 +13,7 @@ import tech.units.indriya.format.SimpleQuantityFormat
 import tech.units.indriya.format.SimpleUnitFormat
 import tech.units.indriya.quantity.Quantities
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Locale
 import javax.measure.BinaryPrefix
@@ -26,7 +28,7 @@ class UtilsTest {
         val unit = BYTE
         val quantity = Quantities.getQuantity(1_000.23, unit)
         val format = SimpleQuantityFormat.getInstance()
-        val quantityFormat = NumberDelimiterQuantityFormat.getInstance(NumberFormat.getNumberInstance(), SimpleUnitFormat.getInstance(SimpleUnitFormat.Flavor.ASCII))
+        val quantityFormat = NumberDelimiterQuantityFormat.getInstance(NumberFormat.getNumberInstance(Locale.getDefault()), SimpleUnitFormat.getInstance(SimpleUnitFormat.Flavor.ASCII))
         println(quantityFormat.format(quantity))
     }
 
@@ -37,11 +39,15 @@ class UtilsTest {
         val indian = Locale("en", "IN")
         val numberFormatterSettings = NumberFormatter.with().grouping(NumberFormatter.GroupingStrategy.ON_ALIGNED).precision(Precision.fixedFraction(2))
         var numberFormatter = numberFormatterSettings.locale(german)
-
-        assertEquals("1.234.567,89", numberFormatter.format(bigDecimal).toString())
+//        val germanFormatted = numberFormatter.format(bigDecimal).toString()
+        val germanFormatted = formatDecimal(bigDecimal, german)
+        assertEquals("1.234.567,89", germanFormatted)
+        assertEqualsBD(bigDecimal.setScale(2, RoundingMode.HALF_UP), parseDecimal(germanFormatted, german))
 
         numberFormatter = numberFormatterSettings.locale(indian)
-
-        assertEquals("12,34,567.89", numberFormatter.format(bigDecimal).toString())
+//        val indianFormatted = numberFormatter.format(bigDecimal).toString()
+        val indianFormatted = formatDecimal(bigDecimal, indian)
+        assertEquals("12,34,567.89", indianFormatted)
+        assertEqualsBD(bigDecimal.setScale(2, RoundingMode.HALF_UP), parseDecimal(indianFormatted, indian))
     }
 }

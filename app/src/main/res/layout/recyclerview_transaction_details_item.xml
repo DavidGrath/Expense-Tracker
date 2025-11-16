@@ -43,21 +43,25 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/image_view_transaction_details_item_category">
     <TextView
+        android:id="@+id/text_view_transaction_details_item_variation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="TODO Seller"/>
+        tools:text="Chocolate"/>
     <TextView
+        android:id="@+id/text_view_transaction_details_item_brand"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="TODO Brand"/>
+        tools:text="Generic"/>
     <TextView
+        android:id="@+id/text_view_transaction_details_item_reference_number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="TODO Reference Number"/>
+        tools:text="1234-5678-abcd"/>
     <TextView
+        android:id="@+id/text_view_transaction_details_item_quantity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="TODO Quantity" />
+        tools:text="12" />
     </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_transaction_details_item_images"

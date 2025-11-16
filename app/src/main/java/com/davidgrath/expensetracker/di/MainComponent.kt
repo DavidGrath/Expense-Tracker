@@ -26,8 +26,10 @@ import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsView
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterViewModelFactory
+import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterWeekdaysFragment
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsActivity
 import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsItemsFragment
+import com.davidgrath.expensetracker.ui.transactiondetails.TransactionDetailsViewModelFactory
 import dagger.Component
 import javax.inject.Singleton
 
@@ -49,7 +51,7 @@ interface MainComponent {
     fun inject(addAccountDialogFragment: AddAccountDialogFragment)
     fun inject(accountsFragment: AccountsFragment)
     fun inject(statisticsFilterViewModelFactory: StatisticsFilterViewModelFactory)
-    fun inject(statisticsFilterActivity: StatisticsFilterActivity)
+    fun inject(statisticsFilterWeekdaysFragment: StatisticsFilterWeekdaysFragment)
     fun inject(statisticsFragment: StatisticsFragment)
     fun inject(weekDayDialogFragment: WeekDayDialogFragment)
     fun inject(yearDayDialogFragment: YearDayDialogFragment)
@@ -62,4 +64,5 @@ interface MainComponent {
     fun inject(transactionDetailsItemsFragment: TransactionDetailsItemsFragment)
     fun inject(filteredTransactionsViewModelFactory: FilteredTransactionsViewModelFactory)
     fun inject(filteredTransactionsActivity: FilteredTransactionsActivity)
+    fun inject(transactionDetailsViewModelFactory: TransactionDetailsViewModelFactory)
 }

@@ -19,6 +19,8 @@ import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
 import com.davidgrath.expensetracker.db.dao.ImageDao
+import com.davidgrath.expensetracker.db.dao.SellerDao
+import com.davidgrath.expensetracker.db.dao.SellerLocationDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
@@ -26,11 +28,14 @@ import com.davidgrath.expensetracker.di.TestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.entities.db.SellerDb
+import com.davidgrath.expensetracker.entities.db.SellerLocationDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
 import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.getHashCount
@@ -99,6 +104,10 @@ class AddDetailedTransactionRepositoryTest {
     lateinit var accountRepository: AccountRepository
     @Inject
     lateinit var profileRepository: ProfileRepository
+    @Inject
+    lateinit var sellerDao: SellerDao
+    @Inject
+    lateinit var sellerLocationDao: SellerLocationDao
 
     lateinit var app: ExpenseTracker
     lateinit var dataBuilder: DataBuilder
@@ -1374,6 +1383,27 @@ class AddDetailedTransactionRepositoryTest {
         val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
         LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
         assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
+    }
+
+    @Test
+    fun givenSellerAndLocationSetIfLocationSomehowNotLinkedToSellerWhenSaveThenLocationNull() {
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        val sellerId = sellerDao.insertSeller(SellerDb(null, profile.id!!, "Restaurant", "", "", "")).subscribeOn(Schedulers.io()).blockingGet()
+        val sellerId2 = sellerDao.insertSeller(SellerDb(null, profile.id!!, "Coffee Shop", "", "", "")).subscribeOn(Schedulers.io()).blockingGet()
+        val sellerLocationId = sellerLocationDao.insertSellerLocation(SellerLocationDb(null, sellerId, "Downtown", false, null, null, null, "", "", "")).subscribeOn(Schedulers.io()).blockingGet()
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        repository.restoreDraft().blockingSubscribe()
+
+        repository.setSeller(sellerId2)
+        repository.setSellerLocation(SellerLocationUi(sellerLocationId, sellerId, "Downtown", false, null, null, null))
+
+        repository.finishTransaction().blockingSubscribe()
+        val transaction = transactionDao.getByIdSingle(1).subscribeOn(Schedulers.io()).blockingGet()
+
+        assertNotNull(transaction.sellerId)
+        assertNull(transaction.sellerLocationId)
     }
 
     @Test

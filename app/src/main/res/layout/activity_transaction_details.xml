@@ -40,9 +40,20 @@
             android:layout_height="wrap_content"
             android:text="TODO Financial Institution"/>
         <TextView
+            android:id="@+id/text_view_transaction_details_seller"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TODO Seller"/>
+            tools:text="Restaurant"/>
+        <TextView
+            android:id="@+id/text_view_transaction_details_seller_location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Restaurant Branch"/>
+        <TextView
+            android:id="@+id/text_view_transaction_details_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mode"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -152,9 +152,11 @@ constructor(
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
+            val modes = it.filter.modes
+            val sellers = it.filter.sellerIds
             Observable.combineLatest(
-                transactionItemRepository.getTotalExpenseByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories),
-                transactionItemRepository.getTotalIncomeByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories)
+                transactionItemRepository.getTotalExpenseByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers),
+                transactionItemRepository.getTotalIncomeByCategory(profile.id!!, it.filter.startDay?.toString(), it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers)
             ) { expenseList, incomeList ->
                 val categoryIds =
                     (expenseList.map { it.categoryId } + incomeList.map { it.categoryId })
@@ -206,7 +208,7 @@ constructor(
             transactionRepository.getTotalIncome(profile.id!!,
                 it.startDate.toString(),
                 it.endDate.toString(),
-                accountIds, emptyList(), emptyList()
+                accountIds, emptyList(), emptyList(), emptyList(), emptyList()
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
@@ -215,7 +217,7 @@ constructor(
             transactionRepository.getTotalExpense(profile.id!!,
                 it.startDate.toString(),
                 it.endDate.toString(),
-                accountIds, emptyList(), emptyList()
+                accountIds, emptyList(), emptyList(), emptyList(), emptyList()
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
@@ -223,9 +225,11 @@ constructor(
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
+            val modes = it.filter.modes
+            val sellers = it.filter.sellerIds
             transactionRepository.getTotalIncome(profile.id!!,
                 it.filter.startDay?.toString(),
-                it.filter.endDay?.toString(), accountIds, dates, categories
+                it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
@@ -233,9 +237,11 @@ constructor(
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
+            val modes = it.filter.modes
+            val sellers = it.filter.sellerIds
             transactionRepository.getTotalExpense(profile.id!!,
                 it.filter.startDay?.toString(),
-                it.filter.endDay?.toString(), accountIds, dates, categories
+                it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
@@ -256,9 +262,11 @@ constructor(
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
+            val modes = it.filter.modes
+            val sellers = it.filter.sellerIds
             Observable.combineLatest(
-                transactionRepository.getTotalAmountByDate(profile.id, true, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories),
-                transactionRepository.getTotalAmountByDate(profile.id, false, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories)
+                transactionRepository.getTotalAmountByDate(profile.id, true, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers),
+                transactionRepository.getTotalAmountByDate(profile.id, false, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers)
             ) { expenses, income ->
                 expenses to income
             }.toFlowable(BackpressureStrategy.BUFFER).toLiveData()
@@ -267,7 +275,9 @@ constructor(
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
-            transactionItemRepository.getTransactionItemCount(profile.id!!, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories)
+            val modes = it.filter.modes
+            val sellers = it.filter.sellerIds
+            transactionItemRepository.getTransactionItemCount(profile.id!!, statisticsConfig.filter.startDay?.toString(), statisticsConfig.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers)
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
 
