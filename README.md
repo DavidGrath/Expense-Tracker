@@ -13,6 +13,7 @@ A basic app for me to track my expenses
 set swt_path=<appdatapath>Local\Android\Sdk\tools\lib\x86_64
 "C:\Program Files\Java\jdk1.8.0_341\bin\java.exe" "-Djava.ext.dirs=..\lib\x86_64;..\lib" "-Dcom.android.uiautomator.bindir=<appdatapath>\Local\Android\Sdk\tools" -jar <appdatapath>\Local\Android\Sdk\tools\lib\uiautomatorviewer-26.0.0-dev.jar
 ```
+* Extend `AppCompatActivity` to maintain the new app theme
 
 ## To-Do
 * Jenkins Testing Pipeline

@@ -59,7 +59,6 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
     private lateinit var badgeDrawable: BadgeDrawable
 
-    var addTransactionDialog: AddTransactionDialogFragment? = null
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
 
@@ -71,7 +70,6 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         appComponent.inject(this)
         startDate = LocalDate.now(timeAndLocaleHandler.getClock())
         endDate = LocalDate.now(timeAndLocaleHandler.getClock())
-        addTransactionDialog = childFragmentManager.findFragmentByTag(FRAGMENT_TAG_ADD_TRANSACTION) as AddTransactionDialogFragment?
         adapter = TransactionItemsAdapter(emptyList(), timeAndLocaleHandler, this)
         return binding.root
     }
@@ -167,14 +165,14 @@ class TransactionsFragment: Fragment(), OnClickListener, OnLongClickListener, Ad
         v?.let { view ->
             when(view) {
                 binding.fabTransactions -> {
-                    if(addTransactionDialog == null) {
-
-                        addTransactionDialog = AddTransactionDialogFragment.createDialog(viewModel.currentProfile)
-                    }
-                    if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
+//                    if(addTransactionDialog == null) {
+//
+//                    }
+                    val addTransactionDialog = AddTransactionDialogFragment.createDialog(viewModel.currentProfile)
+//                    if(!(addTransactionDialog?.dialog?.isShowing?:false)) {
                         addTransactionDialog?.show(childFragmentManager, FRAGMENT_TAG_ADD_TRANSACTION)
                         LOGGER.info("Showed addTransactionDialog")
-                    }
+//                    }
                 }
                 binding.imageButtonTransactionsCycleDateLeft -> {
                     viewModel.decrementHomeDay()

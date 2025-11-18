@@ -38,36 +38,5 @@
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:orientation="horizontal">
-        <ImageView
-            android:id="@+id/image_view_add_detailed_transaction_debit_or_credit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/baseline_remove_24"
-            android:layout_marginRight="16dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Total"
-            android:layout_marginRight="8dp"/>
 
-        <TextView
-            android:id="@+id/text_view_add_detailed_transaction_main_total"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="USD 0.00"/>
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
-        <ImageButton
-            android:id="@+id/image_button_add_detailed_transaction_done"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/baseline_check_24"/>
-    </LinearLayout>
 </LinearLayout>

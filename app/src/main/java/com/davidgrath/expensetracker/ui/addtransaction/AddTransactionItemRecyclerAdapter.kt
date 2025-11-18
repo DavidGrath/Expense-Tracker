@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.Constants.Companion.ALPHA_DISABLED
 import com.davidgrath.expensetracker.MaxCodePointWatcher
 import com.davidgrath.expensetracker.NumberFormatTextWatcher
 import com.davidgrath.expensetracker.R
@@ -160,15 +161,8 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     }
                 }
                 binding.linearLayoutAddDetailedTransactionDetails.visibility = if(cachedItem.showDetails) View.VISIBLE else View.GONE
-                val showDrawable = AppCompatResources.getDrawable(binding.root.context, R.drawable.baseline_keyboard_arrow_right_24)
-                val hideDrawable = AppCompatResources.getDrawable(binding.root.context, R.drawable.baseline_keyboard_arrow_down_24)
-                binding.textViewAddDetailedTransactionShowDetails.setCompoundDrawables(
-                    if(cachedItem.showDetails) {
-                        hideDrawable
-                    } else {
-                        showDrawable
-                    }, null, null, null
-                )
+
+
                 binding.textViewAddDetailedTransactionShowDetails.setOnClickListener {
                     val absPosition = holder.absoluteAdapterPosition
                     currentItem = absPosition
@@ -176,6 +170,11 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     binding.linearLayoutAddDetailedTransactionDetails.visibility = if(!latestItem.showDetails) View.VISIBLE else View.GONE
                     latestItem = latestItem.copy(showDetails = !latestItem.showDetails)
                     listener?.onItemChangedInvalidate(absPosition, latestItem)
+                    if(latestItem.showDetails) {
+                        binding.imageViewAddDetailedTransactionItemShowDetails.animate().setDuration(500L).rotation(0f).start()
+                    } else {
+                        binding.imageViewAddDetailedTransactionItemShowDetails.animate().setDuration(500L).rotation(90f).start()
+                    }
                 }
 
                 binding.checkBoxAddDetailedTransactionIsReduction.setOnCheckedChangeListener(null)
@@ -283,7 +282,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 textWatcherReferenceMap[binding.editTextAddDetailedTransactionItemReference.hashCode()] = newReferenceWatcher
 
                 //endregion
-
+                binding.textViewAddDetailedTransactionItemImageCount.text = cachedItem.images.size.toString() + "/" + Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM
                 val adapter = AddTransactionItemImagesRecyclerAdapter(cachedItem.images, object: AddTransactionItemImagesRecyclerAdapter.ItemImageClickListener {
 
                     override fun onDeleteImage(position: Int) {
@@ -297,9 +296,11 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.recyclerviewAddDetailedTransactionItemImages.layoutManager = layoutManager
                 if(cachedItem.images.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
                     binding.imageViewAddDetailedTransactionItemAddImage.isEnabled = false
+                    binding.imageViewAddDetailedTransactionItemAddImage.alpha = ALPHA_DISABLED
                     binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener(null)
                 } else {
                     binding.imageViewAddDetailedTransactionItemAddImage.isEnabled = true
+                    binding.imageViewAddDetailedTransactionItemAddImage.alpha = 1f
                     binding.imageViewAddDetailedTransactionItemAddImage.setOnClickListener {
                         val absPosition = holder.absoluteAdapterPosition
                         val latestItem = _items[absPosition]

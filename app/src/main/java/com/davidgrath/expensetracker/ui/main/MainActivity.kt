@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.ui.main
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
@@ -27,7 +28,7 @@ import org.threeten.bp.LocalDate
 import java.io.File
 import javax.inject.Inject
 
-class MainActivity : FragmentActivity(), AccountsFragment.AccountsFragmentListener {
+class MainActivity : AppCompatActivity(), AccountsFragment.AccountsFragmentListener {
 
     lateinit var activityMainBinding: ActivityMainBinding
     lateinit var viewModel: MainViewModel

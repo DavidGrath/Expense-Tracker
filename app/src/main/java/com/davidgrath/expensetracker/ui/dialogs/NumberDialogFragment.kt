@@ -1,6 +1,6 @@
 package com.davidgrath.expensetracker.ui.dialogs
 
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
@@ -9,6 +9,7 @@ import android.text.InputType
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams
 import android.widget.EditText
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import org.slf4j.LoggerFactory
@@ -45,7 +46,7 @@ class NumberDialogFragment: DialogFragment() {
         outState.putString(BUNDLE_ARG_NUMBER_VALUE, number?.toString())
     }
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        editText = EditText(requireContext())
+        editText = AppCompatEditText(requireContext())
         val layoutParams = ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         editText.layoutParams = layoutParams
         editText.inputType = InputType.TYPE_CLASS_NUMBER //Might be extended to include other number types if needed

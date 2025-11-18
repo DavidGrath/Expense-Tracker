@@ -1,6 +1,6 @@
 package com.davidgrath.expensetracker.ui.dialogs
 
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
@@ -61,6 +61,7 @@ class AddSellerDialogFragment : DialogFragment() {
         }
         binding.editTextCreateSellerName.addTextChangedListener(textWatcher)
         return AlertDialog.Builder(requireContext())
+            .setTitle("Add a seller")
             .setView(binding.root)
             .setPositiveButton("Done", DialogInterface.OnClickListener { dialog, which ->
 

@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.LinearLayout
+import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
@@ -27,8 +28,8 @@ class StatisticsFilterCategoriesFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val categories = viewModel.getCategories().blockingGet().map { categoryDbToCategoryUi(it) }
         categories.forEach { cat ->
-            val linearLayout = binding.root
-            val checkbox = CheckBox(requireContext())
+            val linearLayout = binding.linearLayoutStatisticsFilterTemplate
+            val checkbox = AppCompatCheckBox(requireContext())
             val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             checkbox.layoutParams = layoutParams
             checkbox.text = cat.name

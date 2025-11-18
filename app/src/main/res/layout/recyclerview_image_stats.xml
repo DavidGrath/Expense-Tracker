@@ -12,15 +12,18 @@
         android:id="@+id/text_view_image_stats_size_bytes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="128 kib"/>
+        tools:text="128 kib"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
     <TextView
         android:id="@+id/text_view_image_stats_transaction_count"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="4 transactions"/>
+        tools:text="4 transactions"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"/>
     <TextView
         android:id="@+id/text_view_image_stats_item_count"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="5 items"/>
+        tools:text="5 items"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"/>
 </LinearLayout>

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import com.davidgrath.expensetracker.Constants
@@ -16,7 +17,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import javax.inject.Inject
 
-class AddDetailedTransactionGetImageActivity: ComponentActivity(), AddDetailedTransactionGetImageRecyclerAdapter.OnImageClickListener {
+class AddDetailedTransactionGetImageActivity: AppCompatActivity(), AddDetailedTransactionGetImageRecyclerAdapter.OnImageClickListener {
 
     private lateinit var binding: ActivityAddDetailedTransactionGetImageBinding
     private lateinit var viewModel: AddDetailedTransactionGetImageViewModel

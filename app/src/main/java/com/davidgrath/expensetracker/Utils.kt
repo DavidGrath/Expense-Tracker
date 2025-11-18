@@ -140,22 +140,38 @@ fun transactionsToTransactionItems(transactions: List<TransactionWithItemAndCate
     val itemsList = arrayListOf<GeneralTransactionListItem>()
     var currentDate: LocalDate? = null
     var currentTransaction: TransactionUi? = null
-    for(transaction in transactions) {
+
+    val length = transactions.size
+    var currentTransactionId = -1L
+    transactions.forEachIndexed { index, transaction ->
+        currentTransactionId = transaction.transactionId
         val ld = transaction.transactionDatedAt
         if(currentDate != ld) {
             currentDate = ld
             itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Date, currentDate, null, null))
         }
         if(currentTransaction?.id != transaction.transactionId) {
-            val transactionUi = TransactionUi(transaction.transactionId, transaction.itemAmount, transaction.currencyCode, transaction.debitOrCredit,
-                transaction.transactionCreatedAt, currentDate, transaction.transactionDatedAtTime, null, emptyList())
+            val transactionUi = TransactionUi(transaction.transactionId, transaction.transactionTotal, transaction.currencyCode, transaction.debitOrCredit,
+                transaction.transactionCreatedAt, currentDate!!, transaction.transactionDatedAtTime, null, emptyList())
             currentTransaction = transactionUi
             itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.Transaction, null, transactionUi, null))
         }
+        val next = index + 1
+        val isLast: Boolean
+        if(next >= length) {
+            isLast = true
+        } else {
+            val nextItem = transactions[next]
+            if(nextItem.transactionId != currentTransactionId) {
+                isLast = true
+            } else {
+                isLast = false
+            }
+        }
         val item = TransactionItemUi(
-            currentTransaction, transaction.itemAmount, transaction.description,
+            currentTransaction!!, transaction.itemAmount, transaction.description,
             transaction.category,
-            null,
+            isLast, null,
             transaction.itemImages
         )
         itemsList.add(GeneralTransactionListItem(GeneralTransactionListItem.Type.TransactionItem, null, null, item))

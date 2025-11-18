@@ -3,24 +3,29 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="8dp"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:layout_margin="8dp"
+    android:background="@drawable/simple_border"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <TextView
         android:id="@+id/text_view_account_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toStartOf="@id/image_view_account_edit"
+        app:layout_constraintEnd_toStartOf="@id/linear_layout_account_buttons"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:text="Account Name"/>
+        android:text="Account Name"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
     <TextView
         android:id="@+id/text_view_account_currency_code"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/text_view_account_name"
-        app:layout_constraintEnd_toStartOf="@id/image_view_account_edit"
-        android:text="Currency Name (CUR)"/>
+        app:layout_constraintEnd_toStartOf="@id/linear_layout_account_buttons"
+        android:text="Currency Name (CUR)"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     <TextView
         android:id="@+id/text_view_account_expenses"
         android:layout_width="0dp"
@@ -29,16 +34,24 @@
         app:layout_constraintTop_toBottomOf="@id/text_view_account_currency_code"
         app:layout_constraintEnd_toStartOf="@id/text_view_account_income"
         android:drawableStart="@drawable/baseline_remove_24"
-        android:text="100.00"/>
+        tools:text="99,876,543,210.14"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/red_600"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     <TextView
         android:id="@+id/text_view_account_income"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/text_view_account_expenses"
         app:layout_constraintTop_toBottomOf="@id/text_view_account_currency_code"
-        app:layout_constraintEnd_toStartOf="@id/image_view_account_edit"
+        app:layout_constraintEnd_toStartOf="@id/linear_layout_account_buttons"
         android:drawableStart="@drawable/baseline_add_24"
-        android:text="100.00"/>
+        tools:text="9,876,543,320.14"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/green_600"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     <TextView
         android:id="@+id/text_view_account_transaction_count"
         android:layout_width="0dp"
@@ -46,29 +59,40 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/text_view_account_expenses"
         app:layout_constraintEnd_toStartOf="@id/text_view_account_item_count"
-        android:text="2 transactions"/>
+        android:text="2 transactions"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     <TextView
         android:id="@+id/text_view_account_item_count"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/text_view_account_transaction_count"
         app:layout_constraintTop_toBottomOf="@id/text_view_account_expenses"
-        app:layout_constraintEnd_toStartOf="@id/image_view_account_edit"
-        android:text="5 items"/>
-    <ImageView
+        app:layout_constraintEnd_toStartOf="@id/linear_layout_account_buttons"
+        android:text="5 items"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+    <LinearLayout
+        android:id="@+id/linear_layout_account_buttons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+    <Button
         android:id="@+id/image_view_account_edit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/baseline_edit_24"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
-    <ImageView
+        app:icon="@drawable/baseline_edit_24"
+
+        style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+    <Button
         android:id="@+id/image_view_account_view_stats"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/baseline_bar_chart_24"
+        app:icon="@drawable/baseline_bar_chart_24"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/image_view_account_edit"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintBottom_toBottomOf="parent"
+        style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

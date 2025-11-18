@@ -70,8 +70,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
-    private var addSellerDialogFragment: AddSellerDialogFragment? = null
-    private var addSellerLocationDialogFragment: AddSellerLocationDialogFragment? = null
+//    private var addSellerDialogFragment: AddSellerDialogFragment? = null
+//    private var addSellerLocationDialogFragment: AddSellerLocationDialogFragment? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         viewModel = ViewModelProvider.create(requireActivity()).get(AddDetailedTransactionViewModel::class.java)
@@ -438,28 +438,28 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                     viewModel.setCustomTime(null)
                 }
                 binding.imageViewAddDetailedTransactionAddSeller -> {
-                    if(addSellerDialogFragment == null) {
-                        LOGGER.info("AddSeller dialog is null, creating")
-                        addSellerDialogFragment = AddSellerDialogFragment()
-                    }
-                    if(!(addSellerDialogFragment?.dialog?.isShowing?:false)) {
+//                    if(addSellerDialogFragment == null) {
+//                        LOGGER.info("AddSeller dialog is null, creating")
+//                    }
+                    val  addSellerDialogFragment = AddSellerDialogFragment()
+//                    if(!(addSellerDialogFragment?.dialog?.isShowing?:false)) {
                         addSellerDialogFragment?.show(childFragmentManager,
                             DIALOG_TAG_ADD_SELLER
                         )
                         LOGGER.info("Showed addSellerDialog")
-                    }
+//                    }
                 }
                 binding.imageViewAddDetailedTransactionAddSellerLocation -> {
-                    if(addSellerLocationDialogFragment == null) {
-                        LOGGER.info("AddSellerLocation dialog is null, creating")
-                        addSellerLocationDialogFragment = AddSellerLocationDialogFragment.createDialog(viewModel.getSellerId()!!)
-                    }
-                    if(!(addSellerLocationDialogFragment?.dialog?.isShowing?:false)) {
+//                    if(addSellerLocationDialogFragment == null) {
+//                        LOGGER.info("AddSellerLocation dialog is null, creating")
+//                    }
+                    val addSellerLocationDialogFragment = AddSellerLocationDialogFragment.createDialog(viewModel.getSellerId()!!)
+//                    if(!(addSellerLocationDialogFragment?.dialog?.isShowing?:false)) {
                         addSellerLocationDialogFragment?.show(childFragmentManager,
                             DIALOG_TAG_ADD_SELLER_LOCATION
                         )
                         LOGGER.info("Showed addSellerLocationDialog")
-                    }
+//                    }
                 }
             }
         }

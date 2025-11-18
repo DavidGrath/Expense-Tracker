@@ -7,6 +7,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -23,6 +24,7 @@ import com.davidgrath.expensetracker.repositories.ImageRepository
 import com.davidgrath.expensetracker.repositories.TransactionItemRepository
 import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionActivity
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayoutMediator
 import org.slf4j.LoggerFactory
 import org.threeten.bp.format.DateTimeFormatter
@@ -79,7 +81,8 @@ class TransactionDetailsActivity: AppCompatActivity() {
 
         viewModel.transaction.observe(this) { transaction ->
             binding.transactionDetailsNote.text = transaction.note
-            binding.textViewTransactionDetailsTotal.text = transaction.currencyCode + " " + formatDecimal(transaction.amount, timeAndLocaleHandler.getLocale())
+            binding.textViewTransactionDetailsTotalCurrency.text = transaction.currencyCode
+            binding.textViewTransactionDetailsTotal.text = formatDecimal(transaction.amount, timeAndLocaleHandler.getLocale())
             binding.textViewTransactionDetailsAccount.text = transaction.accountName
 
             binding.textViewTransactionDetailsDate.text = dateFormat.format(transaction.datedDate)
@@ -90,17 +93,19 @@ class TransactionDetailsActivity: AppCompatActivity() {
             }
 
             if(transaction.debitOrCredit) {
-                binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
+                (binding.imageViewTransactionDetailsDebitOrCredit as MaterialButton).setIconResource(R.drawable.baseline_remove_24)
+                binding.textViewTransactionDetailsTotal.setTextColor(ContextCompat.getColor(this, R.color.red_600))
             } else {
-                binding.imageViewTransactionDetailsDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
+                (binding.imageViewTransactionDetailsDebitOrCredit as MaterialButton).setIconResource(R.drawable.baseline_add_24)
+                binding.textViewTransactionDetailsTotal.setTextColor(ContextCompat.getColor(this, R.color.green_600))
             }
             if(transaction.seller == null) {
-                binding.textViewTransactionDetailsSeller.visibility = View.GONE
+                binding.linearLayoutTransactionDetailsSeller.visibility = View.GONE
                 binding.textViewTransactionDetailsSeller.text = ""
                 binding.textViewTransactionDetailsSellerLocation.visibility = View.GONE
                 binding.textViewTransactionDetailsSellerLocation.text = ""
             } else {
-                binding.textViewTransactionDetailsSeller.visibility = View.VISIBLE
+                binding.linearLayoutTransactionDetailsSeller.visibility = View.VISIBLE
                 binding.textViewTransactionDetailsSeller.text = transaction.seller.name
                 if(transaction.sellerLocation != null) {
                     binding.textViewTransactionDetailsSellerLocation.visibility = View.VISIBLE
@@ -111,6 +116,9 @@ class TransactionDetailsActivity: AppCompatActivity() {
                 }
             }
             binding.textViewTransactionDetailsMode.text = transaction.mode.toString()
+        }
+        viewModel.items.observe(this) { items ->
+            binding.textViewTransactionDetailsItemCount.text = items.size.toString() + " items" //TODO Pluralization, String extraction
         }
         setContentView(binding.root)
     }

@@ -2,15 +2,29 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools">
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="8dp"/>
     <TextView
         android:id="@+id/text_view_document_stats_overall_count"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        tools:text="6 documents"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="8dp"/>
     <TextView
         android:id="@+id/text_view_document_stats_overall_size"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        tools:text="8.0 kB"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="16dp"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_document_stats"
         android:layout_width="match_parent"

@@ -30,7 +30,8 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Total Expenses"/>
+                    android:text="Total Expenses"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
                 <androidx.appcompat.widget.AppCompatTextView
                     android:id="@+id/text_view_statistics_total_expenses"
                     android:layout_width="match_parent"
@@ -41,7 +42,8 @@
                     app:autoSizeMaxTextSize="56sp"
                     app:autoSizeTextType="uniform"
                     android:textAlignment="center"
-                    android:layout_marginHorizontal="8dp"/>
+                    android:layout_marginHorizontal="8dp"
+                    android:textColor="@color/red_600"/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -51,7 +53,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Total Income"/>
+            android:text="Total Income"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/text_view_statistics_total_income"
             android:layout_width="match_parent"
@@ -62,7 +65,8 @@
             app:autoSizeMinTextSize="20sp"
             app:autoSizeMaxTextSize="56sp"
             android:textAlignment="center"
-            android:layout_marginHorizontal="8dp"/>
+            android:layout_marginHorizontal="8dp"
+            android:textColor="@color/green_600"/>
             </LinearLayout>
         </LinearLayout>
         <com.github.mikephil.charting.charts.LineChart
@@ -74,64 +78,85 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
         <TextView
             android:id="@+id/text_view_statistics_transaction_count"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="2 transactions"/>
+            android:text="2 transactions"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
         <TextView
             android:id="@+id/text_view_statistics_item_count"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="5 items"/>
+            android:text="5 items"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
 
-        <ImageView
+        <Button
             android:id="@+id/image_view_statistics_view_items"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:contentDescription="View Items"
-            android:src="@drawable/baseline_list_24"/>
+            app:icon="@drawable/baseline_list_24"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
     </LinearLayout>
     <TextView
         android:id="@+id/text_view_statistics_date_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         tools:text="Sunday 10th January 2025 - Present"
-        android:textAlignment="center"/>
+        android:textAlignment="center"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp">
-        <ImageButton
+        <Button
             android:id="@+id/image_button_statistics_cycle_mode_left"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/baseline_arrow_left_24"/>
+            app:icon="@drawable/baseline_keyboard_arrow_left_24"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="0dp"/>
         <Spinner
             android:id="@+id/spinner_statistics_current_mode"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"/>
-        <ImageButton
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="0dp"/>
+        <Button
             android:id="@+id/image_button_statistics_cycle_mode_right"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/baseline_arrow_right_24"/>
-        <ImageView
+            app:icon="@drawable/baseline_keyboard_arrow_right_24"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="0dp"/>
+        <Button
             android:id="@+id/image_view_statistics_configure_current_mode"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:contentDescription="Configure"
-            android:src="@drawable/baseline_settings_24"/>
-        <ImageView
+            app:icon="@drawable/baseline_settings_24"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="0dp"/>
+        <Button
             android:id="@+id/image_view_statistics_open_filter"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:contentDescription="Filter"
-            android:src="@drawable/baseline_filter_list_24"/>
+            app:icon="@drawable/baseline_filter_list_24"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
     </LinearLayout>
 </LinearLayout>

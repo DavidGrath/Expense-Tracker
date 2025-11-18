@@ -23,8 +23,8 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
 
     private lateinit var viewModel: MainViewModel
     private lateinit var binding: FragmentAccountsBinding
-    private var addAccountDialogFragment: AddAccountDialogFragment? = null
-    private var editAccountDialogFragment: EditAccountDialogFragment? = null
+//    private var addAccountDialogFragment: AddAccountDialogFragment? = null
+//    private var editAccountDialogFragment: EditAccountDialogFragment? = null
     private var listener: AccountsFragmentListener? = null
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
@@ -66,31 +66,31 @@ class AccountsFragment: Fragment(), OnClickListener, AccountsRecyclerAdapter.Acc
             binding.fabAccounts -> {
 
 
-                if(addAccountDialogFragment == null) {
-                    LOGGER.info("AddAccount dialog is null, creating")
-                    addAccountDialogFragment = AddAccountDialogFragment()
-                }
-                if(!(addAccountDialogFragment?.dialog?.isShowing?:false)) {
+//                if(addAccountDialogFragment == null) {
+//                    LOGGER.info("AddAccount dialog is null, creating")
+//                }
+                val addAccountDialogFragment = AddAccountDialogFragment()
+//                if(!(addAccountDialogFragment?.dialog?.isShowing?:false)) {
                     addAccountDialogFragment?.show(childFragmentManager,
                         FRAGMENT_TAG_ADD_ACCOUNT
                     )
                     LOGGER.info("Showed addAccountDialog")
-                }
+//                }
             }
         }
     }
 
     override fun onEditClicked(accountId: Long, accountName: String) {
-        if(editAccountDialogFragment == null) {
-            LOGGER.info("EditAccount dialog is null, creating")
-            editAccountDialogFragment = EditAccountDialogFragment.createDialog(accountId, accountName)
-        }
-        if(!(editAccountDialogFragment?.dialog?.isShowing?:false)) {
+//        if(editAccountDialogFragment == null) {
+//            LOGGER.info("EditAccount dialog is null, creating")
+//        }
+        val editAccountDialogFragment = EditAccountDialogFragment.createDialog(accountId, accountName)
+//        if(!(editAccountDialogFragment?.dialog?.isShowing?:false)) {
             editAccountDialogFragment?.show(childFragmentManager,
                 FRAGMENT_TAG_EDIT_ACCOUNT
             )
             LOGGER.info("Showed editAccountDialog")
-        }
+//        }
     }
 
     override fun onViewStatsClicked(accountId: Long) {

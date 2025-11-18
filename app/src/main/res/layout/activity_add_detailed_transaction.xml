@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tab_layout_add_detailed_transaction"
         android:layout_width="match_parent"
@@ -12,4 +13,58 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/image_view_add_detailed_transaction_debit_or_credit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/baseline_remove_24"
+            android:layout_marginRight="16dp"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+        <!--        <TextView-->
+        <!--            android:layout_width="wrap_content"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:text="Total"-->
+        <!--            android:layout_marginRight="8dp"-->
+        <!--            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>-->
+
+        <TextView
+            android:id="@+id/text_view_add_detailed_transaction_main_total_currency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="USD"
+            android:layout_marginRight="8dp"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
+
+        <TextView
+            android:id="@+id/text_view_add_detailed_transaction_main_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1,234,567.89"
+            android:layout_marginRight="16dp"
+            android:textColor="@color/red_600"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/text_view_add_detailed_transaction_main_item_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0/20"
+            android:layout_marginRight="8dp"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+
+        <Button
+            android:id="@+id/image_button_add_detailed_transaction_done"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/baseline_check_24"
+            style="@style/Widget.App.Button.ContainedButton.IconOnly"/>
+    </LinearLayout>
 </LinearLayout>

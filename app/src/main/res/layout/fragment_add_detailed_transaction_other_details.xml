@@ -3,7 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +18,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:visibility="visible"
-            android:animateLayoutChanges="true">
+            android:background="@drawable/simple_border"
+            android:padding="8dp">
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -29,7 +31,8 @@
                     android:layout_height="wrap_content"
                     android:drawableStart="@drawable/baseline_calendar_today_24"
                     android:text="2025-06-30"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
                 <ImageView
                     android:id="@+id/image_view_add_detailed_transaction_custom_date_remove"
                     android:layout_width="wrap_content"
@@ -48,7 +51,8 @@
                     android:layout_height="wrap_content"
                     android:drawableStart="@drawable/baseline_access_alarm_24"
                     android:text="08:00"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
                 <ImageView
                     android:id="@+id/image_view_add_detailed_transaction_custom_time_remove"
                     android:layout_width="wrap_content"
@@ -56,7 +60,15 @@
                     android:src="@drawable/baseline_cancel_24"/>
             </LinearLayout>
         </LinearLayout>
-
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/simple_border"
+        android:padding="8dp">
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -68,10 +80,13 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Seller" />
+                android:text="Seller"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
 
         </LinearLayout>
-
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -80,13 +95,18 @@
             android:id="@+id/spinner_add_detailed_transaction_seller"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:background="@drawable/simple_border"/>
+<!--        Leaving the border on this specific Spinner just to check it out-->
         <ImageView
             android:id="@+id/image_view_add_detailed_transaction_add_seller"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/baseline_add_24"/>
     </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <LinearLayout
             android:id="@+id/linear_layout_add_detailed_transaction_seller_location"
             android:layout_width="match_parent"
@@ -94,11 +114,23 @@
             android:visibility="visible"
             android:orientation="vertical">
 
-
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_location_on_24"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Location"/>
+            android:text="Location"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            </LinearLayout>
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="8dp"/>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -115,43 +147,86 @@
                 android:src="@drawable/baseline_add_24"/>
         </LinearLayout>
         </LinearLayout>
+    </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:background="@drawable/simple_border">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/baseline_account_balance_wallet_24"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Account"/>
+            android:text="Account"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+    </LinearLayout>
         <Spinner
             android:id="@+id/spinner_add_detailed_transaction_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
+    </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@drawable/simple_border">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Transaction Mode"/>
+            android:text="Transaction Mode"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="8dp"/>
         <Spinner
             android:id="@+id/spinner_add_detailed_transaction_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-
+    </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/baseline_notes_24"
+                android:layout_marginRight="16dp"/>
         <TextView
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Note" />
+            android:text="Note"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
         <TextView
             android:id="@+id/text_view_add_detailed_transaction_note_length_indicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0/300" />
+            android:text="0/300"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
         </LinearLayout>
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/text_layout_add_detailed_transaction_note"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:counterEnabled="true"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edit_text_add_detailed_transaction_note"
@@ -160,12 +235,16 @@
             android:lines="5"
             android:inputType="textMultiLine"/>
         </com.google.android.material.textfield.TextInputLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <TextView
             android:id="@+id/text_view_add_detailed_transaction_add_evidence"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Evidence"
-            android:drawableRight="@drawable/baseline_add_24"/>
+            android:drawableRight="@drawable/baseline_add_24"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
 
 
         <androidx.recyclerview.widget.RecyclerView

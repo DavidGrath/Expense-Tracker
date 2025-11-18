@@ -18,54 +18,177 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical">
-
+        android:orientation="vertical"
+        android:padding="16dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@drawable/simple_border">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_calendar_today_24"
+                    android:layout_marginRight="16dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Date Long"/>
+            android:text="Date Long"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            </LinearLayout>
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="8dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_access_alarm_24"
+                    android:layout_marginRight="16dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_time"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Time Long"/>
+            android:text="Time Long"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            </LinearLayout>
+        </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:background="@drawable/simple_border">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/baseline_account_balance_wallet_24"
+                android:layout_marginRight="16dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            tools:text="Default Account"/>
+            tools:text="Default Account"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="TODO Financial Institution"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+        <LinearLayout
+            android:id="@+id/linear_layout_transaction_details_seller"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@drawable/simple_border">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/baseline_store_24"
+                android:layout_marginRight="16dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_seller"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            tools:text="Restaurant"/>
+            tools:text="Restaurant"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/baseline_location_on_24"
+                android:layout_marginRight="16dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_seller_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            tools:text="Restaurant Branch"/>
+            tools:text="Restaurant Branch"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+    </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Mode"/>
+            android:text="Mode"
+            android:padding="8dp"
+            android:background="@drawable/simple_border"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="TODO Reference Number"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@drawable/simple_border">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_notes_24"
+                    android:layout_marginRight="16dp"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Note"/>
+            android:text="Note"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <TextView
             android:id="@+id/transaction_details_note"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            tools:text=" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer convallis, purus vel cursus accumsan, dolor enim maximus tellus, eget aliquet purus mauris ut arcu. Nunc quis tincidunt massa. Etiam a nulla nec sapien gravida elementum. Nunc rutrum, mauris in feugiat imperdiet, mi ipsum suscipit quam, et tristique lectus justo in massa. In pulvinar libero nec enim ultricies, nec consequat felis porttitor. Pellentesque ut ante accumsan, porta enim ut, maximus ante. Donec non sodales risus, et rhoncus elit. Sed metus lacus, rhoncus vitae rutrum quis, auctor non odio. Ut in varius tortor, et molestie tortor. Sed pretium, nibh nec egestas vulputate, eros arcu varius lacus, vel egestas sapien ligula et ante. Sed at condimentum justo. Nunc auctor mauris commodo, porta purus eget, dignissim diam. Morbi dictum orci nisl, non viverra ex hendrerit sed. Aenean ut erat quis elit placerat viverra ac ut dui. Ut mollis vel ipsum sit amet pulvinar.
+
+Integer porttitor nulla sapien, non posuere orci luctus in. Sed porta purus sed nulla lacinia vestibulum. Donec at tristique lacus. Suspendisse sagittis purus quis nunc sodales finibus. Donec consectetur purus metus, nec blandit odio sodales quis. Maecenas id sollicitudin felis. Praesent congue rutrum bibendum. Duis semper nulla nec nunc pretium, et aliquet eros imperdiet. Pellentesque cursus laoreet mi, non egestas augue semper ac. "
+            android:maxLines="5"
+            android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
+        </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="8dp"/>
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout_transaction_details"
             android:layout_width="match_parent"
@@ -81,21 +204,43 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:orientation="horizontal">
-        <ImageView
+        <Button
             android:id="@+id/image_view_transaction_details_debit_or_credit"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/baseline_remove_24"
-            android:layout_marginEnd="8dp"/>
-        <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Total"/>
+            app:icon="@drawable/baseline_remove_24"
+            android:layout_marginEnd="8dp"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+<!--        <TextView-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_weight="1"-->
+<!--            android:text="Total"/>-->
+        <TextView
+            android:id="@+id/text_view_transaction_details_total_currency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="USD"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="0dp"/>
         <TextView
             android:id="@+id/text_view_transaction_details_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            tools:text="USD 100.00"/>
+            tools:text="9,876,543,210.98"
+            tools:textColor="@color/red_600"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/text_view_transaction_details_item_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="20 items"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     </LinearLayout>
 </LinearLayout>

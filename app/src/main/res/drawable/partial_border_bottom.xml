@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Source - https://stackoverflow.com/a
+Posted by szaske
+Retrieved 2025-11-18, License - CC BY-SA 4.0
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <inset
+            android:insetTop="-2dp"
+            >
+            <shape >
+                <stroke
+                    android:color="#7F7F7F"
+                    android:width="2dp"/>
+                <corners
+                    android:bottomLeftRadius="8dp"
+                    android:bottomRightRadius="8dp"
+                    android:topLeftRadius="0dp"
+                    android:topRightRadius="0dp"
+                    />
+            </shape>
+        </inset>
+    </item>
+</layer-list>

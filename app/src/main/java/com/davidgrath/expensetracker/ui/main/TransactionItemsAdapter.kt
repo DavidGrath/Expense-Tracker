@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.ui.main
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
@@ -14,6 +15,7 @@ import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDateBind
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.formatDecimal
+import com.google.android.material.button.MaterialButton
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import java.io.File
@@ -61,9 +63,9 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                 items[position].transactionItem!!.let { transactionItem ->
                     holder.binding.let { binding ->
                         binding.textViewTransactionItemStore.visibility = View.GONE
-                        binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + formatDecimal(transactionItem.amount, timeAndLocaleHandler.getLocale())
+//                        binding.textViewTransactionItemAmount.text = transactionItem.transaction.currencyCode + " " + formatDecimal(transactionItem.amount, timeAndLocaleHandler.getLocale())
                         binding.textViewTransactionItemDescription.text = transactionItem.description
-                        binding.imageViewTransactionItemCategory.setImageResource(transactionItem.category.iconId)
+                        (binding.imageViewTransactionItemCategory as MaterialButton).setIconResource(transactionItem.category.iconId)
                         val image = transactionItem.images.firstOrNull()
                         if(image != null && image.toFile().exists()) {
                             binding.imageViewTransactionItemFirstImage.visibility = View.VISIBLE
@@ -74,6 +76,11 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                             binding.imageViewTransactionItemFirstImage.visibility = View.GONE
                             Glide.with(holder.binding.root)
                                 .clear(binding.imageViewTransactionItemFirstImage)
+                        }
+                        if(transactionItem.isLast) {
+                            binding.root.background = ContextCompat.getDrawable(binding.root.context, R.drawable.partial_border_bottom)
+                        } else {
+                            binding.root.background = ContextCompat.getDrawable(binding.root.context, R.drawable.partial_border_middle)
                         }
                     }
                 }
@@ -86,13 +93,16 @@ class TransactionItemsAdapter(private var items: List<GeneralTransactionListItem
                         } else {
                             binding.textViewTransactionTime.text = timeFormat.format(transaction.datedTime)
                         }
+                        binding.textViewTransactionAmountCurrency.text = transaction.currencyCode
+                        binding.textViewTransactionAmount.text = formatDecimal(transaction.amount, timeAndLocaleHandler.getLocale())
                         if(transaction.debitOrCredit) {
+                            binding.textViewTransactionAmount.setTextColor(ContextCompat.getColor(binding.root.context, R.color.red_600))
                             binding.imageViewTransactionDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
                         } else {
+                            binding.textViewTransactionAmount.setTextColor(ContextCompat.getColor(binding.root.context, R.color.green_600))
                             binding.imageViewTransactionDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
                         }
 //                        binding.textViewTransactionAmount.text = transaction.currencyCode + " " + decimalFormat.format(transaction.amount)
-                        binding.textViewTransactionAmount.text = ""
                         binding.root.setOnClickListener {
                             listener?.onTransactionClicked(transaction.id)
                         }

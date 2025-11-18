@@ -2,70 +2,119 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp"
+    android:layout_margin="8dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/simple_border"
     xmlns:tools="http://schemas.android.com/tools">
     <ImageView
         android:id="@+id/image_view_transaction_details_item_category"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         tools:src="@drawable/baseline_category_24"
-        app:layout_constraintTop_toBottomOf="@id/text_view_transaction_details_item_price"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
     <TextView
+        android:id="@+id/text_view_transaction_details_item_category_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         tools:text="Miscellaneous"
         app:layout_constraintTop_toBottomOf="@id/image_view_transaction_details_item_category"
-        app:layout_constraintStart_toStartOf="@id/image_view_transaction_details_item_category"
-        app:layout_constraintEnd_toEndOf="@id/image_view_transaction_details_item_category"/>
+        app:layout_constraintEnd_toEndOf="@id/image_view_transaction_details_item_category"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_price"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="24sp"
         tools:text="USD 20.00"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/image_view_transaction_details_item_category"
+        app:layout_constraintHorizontal_bias="0.0"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_description"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/text_view_transaction_details_item_category_name"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/text_view_transaction_details_item_price"
-        android:layout_marginEnd="8dp"/>
+        tools:text=" Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer convallis, purus vel cursus accumsan, dolor enim maximus tellus, eget aliquet purus mauris ut arcu."
+        android:layout_marginEnd="8dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+
     <LinearLayout
+        android:id="@+id/linear_layout_transaction_details_item_other_details"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         app:layout_constraintTop_toBottomOf="@id/text_view_transaction_details_item_description"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/image_view_transaction_details_item_category">
+        app:layout_constraintEnd_toEndOf="parent"
+        android:padding="8dp"
+        android:background="@drawable/simple_border"
+        android:layout_marginTop="8dp">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Variation"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="4dp"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_variation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="Chocolate"/>
+        tools:text="Chocolate"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Brand"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="4dp"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_brand"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="Generic"/>
+        tools:text="Generic"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Reference Number"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="4dp"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_reference_number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="1234-5678-abcd"/>
+        tools:text="1234-5678-abcd"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Quantity"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"/>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="4dp"/>
     <TextView
         android:id="@+id/text_view_transaction_details_item_quantity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="12" />
+        tools:text="12"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
     </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_transaction_details_item_images"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintTop_toBottomOf="@id/linear_layout_transaction_details_item_other_details"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginTop="8dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

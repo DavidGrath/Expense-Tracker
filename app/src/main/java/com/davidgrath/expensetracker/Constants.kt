@@ -21,6 +21,7 @@ class Constants {
          * I'm paranoid I'll somehow pass the limit for data transfer between Activities through Intents so this exists
          */
         const val FILE_NAME_STATS_FILTER_DATA = "statistics_filter.json"
+        const val ALPHA_DISABLED = 0.2f
     }
     class PreferenceKeys {
         class Device {

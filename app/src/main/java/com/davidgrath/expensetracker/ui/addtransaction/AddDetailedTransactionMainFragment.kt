@@ -11,6 +11,8 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatButton
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -25,6 +27,7 @@ import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
@@ -71,7 +74,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         adapter = AddTransactionItemRecyclerAdapter(c, timeAndLocaleHandler, this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
-        binding.imageViewAddDetailedTransactionDebitOrCredit.setOnClickListener(this)
+
         viewModel.transactionItemsLiveData.observe(viewLifecycleOwner) { triple ->
             LOGGER.info("Event: ${triple.second}, Position: ${triple.third}")
             val draft = triple.first
@@ -104,20 +107,10 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
                 }
             }
 
-            if(draft.debitOrCredit) {
-                binding.imageViewAddDetailedTransactionDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
-            } else {
-                binding.imageViewAddDetailedTransactionDebitOrCredit.setImageResource(R.drawable.baseline_add_24)
-            }
         }
 
-        viewModel.currentAccount.observe(viewLifecycleOwner) { (accounts, account, total) ->
-            val currencyCode = account.currencyCode
-            binding.textViewAddDetailedTransactionMainTotal.text = currencyCode + " " + formatDecimal(total, timeAndLocaleHandler.getLocale()) //TODO Currency symbols, maybe
-        }
+
         binding.linearLayoutAddDetailedTransactionMainAddItem.setOnClickListener(this)
-
-        binding.imageButtonAddDetailedTransactionDone.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
@@ -125,20 +118,6 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             when(v) {
                 binding.linearLayoutAddDetailedTransactionMainAddItem -> {
                     viewModel.addItem()
-                }
-                binding.imageButtonAddDetailedTransactionDone -> {
-                    if(viewModel.validateDraft()) {
-                        viewModel.finishDraft()
-                            .observe(viewLifecycleOwner) {
-                                LOGGER.info("Transaction Added. Draft discarded")
-                                listener?.onFinished() //TODO SimpleResult
-                            }
-                    } else {
-                        Snackbar.make(binding.root, "Invalid input", Snackbar.LENGTH_SHORT).show()
-                    }
-                }
-                binding.imageViewAddDetailedTransactionDebitOrCredit -> {
-                    viewModel.toggleDebitOrCredit()
                 }
                 else -> {
 

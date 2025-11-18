@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.LinearLayout
+import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
@@ -27,8 +28,8 @@ class StatisticsFilterAccountsFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val accounts = viewModel.accounts
         accounts.forEach { account ->
-            val linearLayout = binding.root
-            val checkbox = CheckBox(requireContext())
+            val linearLayout = binding.linearLayoutStatisticsFilterTemplate
+            val checkbox = AppCompatCheckBox(requireContext())
             val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             checkbox.layoutParams = layoutParams
             checkbox.text = "${account.name} (${account.currencyCode})"

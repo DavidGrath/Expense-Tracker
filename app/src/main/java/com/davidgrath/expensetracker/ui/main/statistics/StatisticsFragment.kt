@@ -11,6 +11,7 @@ import android.widget.AdapterView.OnItemSelectedListener
 import androidx.core.util.Pair
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.davidgrath.expensetracker.Constants.Companion.ALPHA_DISABLED
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.MaterialColors
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
@@ -453,7 +454,6 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
         private const val DISAMBIGUATION_TAG_X_DAYS = "xDays"
         private const val DISAMBIGUATION_TAG_MONTHLY = "monthly"
         private val LOGGER = LoggerFactory.getLogger(StatisticsFragment::class.java)
-        private const val ALPHA_DISABLED = 0.2f
     }
 
     class DateValuesFormatter(private val dates: List<LocalDate>): ValueFormatter() {

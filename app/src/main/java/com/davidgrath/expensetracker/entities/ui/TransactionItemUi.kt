@@ -8,6 +8,7 @@ data class TransactionItemUi(
     val amount: BigDecimal,
     val description: String,
     val category: CategoryUi,
+    val isLast: Boolean,
     val brand: String? = null,
     val images: List<Uri> = emptyList()
 )

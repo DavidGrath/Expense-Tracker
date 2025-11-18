@@ -4,7 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -14,20 +17,26 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
+import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
 import com.davidgrath.expensetracker.db.dao.ProfileDao
+import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.math.BigDecimal
 import javax.inject.Inject
 
-class AddDetailedTransactionActivity : FragmentActivity(),
-    AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener, GenericDialogFragment.GenericDialogListener {
+class AddDetailedTransactionActivity : AppCompatActivity(),
+    AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener, GenericDialogFragment.GenericDialogListener,
+    View.OnClickListener {
 
     lateinit var binding: ActivityAddDetailedTransactionBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
@@ -39,6 +48,8 @@ class AddDetailedTransactionActivity : FragmentActivity(),
     lateinit var profileDao: ProfileDao
     @Inject
     lateinit var addDetailedTransactionRepository: AddDetailedTransactionRepository
+    @Inject
+    lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     var mode = "add"
     var finishingDraft = false
 
@@ -85,6 +96,35 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                 tab.text = "Other Details"
             }
         }.attach()
+
+        binding.imageViewAddDetailedTransactionDebitOrCredit.setOnClickListener(this)
+        viewModel.transactionItemsLiveData.observe(this) { triple ->
+            LOGGER.info("Event: ${triple.second}, Position: ${triple.third}")
+            val draft = triple.first
+            val list = draft.items
+            val event = triple.second
+            val position = triple.third
+            binding.textViewAddDetailedTransactionMainItemCount.text = list.size.toString() + "/" + Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_PAGE
+            if(draft.debitOrCredit) {
+                binding.textViewAddDetailedTransactionMainTotal.setTextColor(ContextCompat.getColor(this, R.color.red_600))
+                (binding.imageViewAddDetailedTransactionDebitOrCredit as MaterialButton).setIconResource(
+                    R.drawable.baseline_remove_24)
+                (binding.imageViewAddDetailedTransactionDebitOrCredit as MaterialButton).setIconTintResource(
+                    R.color.red_600)
+            } else {
+                binding.textViewAddDetailedTransactionMainTotal.setTextColor(ContextCompat.getColor(this, R.color.green_600))
+                (binding.imageViewAddDetailedTransactionDebitOrCredit as MaterialButton).setIconResource(
+                    R.drawable.baseline_add_24)
+                (binding.imageViewAddDetailedTransactionDebitOrCredit as MaterialButton).setIconTintResource(
+                    R.color.green_600)
+            }
+        }
+        viewModel.currentAccount.observe(this) { (accounts, account, total) ->
+            val currencyCode = account.currencyCode
+            binding.textViewAddDetailedTransactionMainTotalCurrency.text = currencyCode //TODO Currency symbols, maybe
+            binding.textViewAddDetailedTransactionMainTotal.text = formatDecimal(total, timeAndLocaleHandler.getLocale())
+        }
+        binding.imageButtonAddDetailedTransactionDone.setOnClickListener(this)
     }
 
     override fun onDestroy() {
@@ -188,6 +228,30 @@ class AddDetailedTransactionActivity : FragmentActivity(),
                             }
                         })
                     }
+                }
+            }
+        }
+    }
+
+    override fun onClick(v: View?) {
+        v?.let {
+            when(v) {
+                binding.imageButtonAddDetailedTransactionDone -> {
+                    if(viewModel.validateDraft()) {
+                        viewModel.finishDraft()
+                            .observe(this) {
+                                LOGGER.info("Transaction Added. Draft discarded")
+                                onFinished() //TODO SimpleResult
+                            }
+                    } else {
+                        Snackbar.make(binding.root, "Invalid input", Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+                binding.imageViewAddDetailedTransactionDebitOrCredit -> {
+                    viewModel.toggleDebitOrCredit()
+                }
+                else -> {
+
                 }
             }
         }

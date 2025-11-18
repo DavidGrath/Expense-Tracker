@@ -12,10 +12,12 @@
         android:id="@+id/text_view_document_stats_size_bytes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
         tools:text="128 kib"/>
     <TextView
         android:id="@+id/text_view_document_stats_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="2025-06-30"/>
+        tools:text="2025-06-30"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"/>
 </LinearLayout>

@@ -34,6 +34,7 @@ class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionD
                 binding.textViewTransactionDetailsItemReferenceNumber.text = item.referenceNumber
                 binding.textViewTransactionDetailsItemQuantity.text = item.quantity.toString()
                 binding.textViewTransactionDetailsItemBrand.text = item.brand
+                binding.textViewTransactionDetailsItemCategoryName.text = item.primaryCategory.name
                 val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images)
                 val layoutManager = GridLayoutManager(binding.root.context, 5)
                 binding.recyclerViewTransactionDetailsItemImages.adapter = adapter
