@@ -12,6 +12,7 @@ import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.getDefaultAccountId
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -26,7 +27,6 @@ import javax.inject.Inject
 @RunWith(RobolectricTestRunner::class)
 class TransactionRepositoryTest {
 
-    //TODO Inject properly
     @Inject
     lateinit var transactionRepository: TransactionRepository
     @Inject
@@ -128,10 +128,138 @@ class TransactionRepositoryTest {
     }
 
     @Test
+    @Ignore("This would require me to do a pre-check on all the statistics queries. I'll do that later")
     fun multipleDistinctCurrencyStatisticsTest() {
         //Insert new accounts - 1 USD, 1 GBP
         //1 transaction per account
         //When try to fetch any stats then pick anyone and only filter by that
+        assertTrue(false)
+    }
+
+    @Test
+    fun givenTextHasHigherFrequencyAndLowerRecencyWhenGetSuggestionsThenSuggestionAppearsLater() {
+        val irrelevantDescription = "Water"
+        val higherFrequencyDescription = "Chocolate"
+        val lowerFrequencyDescription = "Cookies"
+        val today = LocalDate.parse("2025-06-30")
+
+        val bucket1Dates = listOf(today, today.minusDays(1)) //Total frequency: 2
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+
+        val _bucket3Dates = listOf(today.minusDays(15), today.minusDays(16), today.minusDays(20), today.minusDays(25), today.minusDays(25))
+        val bucket3Dates = _bucket3Dates + _bucket3Dates //Total frequency: 10
+
+        dataBuilder.createTransaction()
+            .withItem(irrelevantDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(higherFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(lowerFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket3Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        val suggestions = transactionRepository.getGenericSuggestions(TransactionRepository.SuggestionsField.Description, "C").subscribeOn(Schedulers.io()).blockingGet()
+        assertEquals(2, suggestions.size)
+        //I was going to write a test titled
+        // `givenTextHasLowerFrequencyAndHigherRecencyWhenGetSuggestionsThenSuggestionAppearsEarlier`
+        // but I realised that this assertion is the same thing
+        assertEquals(lowerFrequencyDescription, suggestions[0])
+        assertEquals(higherFrequencyDescription, suggestions[1])
+    }
+
+
+    @Test
+    fun givenTextHasHigherFrecencyWhenGetSuggestionsThenSuggestionAppearsEarlier() {
+        val irrelevantDescription = "Water"
+        val higherFrequencyDescription = "Chocolate"
+        val lowerFrequencyDescription = "Cookies"
+        val today = LocalDate.parse("2025-06-30")
+
+        val _bucket1Dates = listOf(today, today.minusDays(1), today.minusDays(1), today.minusDays(2), today.minusDays(4))
+        val bucket1Dates = _bucket1Dates + _bucket1Dates //Total frequency: 10
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+
+        val bucket3Dates = listOf(today.minusDays(15), today.minusDays(16)) //Total frequency: 2
+
+        dataBuilder.createTransaction()
+            .withItem(irrelevantDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(higherFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(lowerFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket3Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        val suggestions = transactionRepository.getGenericSuggestions(TransactionRepository.SuggestionsField.Description, "C").subscribeOn(Schedulers.io()).blockingGet()
+
+        assertEquals(2, suggestions.size)
+        assertEquals(higherFrequencyDescription, suggestions[0])
+        assertEquals(lowerFrequencyDescription, suggestions[1])
+    }
+
+    /**
+     * I've decided to let the suggestions be case-sensitive, because
+     * otherwise coercing them to lowercase for the sake of weighting means the user would never get sentence-case suggestions
+     */
+    @Test
+    fun frecencyMixedCaseTest() {
+        val irrelevantDescription = "Water"
+        val higherFrequencyDescription = "Chocolate"
+        val lowerFrequencyDescription = "Cookies"
+        val lowerFrequencyDescriptionB = "COokiEs"
+        val today = LocalDate.parse("2025-06-30")
+
+        val bucket1Dates = listOf(today, today.minusDays(1)) //Total frequency: 2
+        val dataBuilder = DataBuilder(app, expenseTrackerDatabase, timeAndLocaleHandler)
+
+        val _bucket3Dates = listOf(today.minusDays(15), today.minusDays(16), today.minusDays(20), today.minusDays(25), today.minusDays(25))
+
+        dataBuilder.createTransaction()
+            .withItem(irrelevantDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(higherFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(bucket1Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        dataBuilder.createTransaction()
+            .withItem(lowerFrequencyDescription, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(_bucket3Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+        dataBuilder.createTransaction()
+            .withItem(lowerFrequencyDescriptionB, "miscellaneous", BigDecimal(1000.00))
+            .repeatIntoDates(_bucket3Dates)
+            .useDatesAsCreationDates(true)
+            .commit()
+
+        val suggestions = transactionRepository.getGenericSuggestions(TransactionRepository.SuggestionsField.Description, "c").subscribeOn(Schedulers.io()).blockingGet()
+        assertEquals(3, suggestions.size)
+        assertTrue(lowerFrequencyDescription in suggestions.take(2))
+        assertTrue(lowerFrequencyDescriptionB in suggestions.take(2))
+        assertEquals(higherFrequencyDescription, suggestions[2])
     }
 
 }

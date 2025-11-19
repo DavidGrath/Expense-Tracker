@@ -1,16 +1,11 @@
 package com.davidgrath.expensetracker.ui.addtransaction
 
-import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
-import android.widget.CompoundButton
-import android.widget.CompoundButton.OnCheckedChangeListener
-import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
@@ -25,13 +20,14 @@ import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
 import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
-import com.davidgrath.expensetracker.ui.dialogs.NumberDialogFragment
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
-import java.math.RoundingMode
-import java.util.Locale
 
-class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, val timeAndLocaleHandler: TimeAndLocaleHandler, var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
+class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, val timeAndLocaleHandler: TimeAndLocaleHandler,
+                                        var descriptionSuggestionsAdapter: DescriptionSuggestionsAdapter,
+                                        var brandSuggestionsAdapter: BrandSuggestionsAdapter,
+                                        var variationSuggestionsAdapter: VariationSuggestionsAdapter,
+                                        var listener: AddTransactionItemRecyclerListener? = null): RecyclerView.Adapter<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>() {
 
     var _items = listOf<AddTransactionItem>()
 
@@ -116,6 +112,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 }
                 val cachedDescription = cachedItem.description?:""
                 binding.editTextAddDetailedTransactionItemDescription.setText(cachedDescription)
+                binding.editTextAddDetailedTransactionItemDescription.setAdapter(descriptionSuggestionsAdapter)
                 binding.textViewAddDetailedTransactionDescriptionIndicator.text = cachedDescription.codePointCount(0, cachedDescription.length).toString() + "/" + MAX_TEXT_LENGTH
                 /*val newDescriptionWatcher = binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener { text: Editable? ->
                     val absPosition = holder.absoluteAdapterPosition
@@ -196,6 +193,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
                 val cachedBrand = cachedItem.brand?:""
                 binding.editTextAddDetailedTransactionItemBrand.setText(cachedBrand)
+                binding.editTextAddDetailedTransactionItemBrand.setAdapter(brandSuggestionsAdapter)
                 binding.textViewAddDetailedTransactionItemBrandIndicator.text = cachedBrand.codePointCount(0, cachedBrand.length).toString() + "/" + MAX_TEXT_LENGTH
 
                 val newBrandWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionItemBrand, MAX_TEXT_LENGTH, binding.textViewAddDetailedTransactionItemBrandIndicator) { text ->
@@ -221,6 +219,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
                 val cachedVariation = cachedItem.variation
                 binding.editTextAddDetailedTransactionItemVariation.setText(cachedVariation)
+                binding.editTextAddDetailedTransactionItemVariation.setAdapter(variationSuggestionsAdapter)
                 binding.textViewAddDetailedTransactionItemVariationIndicator.text = cachedVariation.codePointCount(0, cachedVariation.length).toString() + "/" + MAX_TEXT_LENGTH
 
 

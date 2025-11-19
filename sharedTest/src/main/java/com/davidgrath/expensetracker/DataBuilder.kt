@@ -14,6 +14,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
+import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
 import java.math.BigDecimal
 
@@ -40,6 +41,7 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
         private var date: LocalDate? = null
         private var time: LocalTime? = null
         private var timeSet = false
+        private var useDatesAsCreationDates: Boolean = false
 
         private val categoryDao = expenseTrackerDatabase.categoryDao()
         private val profileDao = expenseTrackerDatabase.profileDao()
@@ -118,6 +120,11 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             return newAccount?: account
         }
 
+        override fun useDatesAsCreationDates(b: Boolean): TransactionBuilder {
+            this.useDatesAsCreationDates = b
+            return this
+        }
+
         override fun commit(): List<Long> {
             if(hasCommitted) {
                 throw IllegalStateException("Transaction already committed")
@@ -133,13 +140,16 @@ class DataBuilder(private val context: Context, private val expenseTrackerDataba
             } else {
                 this.time
             }
-            val (dateTime, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
+            var (dateTime, offset, zone) = dateTimeOffsetZone(timeAndLocaleHandler.getClock())
 
             val repeats = listOf(firstDate) + repeatDates
             val sha256Map = mutableMapOf<String, Long>()
             val mainImagesFolder = file(context.filesDir, Constants.FOLDER_NAME_DATA, Constants.SUBFOLDER_NAME_IMAGES)
             val classLoader = TransactionItemBuilderImpl::class.java.classLoader
             val ids = repeats.map { repeatDate ->
+                if(useDatesAsCreationDates) {
+                    dateTime = repeatDate.atTime(LocalTime.parse("08:00:00")).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                }
                 val ordinal = transactionDao.getMaxOrdinalInDayForAccount(account.id!!, repeatDate.toString()).subscribeOn(Schedulers.io()).blockingGet()?: 0
                 val transaction = TransactionDb(null, account.id!!, sum, account.currencyCode, null, debitOrCredit, TransactionMode.Other,null, null, null, dateTime, offset, zone, ordinal + 1, repeatDate.toString(), time?.toString())
                 val transactionId = transactionDao.insertTransaction(transaction).subscribeOn(Schedulers.io()).blockingGet()
@@ -277,6 +287,7 @@ interface TransactionBuilder: Commit {
     fun repeatIntoDateRange(startDate: LocalDate, endDate: LocalDate): TransactionBuilder
     fun atDate(date: LocalDate): TransactionBuilder
     fun atTime(time: LocalTime): TransactionBuilder
+    fun useDatesAsCreationDates(b: Boolean): TransactionBuilder
 }
 
 interface TransactionItemBuilder: Commit {

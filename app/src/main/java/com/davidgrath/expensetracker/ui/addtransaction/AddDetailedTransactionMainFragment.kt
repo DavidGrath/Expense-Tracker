@@ -11,28 +11,22 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.widget.AppCompatButton
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionMainBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
-import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
+import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.ui.dialogs.AddExternalMediaDialogFragment
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.snackbar.Snackbar
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.Locale
 import javax.inject.Inject
 
 class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecyclerAdapter.AddTransactionItemRecyclerListener, OnClickListener, AddExternalMediaDialogFragment.ExternalMediaListener {
@@ -48,6 +42,8 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
     lateinit var adapter: AddTransactionItemRecyclerAdapter
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -71,7 +67,11 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
             .subscribeOn(Schedulers.io())
             .blockingGet()
         val c = categories.map { categoryDbToCategoryUi(it) }
-        adapter = AddTransactionItemRecyclerAdapter(c, timeAndLocaleHandler, this)
+        val descriptionSuggestionsAdapter = DescriptionSuggestionsAdapter(requireContext(), transactionRepository)
+        val brandSuggestionsAdapter = BrandSuggestionsAdapter(requireContext(), transactionRepository)
+        val variationSuggestionsAdapter = VariationSuggestionsAdapter(requireContext(), transactionRepository)
+        adapter = AddTransactionItemRecyclerAdapter(c, timeAndLocaleHandler, descriptionSuggestionsAdapter, brandSuggestionsAdapter, variationSuggestionsAdapter,
+            this)
         binding.recyclerviewAddDetailedTransactionMain.adapter = adapter
         binding.recyclerviewAddDetailedTransactionMain.layoutManager = LinearLayoutManager(requireContext())
 

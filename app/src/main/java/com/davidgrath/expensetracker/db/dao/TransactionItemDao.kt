@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import com.davidgrath.expensetracker.entities.TransactionMode
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
+import com.davidgrath.expensetracker.entities.db.views.StringFieldWithTimestamp
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionAndItemCount
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
@@ -181,6 +182,22 @@ interface TransactionItemDao {
         modesEmpty: Boolean, modes: List<TransactionMode>,
         sellersEmpty: Boolean, sellers: List<Long>
     ): Single<TransactionAndItemCount>
+
+    @Query("SELECT ti.description as stringField, ti.createdAt as createdAt FROM TransactionItemDb ti WHERE ti.description LIKE :prefixString || '%' " +
+            "ORDER BY ti.createdAt DESC " +
+            "LIMIT 1000")
+    fun getDescriptionsAndDates(prefixString: String): Single<List<StringFieldWithTimestamp>>
+
+    @Query("SELECT ti.brand as stringField, ti.createdAt as createdAt FROM TransactionItemDb ti WHERE ti.brand LIKE :prefixString || '%' " +
+            "ORDER BY ti.createdAt DESC " +
+            "LIMIT 1000")
+    fun getBrandsAndDates(prefixString: String): Single<List<StringFieldWithTimestamp>>
+
+
+    @Query("SELECT ti.variation as stringField, ti.createdAt as createdAt FROM TransactionItemDb ti WHERE ti.variation LIKE :prefixString || '%' " +
+            "ORDER BY ti.createdAt DESC " +
+            "LIMIT 1000")
+    fun getVariationsAndDates(prefixString: String): Single<List<StringFieldWithTimestamp>>
     // endregion
 
     //region Update

@@ -944,10 +944,10 @@ constructor(
                     transactionOrdinal = maxTransactionOrdinal + 1
                 }
             } else {
-                if(datedTime != null) {
-                    val nextTransaction = transactionRepository.getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                if(draft.customTime != null) {
+                    val nextTransaction = transactionRepository.getLowestTimeAfterTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime!!).blockingGet()
                     LOGGER.debug("nextTransaction: {}, datedTime: {}", nextTransaction, datedTime)
-                    val prevTransaction = transactionRepository.getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime).blockingGet()
+                    val prevTransaction = transactionRepository.getHighestTimeBeforeTimeInDayForAccountExcludingTransaction(transactionId!!, draft.accountId, datedDate, datedTime!!).blockingGet()
                     if(nextTransaction != null) {
                         LOGGER.debug("prevTransaction: {}", prevTransaction)
 //                        if(prevTransaction != null) {

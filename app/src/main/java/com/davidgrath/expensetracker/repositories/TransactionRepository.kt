@@ -17,7 +17,9 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
+import org.threeten.bp.Duration
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalDateTime
 import javax.inject.Inject
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZonedDateTime
@@ -251,6 +253,76 @@ constructor(
     fun updateOrdinal(id: Long, ordinal: Int): Single<Int> {
         return transactionDao.updateOrdinal(id, ordinal)
             .subscribeOn(Schedulers.io())
+    }
+
+    /**
+     * Main idea gotten from
+     * https://udn.realityripple.com/docs/Mozilla/Tech/Places/Frecency_algorithm
+     */
+    fun getGenericSuggestions(field: SuggestionsField, prefixString: String): Single<List<String>> {
+        if(prefixString.isBlank()) {
+            LOGGER.warn("getGenericSuggestions: Blank prefix, returning empty list")
+            return Single.just(emptyList())
+        }
+        return Single.fromCallable {
+            val now = LocalDateTime.now(timeAndLocaleHandler.getClock())
+            val bucket1 = 0..4; val bucket1Weight = 100
+            val bucket2 = 5..14; val bucket2Weight = 70
+            val bucket3 = 15..31; val bucket3Weight = 50
+            val bucket4 = 32..90; val bucket4Weight = 30
+            val bucket5Weight = 10
+            val stringFields = when(field) {
+                SuggestionsField.Description -> {
+                    transactionItemDao.getDescriptionsAndDates(prefixString).blockingGet()
+                }
+                SuggestionsField.Brand -> {
+                    transactionItemDao.getBrandsAndDates(prefixString).blockingGet()
+                }
+                SuggestionsField.Variation -> {
+                    transactionItemDao.getVariationsAndDates(prefixString).blockingGet()
+                }
+            }
+            LOGGER.info("getGenericSuggestions: Loaded {} suggestions", stringFields.size)
+            val groupedByDesc = stringFields.groupBy { it.stringField }
+            val _groupedByDesc = stringFields.groupBy { it.stringField.lowercase() }
+            LOGGER.info("getGenericSuggestions: Grouped suggestions into {} lists", groupedByDesc.size)
+            LOGGER.debug("getGenericSuggestions: Suggestions are grouped into {} lists when ignoring case", _groupedByDesc.size)
+            val scoredDescriptions = arrayListOf<Pair<Double, String>>()
+            for((stringField, list) in groupedByDesc) {
+                val sampled = list.take(10)
+                var sum = 0.0
+                for(date in sampled) {
+                    val descriptionDate = LocalDateTime.parse(date.createdAt)
+                    val difference = Duration.between(descriptionDate, now).toDays()
+                    if(difference in  bucket1) {
+                        sum += bucket1Weight
+                    } else if(difference in  bucket2) {
+                        sum += bucket2Weight
+                    } else if(difference in  bucket3) {
+                        sum += bucket3Weight
+                    } else if(difference in  bucket4) {
+                        sum += bucket4Weight
+                    } else {
+                        sum += bucket5Weight
+                    }
+                }
+                val score = list.size * sum / sampled.size
+                scoredDescriptions.add(score to stringField)
+            }
+            val sorted = scoredDescriptions.sortedByDescending { it.first }
+            LOGGER.debug("Sorted5: {}", sorted.take(5))
+            return@fromCallable sorted.map { it.second }.take(5)
+        }.timeInterval()
+            .map {
+                LOGGER.info("getGenericSuggestions time: {} ms", it.time(TimeUnit.MILLISECONDS))
+                it.value()
+            }.subscribeOn(Schedulers.io())
+    }
+
+    enum class SuggestionsField {
+        Description,
+        Brand,
+        Variation
     }
 
     companion object {
