@@ -83,7 +83,7 @@ class TransactionItemDaoTest {
         val sumList = transactionItemDao.getDebitSumByCategory(profile.id!!, fromDate.toString(), null, true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList(), true, emptyList()).subscribeOn(Schedulers.io()).blockingFirst()
         var foodSum = sumList.find { it.categoryId == food.id }!!.sum
         var fitnessSum = sumList.find { it.categoryId == fitness.id }!!.sum
-        LOGGER.debug("sumList: {}", sumList)
+
         assertEqualsBD(BigDecimal(5_500), foodSum)
         assertEqualsBD(BigDecimal(12_500), fitnessSum)
 

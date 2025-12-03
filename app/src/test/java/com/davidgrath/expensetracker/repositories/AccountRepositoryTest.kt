@@ -50,7 +50,6 @@ class AccountRepositoryTest {
     fun tearDown() {
         app.filesDir.deleteRecursively()
         Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
-        println("clearAllTables")
     }
 
     @Test

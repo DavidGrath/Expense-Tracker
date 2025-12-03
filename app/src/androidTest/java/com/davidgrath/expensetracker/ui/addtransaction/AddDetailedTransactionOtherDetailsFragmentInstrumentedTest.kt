@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 import android.widget.EditText
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
@@ -62,28 +63,23 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
     @get:Rule
     val intentsRule = IntentsRule()
 
-    @get:Rule
-    val addDetailedTransactionActivityScenarioRule = ActivityScenarioRule(AddDetailedTransactionActivity::class.java)
-
     @Inject
     lateinit var repository: AddDetailedTransactionRepository
     @Inject
     lateinit var database: ExpenseTrackerDatabase
     lateinit var app: ExpenseTracker
+    //For some reason, switching from a Rule to a regular scenario worked. The activity's onCreate kept getting called before setUp and that caused crashes because of faulty profile initialization
+    lateinit var addDetailedTransactionActivityScenario: ActivityScenario<AddDetailedTransactionActivity>
 
-//    @Before
+    @Before
     fun setUp() {
-//        val app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
-        LOGGER.debug("setUp OtherDetails")
-        app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
-        LOGGER.debug("setUp OtherDetails 2")
+        app = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
-        LOGGER.debug("setUp OtherDetails 3")
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
         (app.appComponent as InstrumentedTestComponent).inject(this)
-        LOGGER.debug("setUp OtherDetails 4")
+        addDetailedTransactionActivityScenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
         Espresso.onView(ViewMatchers.withId(R.id.tab_layout_add_detailed_transaction))
             .perform(TabLayoutItemClick(1))
-        LOGGER.debug("setUp OtherDetails 5")
     }
 
     @After
@@ -100,7 +96,6 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun givenEvidenceIsPdfAndPdfIsPasswordProtectedWhenSelectThenErrorDialog() {
-        setUp()
         val resource = TestData.Resource.Documents.EVIDENCE_PDF_PASSWORD_PROTECTED
 
         addContentProviderResourcesInstrumented(app, resource)
@@ -125,7 +120,6 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun givenEvidenceIsPdfAndPdfHasZeroPagesWhenSelectThenErrorDialog() {
-        setUp()
         val resource = TestData.Resource.Documents.EVIDENCE_PDF_EMPTY
 
         addContentProviderResourcesInstrumented(app, resource)
@@ -153,14 +147,14 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
      */
     @Test
     fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncatedByGrapheme() {
-        setUp()
         val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
         val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 1) {
             'a'
         })
         val manRunning = "\uD83C\uDFC3\u200D\u2642\uFE0F" //4 codepoints - 1 surrogate pair + 3 regular
         val manRunningCount = 4
-        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+
+        addDetailedTransactionActivityScenario.onActivity {
             it.runOnUiThread {
                 val clipBoardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 var clipData = ClipData.newPlainText("simple text", text + manRunning)
@@ -180,7 +174,7 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
         onView(withId(R.id.text_view_add_detailed_transaction_note_length_indicator)).check(matches(withText("${Constants.MAX_NOTE_CODEPOINT_LENGTH - 1}/${Constants.MAX_NOTE_CODEPOINT_LENGTH}")))
 
         val menRunning = manRunning.repeat(Math.floorDiv(Constants.MAX_NOTE_CODEPOINT_LENGTH, manRunningCount)+1) //4 x 126 = 504
-        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+        addDetailedTransactionActivityScenario.onActivity {
             it.runOnUiThread {
                 val clipBoardManager =
                     context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -203,11 +197,10 @@ class AddDetailedTransactionOtherDetailsFragmentInstrumentedTest {
 
     @Test
     fun whenUserPastesTextAndTotalLengthOverCharacterLimitThenTextTruncated() {
-        setUp()
         val text = String(CharArray(Constants.MAX_NOTE_CODEPOINT_LENGTH - 9) {
             'a'
         }) + "bcdefghij" + "klmnopqrst"
-        addDetailedTransactionActivityScenarioRule.scenario.onActivity {
+        addDetailedTransactionActivityScenario.onActivity {
             it.runOnUiThread {
                 val clipBoardManager =
                     app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

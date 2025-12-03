@@ -25,7 +25,7 @@ import java.math.BigDecimal;
         Index(value = ["accountId", "datedAt", "ordinal"], unique = true),
     Index(value = ["sellerId"]),
     Index(value = ["sellerLocationId"]),
-              ], // TODO Think about ordinals later, also apparently I can't use function-based indexes. Rework other 'date' queries
+              ], // TODO Apparently I can't use function-based indexes. Rework other 'date' queries
     foreignKeys = [
         ForeignKey(AccountDb::class, parentColumns = ["id"], childColumns = ["accountId"]),
         ForeignKey(SellerDb::class, parentColumns = ["id"], childColumns = ["sellerId"]),

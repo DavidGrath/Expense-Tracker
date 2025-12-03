@@ -58,6 +58,7 @@ class AddDetailedTransactionActivity : AppCompatActivity(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LOGGER.info("onCreate")
         binding = ActivityAddDetailedTransactionBinding.inflate(layoutInflater)
         val app = application as ExpenseTracker
         app.appComponent.inject(this)

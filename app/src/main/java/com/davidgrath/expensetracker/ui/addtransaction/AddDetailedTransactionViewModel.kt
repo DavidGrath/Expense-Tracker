@@ -112,7 +112,6 @@ class AddDetailedTransactionViewModel(
     }
 
     init {
-        LOGGER.debug("profile: {}", profile)
         addDetailedTransactionRepository.setProfile(profile.id!!)
         addDetailedTransactionRepository.setMode(mode)
         mediator.addSource(currentAccount) {

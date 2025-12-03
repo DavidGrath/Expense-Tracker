@@ -119,7 +119,6 @@ class AccountDaoTest {
         assertEquals(totalTransactions, accountStatsList[0].transactionCount)
         assertEquals(totalItems, accountStatsList[0].itemCount)
 
-        LOGGER.debug("Account stats: {}", accountStatsList)
         assertEqualsBD(BigDecimal.ZERO, accountStatsList[1].expenses)
         assertEqualsBD(BigDecimal.ZERO, accountStatsList[1].income)
         assertEquals(0, accountStatsList[1].transactionCount)

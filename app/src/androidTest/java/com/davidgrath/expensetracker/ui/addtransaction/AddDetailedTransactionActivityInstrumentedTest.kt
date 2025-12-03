@@ -310,6 +310,7 @@ class AddDetailedTransactionActivityInstrumentedTest {
             R.id.edit_text_add_detailed_transaction_item_amount,
             "200.00"
         )
+        closeSoftKeyboard()
         typeTextRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             1,

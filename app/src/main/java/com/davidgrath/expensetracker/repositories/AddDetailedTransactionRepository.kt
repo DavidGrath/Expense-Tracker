@@ -303,7 +303,6 @@ constructor(
         }
         draft = draft.copy(items = newItems)
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Change, position))
-        LOGGER.debug("changeItem: {}", item)
         LOGGER.info("Changed item at position {}", position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()
@@ -521,7 +520,7 @@ constructor(
                 val account = accountRepository.getAccountByIdSingle(accountId).blockingGet() //TODO Validate by profile ID, too
                 if(account == null) {
                     LOGGER.info("restoreDraft: Account {} no longer exists, falling back to default", accountId)
-                    val defaultAccount = accountRepository.getAccountsForProfileSingle(1).blockingGet()[0] //TODO This is a hack. Fix later
+                    val defaultAccount = accountRepository.getAccountsForProfileSingle(1).blockingGet()[0] //TODO Using 1 is a hack. Fix later
                     accountId = defaultAccount.id!!
                 }
                 //Account for potential changes to images made with previous edits
@@ -625,7 +624,6 @@ constructor(
             } else {
                 draft.note
             }
-            LOGGER.debug("AccountID: {}, Draft: {}", draft.accountId, draft)
             val account = accountRepository.getAccountByIdSingle(draft.accountId).blockingGet()!!
             val maxOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
             var transactionOrdinal = maxOrdinal + 1
@@ -1219,7 +1217,7 @@ constructor(
                 return false
             }
         }
-        LOGGER.debug("draftEmpty: true")
+        LOGGER.info("draftEmpty: true")
         return true
     }
 

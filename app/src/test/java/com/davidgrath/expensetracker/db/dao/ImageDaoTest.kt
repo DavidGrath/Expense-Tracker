@@ -92,12 +92,12 @@ class ImageDaoTest {
         itemImagesDao.insertItemImage(TransactionItemImagesDb(null, items[0].id!!, imageId, dateTimeString, offset, zone)).subscribeOn(Schedulers.io()).blockingSubscribe()
         itemImagesDao.insertItemImage(TransactionItemImagesDb(null, items[1].id!!, imageId, dateTimeString, offset, zone)).subscribeOn(Schedulers.io()).blockingSubscribe()
 
-//        val expectedTotalSize = 686_112L // Should I bother adding size to the TestData.Resource class?
+//        val expectedTotalSize = 686_112L // TODO Should I bother adding size to the TestData.Resource class?
         val size = imageDao.storageSumSingle(profile.id!!).subscribeOn(Schedulers.io()).blockingGet()
         val count = imageDao.countAllSingle(profile.id!!).subscribeOn(Schedulers.io()).blockingGet()
         val stats = imageDao.getImageStatsSingle(imageId).subscribeOn(Schedulers.io()).blockingGet()
         val stats2 = imageDao.getImageStatsSingle(imageId2).subscribeOn(Schedulers.io()).blockingGet()
-        LOGGER.debug("stats: {}", stats)
+
         assertEquals(2L, count)
 //        assertEquals(expectedTotalSize, size)
         assertEquals(totalItems, stats.itemCount)

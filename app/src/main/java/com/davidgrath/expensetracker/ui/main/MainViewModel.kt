@@ -489,7 +489,6 @@ constructor(
             x
         }
         this.statisticsConfig = this.statisticsConfig.copy(xDays = xDays)
-        LOGGER.debug("setXDaysPast: statisticsConfig: {}", statisticsConfig)
         setDateMode(this.statisticsConfig.dateMode)
     }
 

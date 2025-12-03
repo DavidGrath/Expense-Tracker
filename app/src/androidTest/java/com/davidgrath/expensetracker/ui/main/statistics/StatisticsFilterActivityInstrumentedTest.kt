@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.statistics
 
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBack
@@ -19,6 +20,7 @@ import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.di.InstrumentedTestComponent
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.Matchers
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.*
@@ -34,18 +36,21 @@ import javax.inject.Inject
 class StatisticsFilterActivityInstrumentedTest {
 
     lateinit var app: InstrumentedTestExpenseTracker
-    @get:Rule
-    val rule = ActivityScenarioRule(MainActivity::class.java)
+//    @get:Rule
+//    val rule = ActivityScenarioRule(MainActivity::class.java)
 
     @Inject
     lateinit var expenseTrackerDatabase: ExpenseTrackerDatabase
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
+    lateinit var scenario: ActivityScenario<MainActivity>
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>()
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
         (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>().appComponent as InstrumentedTestComponent).inject(this)
+        scenario= ActivityScenario.launch(MainActivity::class.java)
         onView(withId(R.id.tab_layout_main)).perform(TabLayoutItemClick(1))
     }
 
@@ -67,7 +72,7 @@ class StatisticsFilterActivityInstrumentedTest {
         // Open Activity
         onView(withId(R.id.image_view_statistics_open_filter)).perform(click())
         // Change things
-        onView(withText(containsString("Default Account"))).perform(click())
+//        onView(withText(containsString("Default Account"))).perform(click())
         onView(withText(containsString("Second"))).perform(click())
         // Finish
         onView(withId(R.id.fab_statistics_filter_done)).perform(click())

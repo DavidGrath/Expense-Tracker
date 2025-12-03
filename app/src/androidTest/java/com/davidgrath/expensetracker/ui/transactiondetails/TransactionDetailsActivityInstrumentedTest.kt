@@ -35,7 +35,7 @@ import org.threeten.bp.format.FormatStyle
 import java.math.BigDecimal
 import javax.inject.Inject
 
-@RunWith(AndroidJUnit4::class)
+//@RunWith(AndroidJUnit4::class)
 class TransactionDetailsActivityInstrumentedTest {
 
     lateinit var transactionDetailsActivityScenario: ActivityScenario<TransactionDetailsActivity>

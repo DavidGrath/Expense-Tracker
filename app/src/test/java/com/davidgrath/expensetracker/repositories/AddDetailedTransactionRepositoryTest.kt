@@ -137,7 +137,6 @@ class AddDetailedTransactionRepositoryTest {
     fun tearDown() {
         app.filesDir.deleteRecursively()
         Single.fromCallable { database.clearAllTables() }.subscribeOn(Schedulers.io()).blockingSubscribe()
-        println("clearAllTables")
     }
 
     @Test
@@ -275,7 +274,7 @@ class AddDetailedTransactionRepositoryTest {
         items = transactionItemRepository.getTransactionItemsSingle(id).blockingGet()
         val images = imageDao.getAllByItemSingle(itemId).subscribeOn(Schedulers.io()).blockingGet()
         val evidenceList = evidenceDao.getAllByTransactionIdSingle(id).subscribeOn(Schedulers.io()).blockingGet()
-        println("Items: $items")
+
         assertEquals(2, items.size)
         assertEqualsBD(total, transaction.amount)
         assertEquals(note, transaction.note)
@@ -1290,7 +1289,6 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
         transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
         val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
-        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
         assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal > transaction3.ordinal)
     }
 
@@ -1349,7 +1347,6 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
         transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
         val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
-        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
         assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
     }
 
@@ -1381,7 +1378,7 @@ class AddDetailedTransactionRepositoryTest {
         transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
         transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
         val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
-        LOGGER.debug("1,2,3: {} {} {}", transaction, transaction2, transaction3)
+
         assertTrue(transaction.ordinal > transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
     }
 

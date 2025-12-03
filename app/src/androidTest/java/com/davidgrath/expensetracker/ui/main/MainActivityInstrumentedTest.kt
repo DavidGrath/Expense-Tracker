@@ -48,7 +48,9 @@ class MainActivityInstrumentedTest {
 
     @Before
     fun setUp() {
-        (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>().appComponent as InstrumentedTestComponent).inject(this)
+        val app = (ApplicationProvider.getApplicationContext<InstrumentedTestExpenseTracker>())
+        (app.appComponent as InstrumentedTestComponent).inject(this)
+        app.tempInit().subscribeOn(Schedulers.io()).blockingSubscribe()
     }
 
     @After

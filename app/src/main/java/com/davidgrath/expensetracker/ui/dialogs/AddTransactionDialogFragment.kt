@@ -205,12 +205,6 @@ class AddTransactionDialogFragment : DialogFragment() {
         val d = dialog as AlertDialog
         val positiveButton = d.getButton(Dialog.BUTTON_POSITIVE)
         positiveButton.setOnClickListener {
-            var amount: BigDecimal? = null
-            try {
-                amount = BigDecimal(binding.editTextAddTransactionAmount.editableText.toString())
-            } catch (e: NumberFormatException) {
-                binding.editTextAddTransactionAmount.error = "Invalid"
-            }
 
             val description = binding.editTextAddTransactionDescription.editableText.toString()
             if (description.isBlank()) {
@@ -218,15 +212,17 @@ class AddTransactionDialogFragment : DialogFragment() {
             }
             val selectedPosition = binding.spinnerAddTransactionCategory.selectedItemPosition
             val selectedAccountPosition = binding.spinnerAddTransactionAccount.selectedItemPosition
-            if (amount != null) {
-                if (amount.compareTo(BigDecimal.ZERO) == 0) {
+            if(amount == null) {
+                binding.editTextAddTransactionAmount.error = "Invalid"
+            } else {
+                if (amount!!.compareTo(BigDecimal.ZERO) == 0) {
                     LOGGER.info("Zero amount")
                     binding.editTextAddTransactionAmount.error = "Invalid"
                 } else {
                     if(description.isNotBlank() && selectedPosition != Spinner.INVALID_POSITION && selectedAccountPosition != Spinner.INVALID_POSITION) {
                         val categoryId = categories[selectedPosition].id
                         val accountId = accounts[selectedAccountPosition].id
-                        listener?.onAddTransaction(accountId, debitOrCredit, amount, description, categoryId)
+                        listener?.onAddTransaction(accountId, debitOrCredit, amount!!, description, categoryId)
                         dismiss()
                     }
                 }

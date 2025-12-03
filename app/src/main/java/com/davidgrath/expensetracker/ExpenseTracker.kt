@@ -208,7 +208,6 @@ open class ExpenseTracker : Application(), DraftFileHandler {
     }
 
     fun tempInit(): Single<Unit> {
-        LOGGER.debug("tempInit")
         val profileDao = appComponent.profileDao()
         return profileDao.findByStringId(Constants.DEFAULT_PROFILE_ID).switchIfEmpty(tempCreateDefaultProfile()).flatMap { defaultProfile ->
             _profileObservable.onNext(defaultProfile)
@@ -228,7 +227,6 @@ open class ExpenseTracker : Application(), DraftFileHandler {
 
 
     fun tempCreateDefaultProfile(): Single<ProfileDb> {
-        LOGGER.debug("tempCreateDefaultProfile")
         val clock = appComponent.timeHandler().getClock()
         val date = ZonedDateTime.now(clock)
         val utcDate = date.withZoneSameInstant(ZoneId.of("UTC"))
@@ -243,7 +241,6 @@ open class ExpenseTracker : Application(), DraftFileHandler {
 
     }
     fun tempInitProfile(profileDb: ProfileDb): Single<Long> {
-        LOGGER.debug("tempInitProfile")
         return Single.fromCallable {
             val accountDao = appComponent.accountDao()
             val accounts = accountDao.getAllByProfileIdSingle(profileDb.id!!).blockingGet()
@@ -285,7 +282,6 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         }
     }
     fun tempInitDefaultCategories(profileId: Long): Single<Unit> {
-        LOGGER.debug("tempInitDefaultCategories")
         return Single.fromCallable {
             val clock = appComponent.timeHandler().getClock()
             val date = ZonedDateTime.now(clock)

@@ -154,7 +154,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             }
         }*/
         val textWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionNote, Constants.MAX_NOTE_CODEPOINT_LENGTH, binding.textViewAddDetailedTransactionNoteLengthIndicator) {
-            LOGGER.debug("Description: \"{}\"", it)
             viewModel.setNote(it)
         }
 

@@ -286,7 +286,7 @@ constructor(
             val groupedByDesc = stringFields.groupBy { it.stringField }
             val _groupedByDesc = stringFields.groupBy { it.stringField.lowercase() }
             LOGGER.info("getGenericSuggestions: Grouped suggestions into {} lists", groupedByDesc.size)
-            LOGGER.debug("getGenericSuggestions: Suggestions are grouped into {} lists when ignoring case", _groupedByDesc.size)
+            LOGGER.info("getGenericSuggestions: Suggestions are grouped into {} lists when ignoring case", _groupedByDesc.size)
             val scoredDescriptions = arrayListOf<Pair<Double, String>>()
             for((stringField, list) in groupedByDesc) {
                 val sampled = list.take(10)
@@ -310,7 +310,6 @@ constructor(
                 scoredDescriptions.add(score to stringField)
             }
             val sorted = scoredDescriptions.sortedByDescending { it.first }
-            LOGGER.debug("Sorted5: {}", sorted.take(5))
             return@fromCallable sorted.map { it.second }.take(5)
         }.timeInterval()
             .map {

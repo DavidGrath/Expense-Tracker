@@ -1,0 +1,35 @@
+= Expense Tracker
+
+A basic app for me to track my expenses
+
+== Some Notes
+
+* `+AlertDialog+` 's don't seem to behave well with Robolectric and so any tests involving those should use `+androidTest+`
+* Entities in the UI layer and DB layer are suffixed with `+Ui+` and `+Db+` respectively
+* Instrumented tests are suffixed with `+InstrumentedTest+`
+* `+./data+` for the main app files, `+./draft+` for the `+AddDetailedTransaction+` screen, under each of them, `+./images+` for all images, `+./documents+` for all documents
+* Tests that open other activities should use `+androidTest+`: https://github.com/robolectric/robolectric/issues/5104
+* For RxJava, generally, `+subscribeOn+` should be called in Repositories for consistency
+* I did something similar to this to run uiautomatorviewer:
+
+----
+set swt_path=<appdatapath>Local\Android\Sdk\tools\lib\x86_64
+"C:\Program Files\Java\jdk1.8.0_341\bin\java.exe" "-Djava.ext.dirs=..\lib\x86_64;..\lib" "-Dcom.android.uiautomator.bindir=<appdatapath>\Local\Android\Sdk\tools" -jar <appdatapath>\Local\Android\Sdk\tools\lib\uiautomatorviewer-26.0.0-dev.jar
+----
+
+* Extend `+AppCompatActivity+` to maintain the new app theme
+* It seems that using `+ActivityScenarioRule+` won't work with this project because it causes the Activity's `+onCreate+` to be called before the database initialization method, `tempInit`
+
+== To-Do
+
+* Jenkins Testing Pipeline
+* Jenkins Staging Pipeline
+* Ansible Install SDK
+* Ansible Setup Emulators
+
+== Simple Testing Guideline
+
+Test any non-trivial or potentially confusing or complex or vague code at any layer of the feature you want to commit, and also the trivial case in case you feel like it.
+
+* `+now+` is mocked to be June 30 2025 at 8 am, or `+2025-06-30T08:00:00+`, UTC
+* Locale is mocked to be `+US+`
