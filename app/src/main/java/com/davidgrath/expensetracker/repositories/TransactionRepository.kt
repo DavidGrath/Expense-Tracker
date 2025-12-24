@@ -310,6 +310,7 @@ constructor(
                 scoredDescriptions.add(score to stringField)
             }
             val sorted = scoredDescriptions.sortedByDescending { it.first }
+            LOGGER.info("Scores: {}", sorted.take(5))
             return@fromCallable sorted.map { it.second }.take(5)
         }.timeInterval()
             .map {

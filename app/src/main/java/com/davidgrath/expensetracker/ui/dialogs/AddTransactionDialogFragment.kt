@@ -12,9 +12,9 @@ import android.widget.AdapterView
 import android.widget.Spinner
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
+import com.davidgrath.expensetracker.Constants
+import com.davidgrath.expensetracker.Constants.Companion.MAX_CODEPOINT_LENGTH_MEDIUM
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.MaxCodePointWatcher
-import com.davidgrath.expensetracker.NumberFormatTextWatcher
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.categoryDbToCategoryUi
@@ -27,6 +27,8 @@ import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.ui.AccountAdapter
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
+import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
+import com.davidgrath.expensetracker.utils.NumberFormatTextWatcher
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -135,11 +137,12 @@ class AddTransactionDialogFragment : DialogFragment() {
         }
         binding.editTextAddTransactionAmount.addTextChangedListener(amountWatcher)
 
+        binding.textViewAddTransactionDescriptionIndicator.text = (description?:"").codePointCount(0, (description?:"").length).toString() + "/" + MAX_CODEPOINT_LENGTH_MEDIUM
         binding.editTextAddTransactionDescription.setText(description)
-        val descriptionWatcher = MaxCodePointWatcher(binding.editTextAddTransactionDescription, MAX_TEXT_LENGTH, binding.textViewAddTransactionDescriptionIndicator) { text ->
+        val descriptionWatcher = MaxCodePointWatcher(binding.editTextAddTransactionDescription, MAX_CODEPOINT_LENGTH_MEDIUM, binding.textViewAddTransactionDescriptionIndicator) { text ->
             this.description = text
         }
-        binding.textViewAddTransactionDescriptionIndicator.addTextChangedListener(descriptionWatcher)
+        binding.editTextAddTransactionDescription.addTextChangedListener(descriptionWatcher)
 
         if(this.debitOrCredit) {
             binding.imageViewAddTransactionDebitOrCredit.setImageResource(R.drawable.baseline_remove_24)
@@ -238,7 +241,6 @@ class AddTransactionDialogFragment : DialogFragment() {
         private const val ARG_CATEGORY = "category"
         private const val ARG_ACCOUNT = "account"
         private const val BUNDLE_ARG_PROFILE_ID = "profileId"
-        const val MAX_TEXT_LENGTH = 50
 
         @JvmStatic
         fun createDialog(profileId: Long): AddTransactionDialogFragment {

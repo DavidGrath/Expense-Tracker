@@ -82,8 +82,19 @@ class AddDetailedTransactionViewModel(
     val accountsLiveData = accountRepository.getAccountsForProfile(profile.id!!).toFlowable(BackpressureStrategy.BUFFER).toLiveData()
     val sellersMediatorLiveData = MediatorLiveData<Pair<Long?, List<SellerUi>>>()
     private val sellersLiveData: LiveData<List<SellerUi>> = sellerRepository.getSellers(profile.id!!).map { list -> listOf(SellerUi(-1, "test")) + list.map { sellerDbToSellerUi(it) } } .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-    val sellerLocationsMediatorLiveData = MediatorLiveData<Pair<SellerLocationUi?, List<SellerLocationUi>>>()
-    private val sellerLocationsLiveData: LiveData<List<SellerLocationUi>> = sellerRepository.getSellerLocations(profile.id!!).map { list -> listOf(SellerLocationUi(-1, -1, "", false, null, null, null)) + list.map { sellerLocationDbToSellerLocationUi(it) } } .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+    val sellerLocationsMediatorLiveData = MediatorLiveData<Pair<Long?, List<SellerLocationUi>>>()
+    private val sellerLocationsLiveData: LiveData<List<SellerLocationUi>> = addDetailedTransactionRepository.getDraft().switchMap {
+        val initialEmpty = listOf(SellerLocationUi(-1, -1, "", false, null, null, null))
+        val sellerId = it.first.sellerId
+        if (sellerId == null) {
+            val liveData = MutableLiveData<List<SellerLocationUi>>()
+            liveData.postValue(initialEmpty)
+            liveData
+        } else {
+            sellerRepository.getSellerLocations(sellerId).map { list -> initialEmpty + list.map { sellerLocationDbToSellerLocationUi(it) } } .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
+        }
+
+    }
     val mediator = MediatorLiveData<Triple<List<AccountDb>, AccountUi, BigDecimal>>()
 
     val transactionItemsLiveData = addDetailedTransactionRepository.getDraft()
@@ -135,7 +146,7 @@ class AddDetailedTransactionViewModel(
             sellersMediatorLiveData.postValue(sellersMediatorLiveData.value?.first to it)
         }
 
-        sellerLocationsMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerLocation }) {
+        sellerLocationsMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerId }) {
             sellerLocationsMediatorLiveData.postValue(it to (sellerLocationsLiveData.value?: emptyList()))
         }
         sellerLocationsMediatorLiveData.addSource(sellerLocationsLiveData) {

@@ -712,7 +712,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
-//    @Ignore("Seems to have turned flaky. Ignore for later")
+    @Ignore("Seems to have turned flaky. Again")
     fun givenModeIsDraftAndImagesSavedThroughPreviousEditWhenRestoreDraftThenReferencesCorrected() {
 
         val resource = TestData.Resource.Images.BREAD

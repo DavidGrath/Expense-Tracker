@@ -11,8 +11,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.Constants.Companion.ALPHA_DISABLED
-import com.davidgrath.expensetracker.MaxCodePointWatcher
-import com.davidgrath.expensetracker.NumberFormatTextWatcher
+import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
+import com.davidgrath.expensetracker.utils.NumberFormatTextWatcher
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.RecyclerviewAddDetailedTransactionItemBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler

@@ -23,7 +23,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.MaxCodePointWatcher
+import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
 import com.davidgrath.expensetracker.accountDbToAccountUi
 import com.davidgrath.expensetracker.databinding.FragmentAddDetailedTransactionOtherDetailsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
@@ -66,6 +66,8 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
     private var timePicker: MaterialTimePicker? = null
     private var customLocalTime: LocalTime? = null
     private var customLocalDate: LocalDate? = null
+    private var originalLocalTime: LocalTime? = null
+    private var originalLocalDate: LocalDate? = null
     private val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
     @Inject
@@ -112,47 +114,6 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         binding.spinnerAddDetailedTransactionMode.adapter = modeAdapter
         binding.spinnerAddDetailedTransactionMode.onItemSelectedListener = modeListener
 
-        /*val textWatcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                LOGGER.debug("afterTextChanged")
-                val text = s!!.toString()
-                val length = text.length
-                val codePointCount = text.codePointCount(0, length)
-                binding.textViewAddDetailedTransactionNoteLengthIndicator.text = codePointCount.toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
-                if(codePointCount > Constants.MAX_NOTE_CODEPOINT_LENGTH) {
-                    LOGGER.info("afterTextChanged: Reached max code point count")
-                    val breakIterator = BreakIterator.getCharacterInstance()
-                    breakIterator.setText(text)
-                    val lastGraphemePosition = if(breakIterator.isBoundary(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))) {
-                        text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH)
-                    } else {
-                        breakIterator.preceding(text.offsetByCodePoints(0, Constants.MAX_NOTE_CODEPOINT_LENGTH))
-                    }
-                    if(lastGraphemePosition != BreakIterator.DONE) {
-                        binding.editTextAddDetailedTransactionNote.removeTextChangedListener(this)
-                        val substring = text.substring(0, lastGraphemePosition)
-                        binding.editTextAddDetailedTransactionNote.setText(
-                            substring
-                        )
-                        //TODO 2-way binding
-                        viewModel.setNote(text)
-                        binding.textViewAddDetailedTransactionNoteLengthIndicator.text = substring.codePointCount(0, substring.length).toString() + "/" + Constants.MAX_NOTE_CODEPOINT_LENGTH
-                        binding.editTextAddDetailedTransactionNote.setSelection(lastGraphemePosition)
-                        binding.editTextAddDetailedTransactionNote.addTextChangedListener(this)
-                    }
-                } else {
-                    viewModel.setNote(text)
-                }
-            }
-        }*/
         val textWatcher = MaxCodePointWatcher(binding.editTextAddDetailedTransactionNote, Constants.MAX_NOTE_CODEPOINT_LENGTH, binding.textViewAddDetailedTransactionNoteLengthIndicator) {
             viewModel.setNote(it)
         }
@@ -161,15 +122,17 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
             items = draft.evidence
             adapter.setItems(items, renderers)
 
-
+            val today = LocalDate.now(timeAndLocaleHandler.getClock())
             customLocalTime = draft.customTime
             customLocalDate = draft.customDate
+            originalLocalDate = draft.dbOriginalDate
+            originalLocalTime = draft.dbOriginalTime
 
             if(draft.customDate == null) {
                 if(mode == "edit") {
                     binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(draft.dbOriginalDate!!)
                 } else {
-                    binding.textViewAddDetailedTransactionCustomDate.text = ""
+                    binding.textViewAddDetailedTransactionCustomDate.text = dateFormat.format(today)
                 }
                 binding.imageViewAddDetailedTransactionCustomDateRemove.visibility = View.GONE
             } else {
@@ -184,7 +147,11 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                         ""
                     }
                 } else {
-                    binding.textViewAddDetailedTransactionCustomTime.text = ""
+                    binding.textViewAddDetailedTransactionCustomTime.text = if(draft.customDate == today || draft.customDate == null) {
+                        "Current time"
+                    } else {
+                        ""
+                    }
                 }
                 binding.imageViewAddDetailedTransactionCustomTimeRemove.visibility = View.GONE
             } else {
@@ -322,7 +289,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         binding.spinnerAddDetailedTransactionSellerLocation.adapter = sellerLocationAdapter
         binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
 
-        viewModel.sellerLocationsMediatorLiveData.observe(viewLifecycleOwner) { (sellerLocationUi, sellers) ->
+        viewModel.sellerLocationsMediatorLiveData.observe(viewLifecycleOwner) { (sellerId, sellers) ->
             sellerLocationAdapter.setItems(sellers)
             if(binding.spinnerAddDetailedTransactionSellerLocation.selectedItemPosition == Spinner.INVALID_POSITION) {
                 binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
@@ -330,7 +297,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
             }
 
-            val sellerLocationPosition = sellerLocationAdapter._objects.indexOfFirst { it.id == sellerLocationUi?.id }
+            val sellerLocationPosition = sellerLocationAdapter._objects.indexOfFirst { it.id == sellerId }
             binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
 
             if(sellerLocationPosition == -1) {
@@ -397,19 +364,36 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                     if(timePicker == null) {
                         LOGGER.info("timePicker is null. Creating")
                         val builder = MaterialTimePicker.Builder()
-                        if(customLocalTime != null) {
-                            builder.setHour(customLocalTime!!.hour)
-                            builder.setMinute(customLocalTime!!.minute)
-                            LOGGER.info("Using existing custom time for timePicker")
+                        val mode = viewModel.mode
+                        if(mode == "edit") {
+                            if(originalLocalTime != null) {
+                                builder.setHour(originalLocalTime!!.hour)
+                                builder.setMinute(originalLocalTime!!.minute)
+                                LOGGER.info("Using existing original time for timePicker")
+                            } else {
+
+                            }
                         } else {
-//                            val localTime = LocalTime.now(timeAndLocaleHandler.getClock())
-//                            builder.setHour(localTime!!.hour)
-//                            builder.setMinute(localTime!!.minute)
-//                            LOGGER.info("Using current time for timePicker")
-                            //TODO When the date is "today", the time should display the current time by default and setting a custom time fixes it to that time
-                            // When the date is not "today", then instead the time should display nothing by default and setting a custom time still fixes it
-                            // Take care of that when I change things such that time is used to determine ordinals
+                            if(customLocalTime != null) {
+                                builder.setHour(customLocalTime!!.hour)
+                                builder.setMinute(customLocalTime!!.minute)
+                                LOGGER.info("Using existing custom time for timePicker")
+                            } else {
+                                if(customLocalDate == LocalDate.now(timeAndLocaleHandler.getClock()) || customLocalDate == null) {
+
+                                    val localTime = LocalTime.now(timeAndLocaleHandler.getClock())
+                                    builder.setHour(localTime!!.hour)
+                                    builder.setMinute(localTime!!.minute)
+                                    LOGGER.info("Using current time for timePicker")
+                                } else {
+
+                                }
+                                //TODO When the date is "today", the time should display the current time by default and setting a custom time fixes it to that time
+                                // When the date is not "today", then instead the time should display nothing by default and setting a custom time still fixes it
+                                // Take care of that when I change things such that time is used to determine ordinals
+                            }
                         }
+
                         val is24Hour = DateFormat.is24HourFormat(requireContext())
                         val format = if(is24Hour) {
                             TimeFormat.CLOCK_24H

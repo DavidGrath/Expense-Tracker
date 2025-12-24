@@ -7,7 +7,7 @@ import android.content.DialogInterface
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
-import com.davidgrath.expensetracker.MaxCodePointWatcher
+import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
 import com.davidgrath.expensetracker.databinding.DialogFragmentEditAccountBinding
 import org.slf4j.LoggerFactory
 

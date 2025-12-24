@@ -235,7 +235,7 @@ constructor(
         images.removeAt(imagePosition)
         items[position] = currentItem.copy(images = images)
         draft = draft.copy(items = items)
-        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Delete, position))
+        _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.ChangeInvalidate, position))
         LOGGER.info("Removed image at position {} from item {}", imagePosition, position)
         if (currentMode == "add") {
             fileHandler.saveDraft(draft).subscribe()

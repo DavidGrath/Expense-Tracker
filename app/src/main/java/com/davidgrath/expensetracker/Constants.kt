@@ -6,6 +6,8 @@ class Constants {
         const val MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM = 10
         const val MAX_ITEMS_ADD_DETAILED_TRANSACTION_EVIDENCE = 10
         const val MAX_NOTE_CODEPOINT_LENGTH = 500
+        const val MAX_CODEPOINT_LENGTH_MEDIUM = 50
+        const val MAX_CODEPOINT_LENGTH_SHORT = 20
         const val DRAFT_FILE_NAME = "add_transaction_draft.json"
         const val FOLDER_NAME_PROFILES = "profiles"
         const val FOLDER_NAME_DATA = "data"

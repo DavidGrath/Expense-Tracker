@@ -10,7 +10,7 @@ import android.widget.AdapterView
 import android.widget.Spinner
 import androidx.fragment.app.DialogFragment
 import com.davidgrath.expensetracker.ExpenseTracker
-import com.davidgrath.expensetracker.MaxCodePointWatcher
+import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.DialogFragmentAddTransactionBinding
 import com.davidgrath.expensetracker.databinding.DialogFragmentCreateAccountBinding
