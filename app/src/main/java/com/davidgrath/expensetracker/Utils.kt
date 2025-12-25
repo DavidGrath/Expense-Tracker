@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker
 
+import android.content.Context
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -30,7 +31,9 @@ import com.davidgrath.expensetracker.entities.ui.TransactionItemUi
 import com.davidgrath.expensetracker.entities.ui.TransactionUi
 import com.davidgrath.expensetracker.entities.ui.TransactionWithItemAndCategoryUi
 import com.davidgrath.expensetracker.repositories.TransactionRepository
+import com.google.gson.Gson
 import com.google.gson.TypeAdapter
+import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import com.ibm.icu.number.NumberFormatter
@@ -107,24 +110,154 @@ class Utils {
             "miscellaneous" to "Miscellaneous",
         )
         val CATEGORY_IDS_DEFAULT = mapOf(
-            "food" to R.drawable.baseline_restaurant_24,
-            "rent" to R.drawable.baseline_home_24,
-            "utilities" to R.drawable.baseline_construction_24,
-            "transportation" to R.drawable.baseline_directions_car_24,
-            "healthcare" to R.drawable.baseline_medical_services_24,
-            "debt" to R.drawable.baseline_credit_card_24,
-            "childcare" to R.drawable.baseline_child_care_24,
-            "household" to R.drawable.material_household_supplies_24dp,
-            "entertainment" to R.drawable.baseline_tv_24,
-            "self_care" to R.drawable.material_self_care_24dp,
-            "clothing" to R.drawable.baseline_checkroom_24,
-            "education" to R.drawable.baseline_book_24,
-            "gifts_and_donations" to R.drawable.material_featured_seasonal_and_gifts_24dp,
-            "emergency" to R.drawable.baseline_emergency_24,
-            "savings" to R.drawable.baseline_savings_24,
-            "fitness" to R.drawable.baseline_fitness_center_24,
-            "miscellaneous" to R.drawable.baseline_category_24,
+            "food" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_restaurant_48px,
+            "rent" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_home_48px,
+            "utilities" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_construction_48px,
+            "transportation" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_directions_car_48px,
+            "healthcare" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_medical_services_48px,
+            "debt" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_credit_card_48px,
+            "childcare" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_child_care_48px,
+            "household" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_household_supplies_48px,
+            "entertainment" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_tv_48px,
+            "self_care" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_self_care_48px,
+            "clothing" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_checkroom_48px,
+            "education" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_book_48px,
+            "gifts_and_donations" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_featured_seasonal_and_gifts_48px,
+            "emergency" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_emergency_48px,
+            "savings" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_savings_48px,
+            "fitness" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_fitness_center_48px,
+            "miscellaneous" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_category_48px,
         )
+        val CATEGORY_IDS_ICONS_DEFAULT = mapOf(
+            "food" to "materialsymbols:restaurant",
+            "rent" to "materialsymbols:home",
+            "utilities" to "materialsymbols:construction",
+            "transportation" to "materialsymbols:directions_car",
+            "healthcare" to "materialsymbols:medical_services",
+            "debt" to "materialsymbols:credit_card",
+            "childcare" to "materialsymbols:child_care",
+            "household" to "materialsymbols:household_supplies",
+            "entertainment" to "materialsymbols:tv",
+            "self_care" to "materialsymbols:self_care",
+            "clothing" to "materialsymbols:checkroom",
+            "education" to "materialsymbols:book",
+            "gifts_and_donations" to "materialsymbols:featured_seasonal_and_gifts",
+            "emergency" to "materialsymbols:emergency",
+            "savings" to "materialsymbols:savings",
+            "fitness" to "materialsymbols:fitness_center",
+            "miscellaneous" to "materialsymbols:category",
+        )
+    }
+}
+
+fun loadMaterialSymbolsIcons(context: Context): List<MaterialMetadata.MaterialIcon> {
+    val gson = Gson()
+    val inputStreamReader = context.assets.open("material_metadata.json").bufferedReader()
+    val materialMetadata = gson.fromJson(inputStreamReader, MaterialMetadata::class.java)
+    val symbolsOutlined = materialMetadata.icons.filter {
+        !it.unsupported_families.contains(MaterialMetadata.MaterialIconFamily.MaterialSymbolsOutlined)
+    }.filter {
+        it.name !in nonExistentSymbols
+    }
+    return symbolsOutlined
+}
+fun getMaterialResourceId(context: Context, icon: MaterialMetadata.MaterialIcon): Int {
+    val resourceName = "material_symbols_${icon.name}_48px"
+    val resId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+    return resId
+}
+
+val nonExistentSymbols = hashSetOf(
+    "antigravity",
+    "arrows_left_right_circle",
+    "arrows_up_down_circle",
+    "b_circle",
+    "bookmark_stacks",
+    "cards_stack",
+    "chevron_line_up",
+    "circle_circle",
+    "computer_sound",
+    "dashboard_2_edit",
+    "dashboard_2_gear",
+    "detection_and_zone_off",
+    "eyebrow",
+    "format_image_back",
+    "format_image_break_left",
+    "format_image_break_right",
+    "format_image_front",
+    "format_image_inline_left",
+    "format_image_inline_right",
+    "game_bumper_left",
+    "game_bumper_right",
+    "game_button_l",
+    "game_button_l1",
+    "game_button_l2",
+    "game_button_r",
+    "game_button_r1",
+    "game_button_r2",
+    "game_button_zl",
+    "game_button_zr",
+    "game_stick_l3",
+    "game_stick_left",
+    "game_stick_r3",
+    "game_stick_right",
+    "game_trigger_left",
+    "game_trigger_right",
+    "gamepad_circle_down",
+    "gamepad_circle_left",
+    "gamepad_circle_right",
+    "gamepad_circle_up",
+    "gamepad_down",
+    "gamepad_left",
+    "gamepad_right",
+    "gamepad_up",
+    "graph_8",
+    "hourglass_check",
+    "lips",
+    "mic_gear",
+    "mobile_unlock",
+    "music_note_2",
+    "notification_audio",
+    "notification_audio_off",
+    "passport",
+    "person_text",
+    "rectangle_add",
+    "square_circle",
+    "sticker",
+    "sticker_add",
+    "thermometer_alert",
+    "triangle_circle",
+    "undereye",
+    "video_template",
+    "voice_chat_off",
+    "watch_lock",
+    "widget_menu",
+    "x_circle",
+    "y_circle"
+)
+
+data class MaterialMetadata(val host: String, val asset_url_pattern: String, val families: Set<MaterialIconFamily>, val icons: List<MaterialIcon>) {
+    enum class MaterialIconFamily() {
+        @SerializedName("Material Icons")
+        MaterialIcons,
+        @SerializedName("Material Icons Outlined")
+        MaterialIconsOutlined,
+        @SerializedName("Material Icons Round")
+        MaterialIconsRound,
+        @SerializedName("Material Icons Sharp")
+        MaterialIconsSharp,
+        @SerializedName("Material Icons Two Tone")
+        MaterialIconsTwoTone,
+        @SerializedName("Material Symbols Outlined")
+        MaterialSymbolsOutlined,
+        @SerializedName("Material Symbols Rounded")
+        MaterialSymbolsRounded,
+        @SerializedName("Material Symbols Sharp")
+        MaterialSymbolsSharp
+    }
+
+    data class MaterialIcon(val name: String, val version: Int, val popularity: Int, val codePoint: Int, val unsupported_families: Set<MaterialIconFamily>, val categories: Set<String>, val tags: Set<String>, val sizes_px: Set<Int>) {
+
     }
 }
 

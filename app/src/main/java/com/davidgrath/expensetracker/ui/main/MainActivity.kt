@@ -79,6 +79,9 @@ class MainActivity : AppCompatActivity(), AccountsFragment.AccountsFragmentListe
                 4 -> {
                     tab.text = "Documents"
                 }
+                5 -> {
+                    tab.text = "Categories"
+                }
             }
         }.attach()
         setContentView(activityMainBinding.root)
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity(), AccountsFragment.AccountsFragmentListe
 
     class MainFragmentStateAdapter(mainActivity: MainActivity): FragmentStateAdapter(mainActivity) {
         override fun getItemCount(): Int {
-            return 5
+            return 6
         }
 
         override fun createFragment(position: Int): Fragment {
@@ -109,6 +112,9 @@ class MainActivity : AppCompatActivity(), AccountsFragment.AccountsFragmentListe
                 }
                 4 -> {
                     return DocumentStatsFragment.newInstance()
+                }
+                5 -> {
+                    return CategoriesFragment.newInstance()
                 }
                 else -> {
                     return TransactionsFragment.newInstance()
