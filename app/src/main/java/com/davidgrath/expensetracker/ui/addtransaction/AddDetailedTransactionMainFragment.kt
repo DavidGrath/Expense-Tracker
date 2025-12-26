@@ -66,7 +66,7 @@ class AddDetailedTransactionMainFragment: Fragment(), AddTransactionItemRecycler
         val categories = viewModel.getCategories()
             .subscribeOn(Schedulers.io())
             .blockingGet()
-        val c = categories.map { categoryDbToCategoryUi(it) }
+        val c = categories.map { categoryDbToCategoryUi(requireContext(), it) }
         val descriptionSuggestionsAdapter = DescriptionSuggestionsAdapter(requireContext(), transactionRepository)
         val brandSuggestionsAdapter = BrandSuggestionsAdapter(requireContext(), transactionRepository)
         val variationSuggestionsAdapter = VariationSuggestionsAdapter(requireContext(), transactionRepository)

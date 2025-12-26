@@ -30,7 +30,7 @@ import com.davidgrath.expensetracker.entities.db.TransactionItemCategoriesDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 
-@Database(version = 2,
+@Database(version = 3,
     entities = [
         CategoryDb::class, ImageDb::class, ProfileDb::class, TransactionDb::class, TransactionItemDb::class, TransactionItemImagesDb::class,
         EvidenceDb::class, AccountDb::class, TransactionItemCategoriesDb::class, SellerDb::class, SellerLocationDb::class
@@ -67,12 +67,36 @@ abstract class ExpenseTrackerDatabase: RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_SellerDb_profileId` ON `SellerDb` (`profileId`)")
             }
         }
+
+        val MIGRATION_2_3 = object: Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE CategoryDb ADD COLUMN `icon` STRING NOT NULL DEFAULT 'materialsymbols:category'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:restaurant' WHERE stringId='food'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:home' WHERE stringId='rent'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:construction' WHERE stringId='utilities'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:directions_car' WHERE stringId='transportation'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:medical_services' WHERE stringId='healthcare'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:credit_card' WHERE stringId='debt'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:child_care' WHERE stringId='childcare'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:household_supplies' WHERE stringId='household'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:tv' WHERE stringId='entertainment'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:self_care' WHERE stringId='self_care'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:checkroom' WHERE stringId='clothing'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:book' WHERE stringId='education'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:featured_seasonal_and_gifts' WHERE stringId='gifts_and_donations'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:emergency' WHERE stringId='emergency'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:savings' WHERE stringId='savings'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:fitness_center' WHERE stringId='fitness'")
+                db.execSQL("ALTER TABLE CategoryDb SET icon='materialsymbols:category' WHERE stringId='miscellaneous'")
+            }
+        }
         @Volatile
         private var INSTANCE: ExpenseTrackerDatabase? = null
         fun getDatabase(context: Context): ExpenseTrackerDatabase {
             return INSTANCE?: synchronized(this) {
                 val instance = Room.databaseBuilder(context, ExpenseTrackerDatabase::class.java, Constants.DATABASE_NAME)
                     .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

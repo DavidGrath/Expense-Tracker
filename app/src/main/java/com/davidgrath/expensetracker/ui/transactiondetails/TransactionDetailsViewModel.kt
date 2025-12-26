@@ -1,5 +1,7 @@
 package com.davidgrath.expensetracker.ui.transactiondetails
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.toLiveData
@@ -29,8 +31,9 @@ class TransactionDetailsViewModel(
     private val evidenceRepository: EvidenceRepository,
     private val accountRepository: AccountRepository,
     private val timeAndLocaleHandler: TimeAndLocaleHandler,
-    private val sellerRepository: SellerRepository
-) : ViewModel() {
+    private val sellerRepository: SellerRepository,
+    private val application: Application
+) : AndroidViewModel(application) {
 
     val transaction: LiveData<TransactionDetailsUi>
     val items: LiveData<List<TransactionDetailItemUi>>
@@ -61,8 +64,8 @@ class TransactionDetailsViewModel(
                 list.map { item ->
                     val images = imageRepository.getTransactionItemImages(item.id!!).blockingGet()
                         .map { image -> imageDbToImageUi(image) }
-                    val category = categoryDbToCategoryUi(categoryRepository.getById(item.primaryCategoryId).blockingGet())
-                    val secondaryCategories = categoryRepository.getOtherItemCategories(item.id).blockingGet().map { categoryDbToCategoryUi(it) }
+                    val category = categoryDbToCategoryUi(application, categoryRepository.getById(item.primaryCategoryId).blockingGet())
+                    val secondaryCategories = categoryRepository.getOtherItemCategories(item.id).blockingGet().map { categoryDbToCategoryUi(application, it) }
                     TransactionDetailItemUi(item.id!!, item.transactionId, item.amount, account.currencyCode, item.description, category, secondaryCategories, item.brand, item.quantity, item.referenceNumber, item.variation, item.isReduction, images)
                 }
             }

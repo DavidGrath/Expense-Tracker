@@ -20,5 +20,6 @@ data class CategoryDb(
     val name: String?,
     val createdAt: String,
     val createdAtOffset: String,
-    val createdAtTimezone: String
+    val createdAtTimezone: String,
+    val icon: String
 )

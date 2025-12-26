@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.transactiondetails
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.di.MainComponent
@@ -34,6 +35,8 @@ class TransactionDetailsViewModelFactory(
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     @Inject
     lateinit var sellerRepository: SellerRepository
+    @Inject
+    lateinit var application: Application
 
     init {
         appComponent.inject(this)
@@ -42,7 +45,7 @@ class TransactionDetailsViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return TransactionDetailsViewModel(transactionId, transactionRepository,
             transactionItemRepository, imageRepository, categoryRepository, evidenceRepository,
-            accountRepository, timeAndLocaleHandler, sellerRepository
+            accountRepository, timeAndLocaleHandler, sellerRepository, application
         ) as T
     }
 }

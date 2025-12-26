@@ -26,7 +26,7 @@ class StatisticsFilterCategoriesFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val categories = viewModel.getCategories().blockingGet().map { categoryDbToCategoryUi(it) }
+        val categories = viewModel.getCategories().blockingGet().map { categoryDbToCategoryUi(requireContext(), it) }
         categories.forEach { cat ->
             val linearLayout = binding.linearLayoutStatisticsFilterTemplate
             val checkbox = AppCompatCheckBox(requireContext())

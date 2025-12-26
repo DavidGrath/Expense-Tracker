@@ -78,7 +78,7 @@ class FilteredTransactionsViewModel
                     } else {
                         LocalTime.parse(item.transactionDatedAtTime)
                     }
-                    val category = transactionWithCategoryToCategoryUi(item)
+                    val category = transactionWithCategoryToCategoryUi(app, item)
                     val images =
                         imageRepository.getTransactionItemImages(item.itemId).blockingGet()
                             .map { image ->

@@ -20,4 +20,5 @@ data class TransactionWithItemAndCategory(
     val categoryStringId: String?,
     val categoryIsCustom: Boolean,
     val categoryName: String?,
+    val categoryIcon: String
 )

@@ -137,7 +137,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 binding.editTextAddDetailedTransactionItemDescription.addTextChangedListener(newDescriptionWatcher)
                 textWatcherDescriptionMap[binding.editTextAddDetailedTransactionItemDescription.hashCode()] = newDescriptionWatcher
 
-                var categoryPosition = categories.indexOf(cachedItem.category)
+                var categoryPosition = categories.indexOfFirst {  cachedItem.category == it.id}
                 if(categoryPosition == -1) categoryPosition = 0
                 binding.spinnerAddDetailedTransactionItemCategory.adapter = spinnerAdapter
                 binding.spinnerAddDetailedTransactionItemCategory.setSelection(categoryPosition)
@@ -147,8 +147,8 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                         currentItem = absPosition
                         var latestItem = _items[absPosition]
                         val category = categories[_position]
-                        if(latestItem.category.id != category.id) {
-                            latestItem = latestItem.copy(category = category)
+                        if(latestItem.category != category.id) {
+                            latestItem = latestItem.copy(category = category.id)
                             listener?.onItemChangedInvalidate(absPosition, latestItem)
                         }
                     }

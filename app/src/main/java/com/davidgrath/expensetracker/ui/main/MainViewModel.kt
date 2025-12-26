@@ -123,7 +123,7 @@ constructor(
                     } else {
                         LocalTime.parse(item.transactionDatedAtTime)
                     }
-                    val category = transactionWithCategoryToCategoryUi(item)
+                    val category = transactionWithCategoryToCategoryUi(application, item)
                     val images =
                         imageRepository.getTransactionItemImages(item.itemId).blockingGet()
                             .map { image ->
@@ -169,7 +169,7 @@ constructor(
                 categoryIds.forEachIndexed { index, id ->
                     val expenseIndex = expenseList.indexOfFirst { it.categoryId == id }
                     val incomeIndex = incomeList.indexOfFirst { it.categoryId == id }
-                    val cat = itemSumToCategoryUi(if(expenseIndex >= 0) {
+                    val cat = itemSumToCategoryUi(app, if(expenseIndex >= 0) {
                         expenseList[expenseIndex]
                     } else {
                         incomeList[incomeIndex]

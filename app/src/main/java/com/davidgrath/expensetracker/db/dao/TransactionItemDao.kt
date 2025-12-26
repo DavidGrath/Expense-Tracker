@@ -29,7 +29,8 @@ interface TransactionItemDao {
     @Query("SELECT * FROM TransactionItemDb WHERE transactionId = :transactionId")
     fun getAllByTransactionIdSingle(transactionId: Long): Single<List<TransactionItemDb>>
 
-    @Query("SELECT c.id as categoryId, c.stringId, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " + //TODO how to factor reductions into this?
+    @Query("SELECT c.id as categoryId, c.stringId, c.isCustom, c.name, sum(ti.amount) as sum, c.icon AS categoryIcon " +
+            "FROM TransactionItemDb ti " + //TODO how to factor reductions into this?
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
             "INNER JOIN AccountDb a ON a.id = t.accountId " +
@@ -54,7 +55,8 @@ interface TransactionItemDao {
         sellersEmpty: Boolean, sellers: List<Long>
     ): Observable<List<ItemSumByCategory>>
 
-    @Query("SELECT c.id as categoryId, c.stringId, c.isCustom, c.name, sum(ti.amount) as sum FROM TransactionItemDb ti " + //TODO how to factor reductions into this?
+    @Query("SELECT c.id as categoryId, c.stringId, c.isCustom, c.name, sum(ti.amount) as sum, c.icon AS categoryIcon " +
+            "FROM TransactionItemDb ti " + //TODO how to factor reductions into this?
             "INNER JOIN CategoryDb c ON ti.primaryCategoryId = c.id " +
             "INNER JOIN TransactionDb t ON ti.transactionId = t.id " +
             "INNER JOIN AccountDb a ON a.id = t.accountId " +
@@ -84,7 +86,7 @@ interface TransactionItemDao {
             "ti.description, t.createdAt AS transactionCreatedAt, t.createdAtOffset AS transactionCreatedAtOffset, " +
             "t.createdAtTimezone AS transactionCreatedAtTimezone, t.datedAt AS transactionDatedAt, " +
             "t.datedAtTime AS transactionDatedAtTime, " +
-            "c.stringId AS categoryStringId, c.isCustom AS categoryIsCustom, c.name AS categoryName " +
+            "c.stringId AS categoryStringId, c.isCustom AS categoryIsCustom, c.name AS categoryName, c.icon as categoryIcon " +
             "FROM TransactionItemDb ti " +
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +
@@ -112,7 +114,8 @@ interface TransactionItemDao {
             "ti.description, t.createdAt AS transactionCreatedAt, t.createdAtOffset AS transactionCreatedAtOffset, " +
             "t.createdAtTimezone AS transactionCreatedAtTimezone, t.datedAt AS transactionDatedAt, " +
             "t.datedAtTime AS transactionDatedAtTime, " +
-            "c.stringId AS categoryStringId, c.isCustom AS categoryIsCustom, c.name AS categoryName " +
+            "c.stringId AS categoryStringId, c.isCustom AS categoryIsCustom, c.name AS categoryName," +
+            "c.icon AS categoryIcon " +
             "FROM TransactionItemDb ti " +
             "INNER JOIN TransactionDb t ON t.id = ti.transactionId " +
             "INNER JOIN CategoryDb c ON c.id = ti.primaryCategoryId " +

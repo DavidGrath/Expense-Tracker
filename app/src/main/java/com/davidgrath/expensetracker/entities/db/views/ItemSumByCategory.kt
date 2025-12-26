@@ -7,5 +7,6 @@ data class ItemSumByCategory(
     val stringId: String?,
     val isCustom: Boolean,
     val name: String?,
-    val sum: BigDecimal
+    val sum: BigDecimal,
+    val categoryIcon: String
 )

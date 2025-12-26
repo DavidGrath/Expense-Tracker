@@ -49,4 +49,10 @@ class ExpenseTrackerDatabaseTest {
         }
         db = helper.runMigrationsAndValidate(TEST_DB, 2, true, ExpenseTrackerDatabase.MIGRATION_1_2)
     }
+
+    @Test
+    fun migrationTest2To3() {
+        var db = helper.createDatabase(TEST_DB, 3)
+        db = helper.runMigrationsAndValidate(TEST_DB, 3, true, ExpenseTrackerDatabase.MIGRATION_2_3)
+    }
 }

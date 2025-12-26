@@ -74,7 +74,7 @@ class AddTransactionDialogFragment : DialogFragment() {
         app.appComponent.inject(this)
         val args = requireArguments()
         val profileId = args.getLong(BUNDLE_ARG_PROFILE_ID)
-        categories = categoryRepository.getCategoriesSingle(profileId).blockingGet().map { categoryDbToCategoryUi(it) }
+        categories = categoryRepository.getCategoriesSingle(profileId).blockingGet().map { categoryDbToCategoryUi(requireContext(), it) }
         accounts = accountRepository.getAccountsForProfileSingle(profileId).map { accounts ->
             accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
         }.blockingGet().toMutableList()

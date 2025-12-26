@@ -5,7 +5,7 @@ import java.math.BigDecimal
 data class AddTransactionItem(
     val id: Int,
     val dbId: Long?,
-    val category: CategoryUi,
+    val category: Long,
     val amount: BigDecimal? = null,
     val description: String? = null,
     val showDetails: Boolean = false,

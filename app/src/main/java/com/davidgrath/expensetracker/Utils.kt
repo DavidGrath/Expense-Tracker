@@ -109,25 +109,6 @@ class Utils {
             "fitness" to "Fitness",
             "miscellaneous" to "Miscellaneous",
         )
-        val CATEGORY_IDS_DEFAULT = mapOf(
-            "food" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_restaurant_48px,
-            "rent" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_home_48px,
-            "utilities" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_construction_48px,
-            "transportation" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_directions_car_48px,
-            "healthcare" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_medical_services_48px,
-            "debt" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_credit_card_48px,
-            "childcare" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_child_care_48px,
-            "household" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_household_supplies_48px,
-            "entertainment" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_tv_48px,
-            "self_care" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_self_care_48px,
-            "clothing" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_checkroom_48px,
-            "education" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_book_48px,
-            "gifts_and_donations" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_featured_seasonal_and_gifts_48px,
-            "emergency" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_emergency_48px,
-            "savings" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_savings_48px,
-            "fitness" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_fitness_center_48px,
-            "miscellaneous" to com.davidgrath.expensetracker.materialdrawables.R.drawable.material_symbols_category_48px,
-        )
         val CATEGORY_IDS_ICONS_DEFAULT = mapOf(
             "food" to "materialsymbols:restaurant",
             "rent" to "materialsymbols:home",
@@ -150,19 +131,31 @@ class Utils {
     }
 }
 
-fun loadMaterialSymbolsIcons(context: Context): List<MaterialMetadata.MaterialIcon> {
-    val gson = Gson()
-    val inputStreamReader = context.assets.open("material_metadata.json").bufferedReader()
-    val materialMetadata = gson.fromJson(inputStreamReader, MaterialMetadata::class.java)
-    val symbolsOutlined = materialMetadata.icons.filter {
-        !it.unsupported_families.contains(MaterialMetadata.MaterialIconFamily.MaterialSymbolsOutlined)
-    }.filter {
-        it.name !in nonExistentSymbols
+fun loadMaterialSymbolsIcons(context: Context): Single<List<MaterialMetadata.MaterialIcon>> {
+    return Single.fromCallable {
+
+
+        val gson = Gson()
+        val inputStreamReader = context.assets.open("material_metadata.json").bufferedReader()
+        val materialMetadata = gson.fromJson(inputStreamReader, MaterialMetadata::class.java)
+        inputStreamReader.close()
+        val symbolsOutlined = materialMetadata.icons.filter {
+            !it.unsupported_families.contains(MaterialMetadata.MaterialIconFamily.MaterialSymbolsOutlined)
+        }.filter {
+            it.name !in nonExistentSymbols
+        }
+        symbolsOutlined
     }
-    return symbolsOutlined
 }
 fun getMaterialResourceId(context: Context, icon: MaterialMetadata.MaterialIcon): Int {
     val resourceName = "material_symbols_${icon.name}_48px"
+    val resId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+    return resId
+}
+fun getMaterialResourceId(context: Context, iconId: String): Int {
+    val split = iconId.split(':')
+    val name = split[1]
+    val resourceName = "material_symbols_${name}_48px"
     val resId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
     return resId
 }
@@ -306,34 +299,34 @@ fun transactionsToTransactionItems(transactions: List<TransactionWithItemAndCate
 }
 
 //TODO Context and string ids
-fun categoryDbToCategoryUi(categoryDb: CategoryDb): CategoryUi {
+fun categoryDbToCategoryUi(context: Context, categoryDb: CategoryDb): CategoryUi {
     val category = if(categoryDb.isCustom) {
-        val categoryIcon = R.drawable.baseline_category_24
+        val categoryIcon = getMaterialResourceId(context, categoryDb.icon)
         CategoryUi(categoryDb.id!!, null, categoryDb.name!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(categoryDb.stringId)!!
+        val categoryIcon = getMaterialResourceId(context, categoryDb.icon)
         CategoryUi(categoryDb.id!!, categoryDb.stringId, Utils.CATEGORY_NAMES_DEFAULT[categoryDb.stringId]!!, categoryIcon)
     }
     return category
 }
 //TODO Context and string ids
-fun transactionWithCategoryToCategoryUi(transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
+fun transactionWithCategoryToCategoryUi(context: Context, transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
     val category = if(transactionWithItemAndCategory.categoryIsCustom) {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(transactionWithItemAndCategory.primaryCategoryId, null, transactionWithItemAndCategory.categoryName!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(transactionWithItemAndCategory.categoryStringId)!!
+        val categoryIcon = getMaterialResourceId(context, transactionWithItemAndCategory.categoryIcon)
         CategoryUi(transactionWithItemAndCategory.primaryCategoryId, transactionWithItemAndCategory.categoryStringId, Utils.CATEGORY_NAMES_DEFAULT[transactionWithItemAndCategory.categoryStringId]!!, categoryIcon)
     }
     return category
 }
 //TODO Context and string ids
-fun itemSumToCategoryUi(itemSumByCategory: ItemSumByCategory): CategoryUi {
+fun itemSumToCategoryUi(context: Context, itemSumByCategory: ItemSumByCategory): CategoryUi {
     val category = if(itemSumByCategory.isCustom) {
         val categoryIcon = R.drawable.baseline_category_24
         CategoryUi(itemSumByCategory.categoryId, null, itemSumByCategory.name!!, categoryIcon)
     } else {
-        val categoryIcon = Utils.CATEGORY_IDS_DEFAULT.get(itemSumByCategory.stringId)!!
+        val categoryIcon = getMaterialResourceId(context, itemSumByCategory.categoryIcon)
         CategoryUi(itemSumByCategory.categoryId, itemSumByCategory.stringId, Utils.CATEGORY_NAMES_DEFAULT[itemSumByCategory.stringId]!!, categoryIcon)
     }
     return category

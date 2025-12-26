@@ -292,6 +292,7 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             val categoryDao = appComponent.categoryDao()
             var anyCategoryNotExist = false
             for (category in Utils.CORE_CATEGORIES) {
+                val defaultIcon = Utils.CATEGORY_IDS_ICONS_DEFAULT[category]!!
                 val categoryDb = categoryDao.findByProfileIdAndStringId(profileId, category)
                     .subscribeOn(Schedulers.io())
                     .blockingGet()
@@ -306,7 +307,8 @@ open class ExpenseTracker : Application(), DraftFileHandler {
                             null,
                             dateString,
                             offset,
-                            zone
+                            zone,
+                            defaultIcon
                         )
                     )
                         .subscribeOn(Schedulers.io())

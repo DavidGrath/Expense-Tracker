@@ -86,7 +86,7 @@ constructor(
                 .subscribeOn(Schedulers.io())
                 .blockingGet()!!
         }
-        val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)), accountId)
+        val draft = AddEditDetailedTransactionDraft(listOf(AddTransactionItem(incrementId++, null, category.id!!, initialAmount, initialDescription)), accountId)
         LOGGER.info("Created draft with initial values")
         _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.All, -1))
         fileHandler.saveDraft(draft).subscribe()
@@ -112,7 +112,7 @@ constructor(
                         }
                         AddEditTransactionFile(it.id, uri, it.mimeType, it.sha256, it.sizeBytes, true)
                     }
-                    AddTransactionItem(incrementId++, it.id!!, categoryDbToCategoryUi(category),
+                    AddTransactionItem(incrementId++, it.id!!, category.id!!,
                         it.amount, it.description, false, it.brand, it.variation, it.referenceNumber, it.quantity, it.isReduction, it.ordinal, imagesDraft)
                 }
                 draft = draft.copy(items, imageHashes = imagesMap + existingDraft.imageHashes)
@@ -162,7 +162,7 @@ constructor(
             val maxId = items.map { it.id }.maxOrNull()
             if(maxId != null) {
                 incrementId = maxId + 1
-                val item = AddTransactionItem(incrementId, null, categoryDbToCategoryUi(category), initialAmount, initialDescription)
+                val item = AddTransactionItem(incrementId, null, category.id!!, initialAmount, initialDescription)
                 val newItems = listOf(item) + items
                 val newDraft = draft.copy(items = newItems)
                 _draftLiveData.postValue(Triple(newDraft, TransactionItemsEvent.Insert, 0))
@@ -181,7 +181,7 @@ constructor(
                 .blockingGet()!!
             val maxId = currentList.maxOfOrNull { it.id }?: -1
             incrementId = maxId + 1
-            val newItems = currentList + AddTransactionItem(incrementId++, null, categoryDbToCategoryUi(category))
+            val newItems = currentList + AddTransactionItem(incrementId++, null, category.id!!)
             draft = draft.copy(items = newItems)
             LOGGER.info("addItem: New list size: {}", newItems.size)
             _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.Insert, currentList.size))
@@ -695,11 +695,11 @@ constructor(
                     val item = if(draftItem.isReduction) {
                         TransactionItemDb(null, id, draftItem.amount!!, null, 1,
                             draftItem.description!!, "", null,
-                            draftItem.category.id, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
+                            draftItem.category, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
                     } else {
                         TransactionItemDb(null, id, draftItem.amount!!, draftItem.brand, draftItem.quantity,
                             draftItem.description!!, draftItem.variation, draftItem.referenceNumber,
-                            draftItem.category.id, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
+                            draftItem.category, draftItem.isReduction, itemOrdinal++, dateTimeString, offset, zone)
                     }
                     transactionItemRepository.addTransactionItem(item)
                         .flatMap {  itemId ->
@@ -785,7 +785,7 @@ constructor(
                         val amountToAdd = item.amount!!.times(BigDecimal(-1))
                         total = total.plus(amountToAdd)
                         val result = transactionItemDao.updateTransactionItem(
-                            item.dbId, item.amount!!, null, 1, item.description!!, item.category.id
+                            item.dbId, item.amount!!, null, 1, item.description!!, item.category
                         ).blockingGet()
                         if(result > 0) {
                             updatedCount += result
@@ -802,7 +802,7 @@ constructor(
                             item.brand,
                             item.quantity,
                             item.description!!,
-                            item.category.id
+                            item.category
                         ).blockingGet()
                         if (result > 0) {
                             updatedCount += result
@@ -822,7 +822,7 @@ constructor(
                             item.description!!,
                             "",
                             null,
-                            item.category.id,
+                            item.category,
                             item.isReduction, maxOrdinal++,
                             dateTime,
                             offset,
@@ -841,7 +841,7 @@ constructor(
                             item.description!!,
                             item.variation,
                             item.referenceNumber,
-                            item.category.id,
+                            item.category,
                             item.isReduction, maxOrdinal++,
                             dateTime,
                             offset,

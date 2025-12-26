@@ -713,12 +713,11 @@ class AddDetailedTransactionActivityTest {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, categoryStringId).subscribeOn(Schedulers.io()).blockingGet()!!
-        val categoryUi = categoryDbToCategoryUi(category)
         val evidenceMap = mutableMapOf<String, Uri>()
         for(resource in evidence) {
             evidenceMap[resource.sha256] = resource.uri
         }
-        return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, categoryUi, amount, description)), evidence = evidence, evidenceHashes = evidenceMap, accountId = accountId)
+        return AddEditDetailedTransactionDraft(items = listOf(AddTransactionItem(0, null, category.id!!, amount, description)), evidence = evidence, evidenceHashes = evidenceMap, accountId = accountId)
     }
 
     fun pickFileFromDevice() {
