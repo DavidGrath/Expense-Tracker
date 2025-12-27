@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.entities.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -21,5 +22,6 @@ data class CategoryDb(
     val createdAt: String,
     val createdAtOffset: String,
     val createdAtTimezone: String,
+    @ColumnInfo(defaultValue = "materialsymbols:category")
     val icon: String
 )
