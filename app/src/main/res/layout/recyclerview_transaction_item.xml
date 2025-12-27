@@ -11,7 +11,7 @@
         android:id="@+id/image_view_transaction_item_category"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:icon="@drawable/baseline_restaurant_24"
+        app:icon="@drawable/material_symbols_restaurant_48px"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"

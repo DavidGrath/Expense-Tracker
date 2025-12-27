@@ -30,7 +30,7 @@ class AccountsRecyclerAdapter(private var _items: List<AccountWithStatsUi>, val 
         holder.binding.let { binding ->
             _items[position].let { account ->
                 binding.textViewAccountName.text = account.name
-                if(account.currencyCode == account.currencyDisplayName) {
+                if(account.currencyCode == account.currencyDisplayName) { // Why did I do this?
                     binding.textViewAccountCurrencyCode.text = account.currencyCode
                 } else {
                     binding.textViewAccountCurrencyCode.text = "${account.currencyDisplayName} (${account.currencyCode})"

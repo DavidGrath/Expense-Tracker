@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.davidgrath.expensetracker.entities.db.CategoryDb
+import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
+import com.davidgrath.expensetracker.entities.db.views.CategoryWithStats
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
@@ -36,5 +38,13 @@ interface CategoryDao {
             "INNER JOIN TransactionItemCategoriesDb t on t.categoryId=c.id " +
             "WHERE t.transactionItemId=:transactionItemId")
     fun getOthersByTransactionItemId(transactionItemId: Long): Single<List<CategoryDb>>
+
+    @Query("SELECT c.id, c.profileId, c.stringId, c.isCustom, c.name, c.icon, " +
+            "(SELECT count(t.id) FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id WHERE ti.primaryCategoryId = c.id) as transactionCount," +
+            "(SELECT count(ti.id) FROM TransactionItemDb ti WHERE ti.primaryCategoryId = c.id) as itemCount " +
+            "FROM CategoryDb c " +
+            "WHERE c.profileId=:profileId"
+    )
+    fun getAllByProfileIdWithStats(profileId: Long): Observable<List<CategoryWithStats>>
     //endregion
 }

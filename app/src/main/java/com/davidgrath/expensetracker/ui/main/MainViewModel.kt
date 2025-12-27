@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.main
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Color
 import android.net.Uri
 import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.AndroidViewModel
@@ -176,11 +177,15 @@ constructor(
                     })
                     if(expenseIndex >= 0) {
                         val expenseSum = expenseList[expenseIndex].sum.toFloat()
-                        expenseEntries.add(BarEntry(index.toFloat(), expenseSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                        val drawable = ResourcesCompat.getDrawable(application.resources, cat.iconId, null)
+                        drawable!!.setTint(Color.BLACK)
+                        expenseEntries.add(BarEntry(index.toFloat(), expenseSum, drawable))
                     }
                     if(incomeIndex >= 0) {
                         val incomeSum = incomeList[incomeIndex].sum.toFloat()
-                        incomeEntries.add(BarEntry(index.toFloat(), incomeSum, ResourcesCompat.getDrawable(application.resources, cat.iconId, null)))
+                        val drawable = ResourcesCompat.getDrawable(application.resources, cat.iconId, null)
+                        drawable!!.setTint(Color.BLACK)
+                        incomeEntries.add(BarEntry(index.toFloat(), incomeSum, drawable))
                     }
                 }
                 /*val expenseMapped = expenseList.mapIndexed { i, it ->
@@ -608,6 +613,11 @@ constructor(
 
     fun doesDraftExist(): Boolean {
         return fileHandler.draftExists()
+    }
+
+    fun addCategory(categoryName: String, iconName: String) {
+        categoryRepository.addCategory(currentProfile, categoryName, "materialsymbols:$iconName")
+            .blockingSubscribe()
     }
 
 

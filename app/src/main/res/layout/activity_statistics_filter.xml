@@ -11,11 +11,66 @@
         android:layout_height="wrap_content"
         app:tabMode="scrollable"
         app:layout_constraintTop_toTopOf="parent"/>
+    <LinearLayout
+        android:id="@+id/linear_layout_statistics_filter_selection_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/tab_layout_statistics_filter">
+        <LinearLayout
+            android:id="@+id/linear_layout_statistics_filter_selection_section_all"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            app:tint="@color/black"
+            android:src="@drawable/material_symbols_check_box_48px"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select all"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/linear_layout_statistics_filter_selection_section_none"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            app:tint="@color/black"
+            android:src="@drawable/material_symbols_check_box_outline_blank_48px"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select none"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/linear_layout_statistics_filter_selection_section_invert"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            app:tint="@color/black"
+            android:src="@drawable/material_symbols_swap_horiz_48px"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Invert"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+    </LinearLayout>
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/view_pager_statistics_filter"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/tab_layout_statistics_filter"
+        app:layout_constraintTop_toBottomOf="@id/linear_layout_statistics_filter_selection_section"
         app:layout_constraintBottom_toBottomOf="parent"/>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_statistics_filter_done"

@@ -4,24 +4,21 @@ import android.graphics.Color
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.MaterialMetadata
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionBinding
-import com.davidgrath.expensetracker.databinding.TempCategoryBinding
-import com.davidgrath.expensetracker.entities.db.ImageDb
+import com.davidgrath.expensetracker.databinding.RecyclerviewAddCategoryIconBinding
 import com.davidgrath.expensetracker.getMaterialResourceId
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageRecyclerAdapter
-import com.davidgrath.expensetracker.ui.dialogs.AddAccountDialogFragment
 import org.slf4j.LoggerFactory
 
-class MaterialIconAdapter(private var symbols: List<MaterialMetadata.MaterialIcon>, var listener: OnImageClickListener? = null): RecyclerView.Adapter<MaterialIconAdapter.MaterialIconViewHolder>() {
+class MaterialIconAdapter(
+    private var symbols: List<String>,
+    var listener: MaterialIconClickListener? = null
+) : RecyclerView.Adapter<MaterialIconAdapter.MaterialIconViewHolder>() {
 
-    interface OnImageClickListener {
-        fun onImageClicked(uri: Uri)
+    interface MaterialIconClickListener {
+        fun onIconClicked(name: String)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MaterialIconViewHolder {
@@ -30,7 +27,7 @@ class MaterialIconAdapter(private var symbols: List<MaterialMetadata.MaterialIco
         val height = parent.width / 6
         val width = parent.width / 6
         val layoutParams = ViewGroup.LayoutParams(width, height)
-        val binding = TempCategoryBinding.inflate(inflater, parent, false)
+        val binding = RecyclerviewAddCategoryIconBinding.inflate(inflater, parent, false)
         val imageView = binding.root
 //        imageView.layoutParams = layoutParams
         return MaterialIconViewHolder(binding)
@@ -38,25 +35,34 @@ class MaterialIconAdapter(private var symbols: List<MaterialMetadata.MaterialIco
 
     override fun onBindViewHolder(holder: MaterialIconViewHolder, position: Int) {
 
-            val pos = holder.absoluteAdapterPosition
-            val symbol = symbols[pos]
+        val pos = holder.absoluteAdapterPosition
+        val symbol = symbols[pos]
         val imageView = holder.binding.root
-        val imageResource = getMaterialResourceId(imageView.context, symbol)
-        if(imageResource == 0) {
-                LOGGER.warn("Symbol {} has no resource", symbol)
-                imageView.setImageResource(R.drawable.baseline_category_24)
-            } else {
-
-//                val drawable = ResourcesCompat.getDrawable(imageView.context.resources, imageResource, null)!!
-                imageView.setImageResource(imageResource)
-            }
+        val imageResource = getMaterialResourceId(imageView.context, "materialsymbols:$symbol")
+        if (imageResource == 0) {
+            LOGGER.warn("Symbol {} has no resource", symbol)
+            imageView.setImageResource(R.drawable.baseline_category_24)
+        } else {
+            val drawable = ResourcesCompat.getDrawable(imageView.context.resources, imageResource, null)
+//            drawable!!.setTint(Color.BLACK)
+            imageView.setImageDrawable(drawable)
+        }
+        imageView.setOnClickListener {
+            listener?.onIconClicked(symbol)
+        }
     }
 
     override fun getItemCount(): Int {
         return symbols.size
     }
 
-    class MaterialIconViewHolder(val binding: TempCategoryBinding): RecyclerView.ViewHolder(binding.root)
+    fun setIcons(icons: List<String>) {
+        this.symbols = icons
+        notifyDataSetChanged()
+    }
+
+    class MaterialIconViewHolder(val binding: RecyclerviewAddCategoryIconBinding) :
+        RecyclerView.ViewHolder(binding.root)
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(MaterialIconAdapter::class.java)

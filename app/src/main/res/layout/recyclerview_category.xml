@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:background="@drawable/simple_border"
+    android:orientation="vertical"
+    android:padding="8dp">
+    <Button
+        android:id="@+id/image_view_categories_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/baseline_edit_24"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
+    <LinearLayout
+        android:id="@+id/linear_layout_categories"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/image_view_categories_edit">
+
+        <ImageView
+            android:id="@+id/image_view_categories_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/material_symbols_category_48px"
+            app:tint="@color/black" />
+
+        <Space
+            android:layout_width="16dp"
+            android:layout_height="0dp" />
+
+        <TextView
+            android:id="@+id/text_view_category_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Category"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/linear_layout_categories"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/image_view_categories_edit"
+        android:orientation="horizontal">
+        <TextView
+            android:id="@+id/text_view_categories_transaction_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            tools:text="2 transactions"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+        <TextView
+            android:id="@+id/text_view_categories_item_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            tools:text="5 items"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

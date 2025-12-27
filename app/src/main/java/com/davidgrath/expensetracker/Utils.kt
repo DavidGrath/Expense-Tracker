@@ -14,11 +14,13 @@ import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.db.SellerLocationDb
 import com.davidgrath.expensetracker.entities.db.TransactionDb
 import com.davidgrath.expensetracker.entities.db.views.AccountWithStats
+import com.davidgrath.expensetracker.entities.db.views.CategoryWithStats
 import com.davidgrath.expensetracker.entities.db.views.ItemSumByCategory
 import com.davidgrath.expensetracker.entities.db.views.TransactionWithItemAndCategory
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AccountWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.CategoryUi
+import com.davidgrath.expensetracker.entities.ui.CategoryWithStatsUi
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.entities.ui.GeneralTransactionListItem
 import com.davidgrath.expensetracker.entities.ui.ImageUi
@@ -146,6 +148,21 @@ fun loadMaterialSymbolsIcons(context: Context): Single<List<MaterialMetadata.Mat
         }
         symbolsOutlined
     }
+}
+
+fun iconsListToTagMap(symbolsList: List<MaterialMetadata.MaterialIcon>): Map<String, List<String>> {
+    val map = mutableMapOf<String, List<String>>()
+    for(icon in symbolsList) {
+        for(tag in icon.tags) {
+            var subList = map[tag] as MutableList?
+            if(subList == null) {
+                subList = mutableListOf()
+            }
+            subList.add(icon.name)
+            map.put(tag, subList)
+        }
+    }
+    return map
 }
 fun getMaterialResourceId(context: Context, icon: MaterialMetadata.MaterialIcon): Int {
     val resourceName = "material_symbols_${icon.name}_48px"
@@ -328,6 +345,18 @@ fun itemSumToCategoryUi(context: Context, itemSumByCategory: ItemSumByCategory):
     } else {
         val categoryIcon = getMaterialResourceId(context, itemSumByCategory.categoryIcon)
         CategoryUi(itemSumByCategory.categoryId, itemSumByCategory.stringId, Utils.CATEGORY_NAMES_DEFAULT[itemSumByCategory.stringId]!!, categoryIcon)
+    }
+    return category
+}
+
+//TODO Context and string ids
+fun categoryWithStatsToCategoryWithStatsUi(context: Context, categoryWithStats: CategoryWithStats): CategoryWithStatsUi {
+    val category = if(categoryWithStats.isCustom) {
+        val categoryIcon = getMaterialResourceId(context, categoryWithStats.icon)
+        CategoryWithStatsUi(categoryWithStats.id, categoryWithStats.profileId, null, categoryWithStats.isCustom, categoryWithStats.name!!, categoryWithStats.icon, categoryWithStats.transactionCount, categoryWithStats.itemCount, categoryIcon)
+    } else {
+        val categoryIcon = getMaterialResourceId(context, categoryWithStats.icon)
+        CategoryWithStatsUi(categoryWithStats.id, categoryWithStats.profileId, categoryWithStats.stringId, categoryWithStats.isCustom, Utils.CATEGORY_NAMES_DEFAULT[categoryWithStats.stringId]!!, categoryWithStats.icon, categoryWithStats.transactionCount, categoryWithStats.itemCount, categoryIcon)
     }
     return category
 }

@@ -17,6 +17,8 @@ import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
 import com.davidgrath.expensetracker.ui.main.accounts.AccountsFragment
+import com.davidgrath.expensetracker.ui.main.categories.AddCategoryActivity
+import com.davidgrath.expensetracker.ui.main.categories.CategoriesFragment
 import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsFragment
 import com.davidgrath.expensetracker.ui.main.images.ImageStatsFragment
 import com.davidgrath.expensetracker.ui.main.statistics.StatisticsFragment
@@ -143,11 +145,19 @@ class MainActivity : AppCompatActivity(), AccountsFragment.AccountsFragmentListe
                     }
                 }
             }
+            REQUEST_CODE_ADD_CATEGORY -> {
+                if(resultCode == RESULT_OK) {
+                    val name = data!!.getStringExtra(AddCategoryActivity.EXTRA_FINISH_CATEGORY_NAME)!!
+                    val icon = data!!.getStringExtra(AddCategoryActivity.EXTRA_FINISH_ICON)!!
+                    viewModel.addCategory(name, icon)
+                }
+            }
         }
     }
 
     companion object {
         const val REQUEST_CODE_OPEN_FILTER = 100
+        const val REQUEST_CODE_ADD_CATEGORY = 101
         private val LOGGER = LoggerFactory.getLogger(MainActivity::class.java)
     }
 }

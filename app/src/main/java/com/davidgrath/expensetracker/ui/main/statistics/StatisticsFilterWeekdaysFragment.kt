@@ -37,8 +37,10 @@ class StatisticsFilterWeekdaysFragment: Fragment() {
         val appComponent = app.appComponent
         appComponent.inject(this)
         val firstDay = WeekFields.of(timeAndLocaleHandler.getLocale()).firstDayOfWeek
+        val weekdays = mutableListOf<DayOfWeek>()
         for(weekdayInt in 0L..6L) {
             val weekDay = firstDay.plus(weekdayInt)
+            weekdays.add(weekDay)
             val linearLayout = binding.linearLayoutStatisticsFilterTemplate
             val checkbox = AppCompatCheckBox(requireContext())
             val layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -50,6 +52,7 @@ class StatisticsFilterWeekdaysFragment: Fragment() {
                 viewModel.toggleWeekDay(weekDay)
             }
         }
+        viewModel.setWeekdays(weekdays)
         viewModel.statisticsFilterLiveData.observe(viewLifecycleOwner) { filter ->
             val weekDays = filter.weekdays
             for((weekDay, cb) in weekDaysMap) {

@@ -1,7 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.statistics
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,7 +16,6 @@ import com.davidgrath.expensetracker.entities.db.ProfileDb
 import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.StatisticsFilter
-import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
 import com.davidgrath.expensetracker.repositories.ProfileRepository
@@ -45,8 +43,11 @@ class StatisticsFilterViewModel
     private var statisticsFilter: StatisticsFilter
     private var _statisticsFilterLiveData : MutableLiveData<StatisticsFilter>
     val statisticsFilterLiveData: LiveData<StatisticsFilter>
+    val categories: List<CategoryDb>
+
     val accounts: List<AccountUi>
     val sellers: List<SellerDb>
+    lateinit var _weekdays: List<DayOfWeek>
     private val gson = GsonBuilder()
         .registerTypeAdapter(DayOfWeek::class.java, DayOfWeekGsonAdapter())
         .registerTypeAdapter(LocalDate::class.java, LocalDateGsonAdapter())
@@ -59,6 +60,7 @@ class StatisticsFilterViewModel
         accounts = accountRepository.getAccountsForProfileSingle(profile.id!!).map { accounts ->
             accounts.map { accountDbToAccountUi(it, timeAndLocaleHandler.getLocale()) }
         }.blockingGet()
+        categories = getCategories().blockingGet()
         sellers = sellerRepository.getSellersSingle(profile.id!!).blockingGet()
 //        val file = file(application.filesDir, "profiles", profile.stringId, Constants.FILE_NAME_STATS_FILTER_DATA) //TODO Move all files to profiles/<stringId>
         val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
@@ -147,6 +149,128 @@ class StatisticsFilterViewModel
         _statisticsFilterLiveData.postValue(statisticsFilter)
     }
 
+    fun selectAll(filterScreen: StatisticsFilterActivity.FilterScreens) {
+        when(filterScreen) {
+            StatisticsFilterActivity.FilterScreens.Accounts -> {
+                val checkedAccounts = statisticsFilter.accountIds
+                val newAccountIds: List<Long>
+
+                    if(checkedAccounts.isEmpty()) {
+                        val firstCurrencyCode = accounts[0].currencyCode
+                        newAccountIds = accounts.filter { it.currencyCode == firstCurrencyCode }.map { it.id }
+                    } else {
+                        val selectedCurrency = checkedAccounts.map { id -> accounts.find { it.id == id }!! }[0].currencyCode
+                        newAccountIds = accounts.filter { it.currencyCode == selectedCurrency }.map { it.id }
+                    }
+
+                statisticsFilter = statisticsFilter.copy(accountIds = newAccountIds)
+            }
+            StatisticsFilterActivity.FilterScreens.Categories -> {
+                statisticsFilter = statisticsFilter.copy(categories = categories.map { it.id!! })
+            }
+            StatisticsFilterActivity.FilterScreens.Sellers -> {
+                statisticsFilter = statisticsFilter.copy(sellerIds = sellers.map { it.id!! })
+            }
+            StatisticsFilterActivity.FilterScreens.Modes -> {
+                statisticsFilter = statisticsFilter.copy(modes = TransactionMode.values().toList())
+            }
+            StatisticsFilterActivity.FilterScreens.Weekdays -> {
+                statisticsFilter = statisticsFilter.copy(weekdays = _weekdays)
+            }
+        }
+
+        _statisticsFilterLiveData.postValue(statisticsFilter)
+    }
+
+    fun selectNone(filterScreen: StatisticsFilterActivity.FilterScreens) {
+        when(filterScreen) {
+            StatisticsFilterActivity.FilterScreens.Accounts -> {
+                statisticsFilter = statisticsFilter.copy(accountIds = emptyList())
+            }
+            StatisticsFilterActivity.FilterScreens.Categories -> {
+                statisticsFilter = statisticsFilter.copy(categories = emptyList())
+            }
+            StatisticsFilterActivity.FilterScreens.Sellers -> {
+                statisticsFilter = statisticsFilter.copy(sellerIds = emptyList())
+            }
+            StatisticsFilterActivity.FilterScreens.Modes -> {
+                statisticsFilter = statisticsFilter.copy(modes = emptyList())
+            }
+            StatisticsFilterActivity.FilterScreens.Weekdays -> {
+                statisticsFilter = statisticsFilter.copy(weekdays = emptyList())
+            }
+        }
+
+        _statisticsFilterLiveData.postValue(statisticsFilter)
+    }
+
+    fun invertSelection(filterScreen: StatisticsFilterActivity.FilterScreens) {
+        when(filterScreen) {
+            StatisticsFilterActivity.FilterScreens.Accounts -> {
+                val checkedAccounts = statisticsFilter.accountIds
+                val newAccountIds: List<Long>
+                if(checkedAccounts.isEmpty()) {
+                    val firstCurrencyCode = accounts[0].currencyCode
+                    newAccountIds = accounts.filter { it.currencyCode == firstCurrencyCode }.map { it.id }
+                } else {
+                    val selectedCurrency = checkedAccounts.map { id -> accounts.find { it.id == id }!! }[0].currencyCode
+                    val currencyMatchedAccounts = accounts.filter { it.currencyCode == selectedCurrency }
+                    val mutableList = mutableListOf<Long>()
+                    for(account in currencyMatchedAccounts) {
+                        if(account.id !in checkedAccounts) {
+                            mutableList += account.id
+                        }
+                    }
+                    newAccountIds = mutableList
+                }
+
+                statisticsFilter = statisticsFilter.copy(accountIds = newAccountIds)
+            }
+            StatisticsFilterActivity.FilterScreens.Categories -> {
+                val selectedCategories = statisticsFilter.categories
+                val newCategories = mutableListOf<Long>()
+                for(category in categories) {
+                    if(category.id!! !in selectedCategories) {
+                        newCategories += category.id
+                    }
+                }
+                statisticsFilter = statisticsFilter.copy(categories = newCategories)
+            }
+            StatisticsFilterActivity.FilterScreens.Sellers -> {
+                val selectedSellers = statisticsFilter.sellerIds
+                val newSellers = mutableListOf<Long>()
+                for(seller in sellers) {
+                    if(seller.id!! !in selectedSellers) {
+                        newSellers += seller.id
+                    }
+                }
+                statisticsFilter = statisticsFilter.copy(sellerIds = newSellers)
+            }
+            StatisticsFilterActivity.FilterScreens.Modes -> {
+                val selectedModes = statisticsFilter.modes
+                val newModes = mutableListOf<TransactionMode>()
+                for(mode in TransactionMode.values().toList()) {
+                    if(mode !in selectedModes) {
+                        newModes += mode
+                    }
+                }
+                statisticsFilter = statisticsFilter.copy(modes = newModes)
+            }
+            StatisticsFilterActivity.FilterScreens.Weekdays -> {
+                val selectedWeekdays = statisticsFilter.weekdays
+                val newWeekdays = mutableListOf<DayOfWeek>()
+                for(weekday in _weekdays) {
+                    if(weekday !in selectedWeekdays) {
+                        newWeekdays += weekday
+                    }
+                }
+                statisticsFilter = statisticsFilter.copy(weekdays = newWeekdays)
+            }
+        }
+
+        _statisticsFilterLiveData.postValue(statisticsFilter)
+    }
+
     fun saveStatisticsFilterToFile(): Single<Unit> {
         return Single.fromCallable {
             val file = File(application.filesDir, Constants.FILE_NAME_STATS_FILTER_DATA)
@@ -162,6 +286,10 @@ class StatisticsFilterViewModel
             LOGGER.info("Delete statistics JSON file: {}", b)
         }
         super.onCleared()
+    }
+
+    fun setWeekdays(weekdays: List<DayOfWeek>) {
+        this._weekdays = weekdays
     }
 
     companion object {

@@ -86,6 +86,9 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
             }
         }
         tabLayoutMediator.attach()
+        binding.linearLayoutStatisticsFilterSelectionSectionAll.setOnClickListener(this)
+        binding.linearLayoutStatisticsFilterSelectionSectionNone.setOnClickListener(this)
+        binding.linearLayoutStatisticsFilterSelectionSectionInvert.setOnClickListener(this)
 
         binding.fabStatisticsFilterDone.setOnClickListener(this)
         setContentView(binding.root)
@@ -99,6 +102,18 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
                 viewModel.saveStatisticsFilterToFile().blockingSubscribe()
                 setResult(RESULT_OK)
                 finish()
+            }
+            binding.linearLayoutStatisticsFilterSelectionSectionAll -> {
+                val selectedTab = binding.tabLayoutStatisticsFilter.selectedTabPosition
+                viewModel.selectAll(positionToFilterScreen(selectedTab))
+            }
+            binding.linearLayoutStatisticsFilterSelectionSectionNone -> {
+                val selectedTab = binding.tabLayoutStatisticsFilter.selectedTabPosition
+                viewModel.selectNone(positionToFilterScreen(selectedTab))
+            }
+            binding.linearLayoutStatisticsFilterSelectionSectionInvert -> {
+                val selectedTab = binding.tabLayoutStatisticsFilter.selectedTabPosition
+                viewModel.invertSelection(positionToFilterScreen(selectedTab))
             }
         }
     }
@@ -114,12 +129,17 @@ class StatisticsFilterActivity: AppCompatActivity(), OnClickListener {
         }
     }
 
+    fun positionToFilterScreen(position: Int): FilterScreens {
+        val screen = FilterScreens.values().firstOrNull { it.position == position }
+        return screen?: FilterScreens.Accounts
+    }
+
     enum class FilterScreens(val position: Int) {
         Accounts(0),
-        Weekdays(1),
-        Categories(2),
+        Categories(1),
+        Sellers(2),
         Modes(3),
-        Sellers(4)
+        Weekdays(4)
     }
 
     companion object {

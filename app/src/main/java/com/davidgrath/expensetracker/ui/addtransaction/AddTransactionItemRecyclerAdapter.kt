@@ -168,6 +168,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     latestItem = latestItem.copy(showDetails = !latestItem.showDetails)
                     listener?.onItemChangedInvalidate(absPosition, latestItem)
                     if(latestItem.showDetails) {
+                        //TODO Doesn't work properly. Fix
                         binding.imageViewAddDetailedTransactionItemShowDetails.animate().setDuration(500L).rotation(0f).start()
                     } else {
                         binding.imageViewAddDetailedTransactionItemShowDetails.animate().setDuration(500L).rotation(90f).start()
