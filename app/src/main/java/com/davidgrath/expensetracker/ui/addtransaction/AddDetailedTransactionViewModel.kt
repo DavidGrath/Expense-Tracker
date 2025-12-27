@@ -146,7 +146,7 @@ class AddDetailedTransactionViewModel(
             sellersMediatorLiveData.postValue(sellersMediatorLiveData.value?.first to it)
         }
 
-        sellerLocationsMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerId }) {
+        sellerLocationsMediatorLiveData.addSource(addDetailedTransactionRepository.getDraft().map { it.first.sellerLocation?.id }) {
             sellerLocationsMediatorLiveData.postValue(it to (sellerLocationsLiveData.value?: emptyList()))
         }
         sellerLocationsMediatorLiveData.addSource(sellerLocationsLiveData) {

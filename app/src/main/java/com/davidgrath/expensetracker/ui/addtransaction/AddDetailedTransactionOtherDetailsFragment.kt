@@ -289,7 +289,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
         binding.spinnerAddDetailedTransactionSellerLocation.adapter = sellerLocationAdapter
         binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
 
-        viewModel.sellerLocationsMediatorLiveData.observe(viewLifecycleOwner) { (sellerId, sellers) ->
+        viewModel.sellerLocationsMediatorLiveData.observe(viewLifecycleOwner) { (sellerLocationId, sellers) ->
             sellerLocationAdapter.setItems(sellers)
             if(binding.spinnerAddDetailedTransactionSellerLocation.selectedItemPosition == Spinner.INVALID_POSITION) {
                 binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
@@ -297,7 +297,7 @@ class AddDetailedTransactionOtherDetailsFragment: Fragment(), OnClickListener,
                 binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = sellerLocationListener
             }
 
-            val sellerLocationPosition = sellerLocationAdapter._objects.indexOfFirst { it.id == sellerId }
+            val sellerLocationPosition = sellerLocationAdapter._objects.indexOfFirst { it.id == sellerLocationId }
             binding.spinnerAddDetailedTransactionSellerLocation.onItemSelectedListener = null
 
             if(sellerLocationPosition == -1) {

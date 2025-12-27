@@ -17,16 +17,60 @@
         android:contentDescription="Remove Item"
         android:layout_gravity="end"
         android:visibility="gone"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Amount"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
-    <EditText
-        android:id="@+id/edit_text_add_detailed_transaction_item_amount"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="numberDecimal"/>
+        android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="9"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Amount"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            <EditText
+                android:id="@+id/edit_text_add_detailed_transaction_item_amount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"/>
+        </LinearLayout>
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quantity"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+            <EditText
+                android:id="@+id/edit_text_add_detailed_transaction_item_quantity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:inputType="number"/>
+        </LinearLayout>
+    </LinearLayout>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp"/>
+    <TextView
+        android:id="@+id/text_view_add_detailed_transaction_item_unit_price"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Unit price: 0.00"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"/>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="8dp"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -133,16 +177,7 @@
         android:layout_height="wrap_content"
         android:completionThreshold="1"
         android:hint="e.g. XL, 500g, Chocolate"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Quantity"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
-    <EditText
-        android:id="@+id/edit_text_add_detailed_transaction_item_quantity"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="number"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">

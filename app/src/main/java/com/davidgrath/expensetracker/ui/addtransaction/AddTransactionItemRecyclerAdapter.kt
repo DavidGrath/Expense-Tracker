@@ -22,6 +22,7 @@ import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.ui.SpinnerCategoryAdapter
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>, val timeAndLocaleHandler: TimeAndLocaleHandler,
                                         var descriptionSuggestionsAdapter: DescriptionSuggestionsAdapter,
@@ -101,6 +102,28 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                     currentItem = absPosition
                     if (latestItem.amount != amount) {
                         listener?.onItemChanged(absPosition, latestItem.copy(amount = amount))
+                    }
+                    if(!latestItem.isReduction) {
+                        val itemQuantity = latestItem.quantity
+                        if (itemQuantity > 0) {
+                            val quantityBD = BigDecimal(itemQuantity)
+                            val unitPrice = (amount ?: BigDecimal.ZERO).divide(
+                                quantityBD,
+                                2,
+                                RoundingMode.HALF_UP
+                            )
+                            binding.textViewAddDetailedTransactionItemUnitPrice.text =
+                                "Unit price: ${
+                                    formatDecimal(
+                                        unitPrice,
+                                        timeAndLocaleHandler.getLocale()
+                                    )
+                                }"
+                        } else {
+                            binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
+                        }
+                    } else {
+                        binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
                     }
                 }
                 binding.editTextAddDetailedTransactionItemAmount.addTextChangedListener(newAmountWatcher)
@@ -238,6 +261,28 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                 textWatcherVariationMap[binding.editTextAddDetailedTransactionItemVariation.hashCode()] = newVariationWatcher
                 //endregion
 
+                if(!cachedItem.isReduction) {
+                    val itemQuantity = cachedItem.quantity
+                    if (itemQuantity > 0) {
+                        val quantityBD = BigDecimal(itemQuantity)
+                        val unitPrice = (cachedItem.amount ?: BigDecimal.ZERO).divide(
+                            quantityBD,
+                            2,
+                            RoundingMode.HALF_UP
+                        )
+                        binding.textViewAddDetailedTransactionItemUnitPrice.text = "Unit price: ${
+                            formatDecimal(
+                                unitPrice,
+                                timeAndLocaleHandler.getLocale()
+                            )
+                        }"
+                    } else {
+                        binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
+                    }
+                } else {
+                    binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
+                }
+
                 val oldQuantityWatcher = textWatcherQuantityMap[binding.editTextAddDetailedTransactionItemQuantity.hashCode()]
                 if(oldQuantityWatcher != null) {
                     binding.editTextAddDetailedTransactionItemQuantity.removeTextChangedListener(oldQuantityWatcher)
@@ -253,6 +298,28 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
 
                         if (latestItem.quantity != (amount?.toInt() ?: 1)) {
                             listener?.onItemChanged(absPosition, latestItem.copy(quantity = amount?.toInt() ?: 1))
+                        }
+                        if(!latestItem.isReduction) {
+                            val itemQuantity = amount?.toInt() ?: 1
+                            if (itemQuantity > 0) {
+                                val quantityBD = BigDecimal(itemQuantity)
+                                val unitPrice = (latestItem.amount ?: BigDecimal.ZERO).divide(
+                                    quantityBD,
+                                    2,
+                                    RoundingMode.HALF_UP
+                                )
+                                binding.textViewAddDetailedTransactionItemUnitPrice.text =
+                                    "Unit price: ${
+                                        formatDecimal(
+                                            unitPrice,
+                                            timeAndLocaleHandler.getLocale()
+                                        )
+                                    }"
+                            } else {
+                                binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
+                            }
+                        } else {
+                            binding.textViewAddDetailedTransactionItemUnitPrice.text = ""
                         }
                     }
                 }
