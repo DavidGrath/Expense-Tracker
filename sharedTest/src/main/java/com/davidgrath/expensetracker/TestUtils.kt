@@ -258,7 +258,7 @@ fun <VH : RecyclerView.ViewHolder> assertRecyclerViewItemSpinnerText(@IdRes recy
         }
 }
 
-fun addContentProviderResources(context: Context, classLoader: ClassLoader, vararg images: TestData.Resource) {
+fun addContentProviderResources(context: Context, classLoader: ClassLoader, vararg images: TestData.Resource) {  //TODO Move these to their specific "modules" so I can't mix them up
     val contentDir = File(context.filesDir, TestConstants.FOLDER_NAME_CONTENT_PROVIDER)
     contentDir.mkdir()
     for (image in images) {

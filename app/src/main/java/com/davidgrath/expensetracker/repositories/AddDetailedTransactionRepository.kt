@@ -61,7 +61,7 @@ constructor(
     private var draft = AddEditDetailedTransactionDraft(emptyList(), -1)
     private val _draftLiveData = MutableLiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>>(Triple(draft, TransactionItemsEvent.None, -1))
     private val draftLiveData: LiveData<Triple<AddEditDetailedTransactionDraft, TransactionItemsEvent, Int>> = _draftLiveData
-    private var currentMode = "add"
+    private var currentMode = "add" //TODO enum
     private var transactionId: Long? = null
     private var profileId: Long? = null
     private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -337,9 +337,10 @@ constructor(
                 LOGGER.info("addImageToItem: Image already exists for item {}", itemId)
                 return@fromCallable Unit
             }
-//            if (item.images.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
-//                return
-//            }
+            if (item.images.size >= Constants.MAX_ITEMS_ADD_DETAILED_TRANSACTION_IMAGES_PER_ITEM) {
+                LOGGER.info("addImageToItem: Max image count reached for item {}", itemId)
+                return@fromCallable Unit
+            }
             val index = currentList.indexOf(item)
             var newItem = item
             val uri: Uri

@@ -1001,7 +1001,7 @@ class AddDetailedTransactionRepositoryTest {
     // endregion
 
     @Test
-    @Ignore("Not ready yet")
+    @Ignore("I've switched from using the whole entity that would statically contain the name, to just the raw ID, so this test may not be needed again")
     fun givenCustomCategoryModifiedWhenRestoreDraftThenDraftCategoryCorrect() {
 
     }
@@ -1211,6 +1211,7 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
+    //TODO There's some behaviour here I need to change before copying these ordinal tests over to the backend
     fun givenModeIsEditAndTransactionDateDifferentFromOriginalDateWhenSaveThenTransactionHasNewOrdinal() {
         val firstDate = LocalDate.parse("2025-06-15")
         val secondDate = LocalDate.parse("2025-06-30")

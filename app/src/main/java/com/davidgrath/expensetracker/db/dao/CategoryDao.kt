@@ -40,7 +40,7 @@ interface CategoryDao {
     fun getOthersByTransactionItemId(transactionItemId: Long): Single<List<CategoryDb>>
 
     @Query("SELECT c.id, c.profileId, c.stringId, c.isCustom, c.name, c.icon, " +
-            "(SELECT count(t.id) FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id WHERE ti.primaryCategoryId = c.id) as transactionCount," +
+            "(SELECT count(distinct(t.id)) FROM TransactionDb t INNER JOIN TransactionItemDb ti ON ti.transactionId=t.id WHERE ti.primaryCategoryId = c.id) as transactionCount," +
             "(SELECT count(ti.id) FROM TransactionItemDb ti WHERE ti.primaryCategoryId = c.id) as itemCount " +
             "FROM CategoryDb c " +
             "WHERE c.profileId=:profileId"

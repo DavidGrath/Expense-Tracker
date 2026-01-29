@@ -47,6 +47,7 @@ import org.threeten.bp.MonthDay
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
+import org.threeten.bp.temporal.ChronoUnit
 import org.threeten.bp.temporal.WeekFields
 import javax.inject.Inject
 
@@ -373,7 +374,8 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
             val instant = Instant.ofEpochMilli(it)
             val localDate = instant.atZone(timeAndLocaleHandler.getZone()).toLocalDate()
             val today = LocalDate.now(timeAndLocaleHandler.getClock())
-            val dateDiff = Duration.between(today, localDate).toDays()
+//            val dateDiff = Duration.between(today, localDate).toDays()
+            val dateDiff = ChronoUnit.DAYS.between(today, localDate)
             viewModel.setXLyOffset(dateDiff.toInt())
         }
     }

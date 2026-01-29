@@ -94,7 +94,7 @@ class Utils {
         //TODO Context and string ids
         val CATEGORY_NAMES_DEFAULT = mapOf(
             "food" to "Food",
-            "rent" to "Housing",
+            "rent" to "Rent and house bills",
             "utilities" to "Utilities",
             "transportation" to "Transportation",
             "healthcare" to "Healthcare",
@@ -329,7 +329,7 @@ fun categoryDbToCategoryUi(context: Context, categoryDb: CategoryDb): CategoryUi
 //TODO Context and string ids
 fun transactionWithCategoryToCategoryUi(context: Context, transactionWithItemAndCategory: TransactionWithItemAndCategory): CategoryUi {
     val category = if(transactionWithItemAndCategory.categoryIsCustom) {
-        val categoryIcon = R.drawable.baseline_category_24
+        val categoryIcon = getMaterialResourceId(context, transactionWithItemAndCategory.categoryIcon)
         CategoryUi(transactionWithItemAndCategory.primaryCategoryId, null, transactionWithItemAndCategory.categoryName!!, categoryIcon)
     } else {
         val categoryIcon = getMaterialResourceId(context, transactionWithItemAndCategory.categoryIcon)
@@ -340,7 +340,7 @@ fun transactionWithCategoryToCategoryUi(context: Context, transactionWithItemAnd
 //TODO Context and string ids
 fun itemSumToCategoryUi(context: Context, itemSumByCategory: ItemSumByCategory): CategoryUi {
     val category = if(itemSumByCategory.isCustom) {
-        val categoryIcon = R.drawable.baseline_category_24
+        val categoryIcon = getMaterialResourceId(context, itemSumByCategory.categoryIcon)
         CategoryUi(itemSumByCategory.categoryId, null, itemSumByCategory.name!!, categoryIcon)
     } else {
         val categoryIcon = getMaterialResourceId(context, itemSumByCategory.categoryIcon)
