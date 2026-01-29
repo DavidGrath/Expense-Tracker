@@ -374,7 +374,6 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
             val instant = Instant.ofEpochMilli(it)
             val localDate = instant.atZone(timeAndLocaleHandler.getZone()).toLocalDate()
             val today = LocalDate.now(timeAndLocaleHandler.getClock())
-//            val dateDiff = Duration.between(today, localDate).toDays()
             val dateDiff = ChronoUnit.DAYS.between(today, localDate)
             viewModel.setXLyOffset(dateDiff.toInt())
         }

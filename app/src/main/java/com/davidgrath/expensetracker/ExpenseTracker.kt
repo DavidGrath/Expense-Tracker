@@ -50,6 +50,11 @@ open class ExpenseTracker : Application(), DraftFileHandler {
         LOGGER = LoggerFactory.getLogger(ExpenseTracker::class.java)
         appComponent = DaggerMainComponent.builder().mainModule(MainModule(this, this)).build()
         preferences = getSharedPreferences(Constants.DEFAULT_PREFERENCES_FILE_NAME, MODE_PRIVATE)
+        val defaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            LOGGER.error("Crash: Uncaught exception: ", e)
+            defaultExceptionHandler?.uncaughtException(t, e)
+        }
         tempInit().subscribeOn(Schedulers.io()).blockingGet()
     }
 
