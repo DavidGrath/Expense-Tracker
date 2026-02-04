@@ -1352,6 +1352,36 @@ class AddDetailedTransactionRepositoryTest {
     }
 
     @Test
+    fun givenTransactionTimeNotNullAndNotChangedAndAnotherTransactionWithinTheSameDateHasTimeAndYetAnotherTransactionAfterThatHasTimeWhenSaveTransactionThenTransactionStaysInPlace() {
+        val id = dataBuilder.createTransaction()
+            .withItem("Description", "miscellaneous", BigDecimal(20))
+            .atTime(LocalTime.parse("08:00:00"))
+            .commit().first()
+        val id2 = dataBuilder.createTransaction()
+            .withItem("niotpircseD", "fitness", BigDecimal(30))
+            .atTime(LocalTime.parse("08:01:00"))
+            .commit().first()
+        val id3 = dataBuilder.createTransaction()
+            .withItem("D", "food", BigDecimal(30))
+            .commit().first()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).blockingGet()
+        var transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        var transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        assertTrue(transaction.ordinal < transaction2.ordinal)
+        repository.setProfile(profile.id!!)
+        repository.setMode("edit")
+        repository.initializeEdit(id).blockingSubscribe()
+//        repository.setTime(LocalTime.parse("08:03:00"))
+        repository.finishTransaction().blockingSubscribe()
+
+        transaction = transactionRepository.getTransactionByIdSingle(id).blockingGet()
+        transaction2 = transactionRepository.getTransactionByIdSingle(id2).blockingGet()
+        val transaction3 = transactionRepository.getTransactionByIdSingle(id3).blockingGet()
+        LOGGER.debug("Ordinals: {}", listOf(transaction.ordinal, transaction2.ordinal, transaction3.ordinal))
+        assertTrue(transaction.ordinal < transaction2.ordinal && transaction.ordinal < transaction3.ordinal)
+    }
+
+    @Test
     fun timeInBetweenTest() {
 
         val id = dataBuilder.createTransaction()

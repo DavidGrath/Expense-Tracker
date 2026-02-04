@@ -31,6 +31,9 @@ interface TransactionDao {
     @Query("SELECT * FROM TransactionDb")
     fun getAllTemp(): Single<List<TransactionDb>>
 
+
+    // :-( https://stackoverflow.com/questions/2421189/version-of-sqlite-used-in-android
+    // Window functions are in API 30
     @Query("SELECT date(datedAt) as aggregateDate, sum(amount) as sum FROM TransactionDb t " +
             "INNER JOIN AccountDb a ON a.id = t.accountId " +
             "WHERE a.profileId=:profileId " +

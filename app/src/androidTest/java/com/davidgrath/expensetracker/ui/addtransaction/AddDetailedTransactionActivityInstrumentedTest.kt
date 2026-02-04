@@ -75,6 +75,24 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * ToDo Make a full "use case"/"acceptance" test, including these steps
+ *  1. Open draft screen
+ *  2. Make all possible changes, including seller, location, custom time, document, additional item, image for item, description, note, etc
+ *  3. Recreate activity to test that draft saving and restoration work well
+ *  4. Save draft
+ *  5. Check details screen. Assert correctness where applicable
+ *  6. Open edit screen
+ *  7. Change basically everything
+ *  7b. Do **NOT** recreate the activity because I haven't designed edits to persist like that
+ *  8. Save and verify again
+ *
+ *  I'm not sure exactly where to place this test since it's so different. Thoughts include:
+ *  * Separate build variant called "acceptance"
+ *  * I don't think JUnit exclude works well with test<Variant>UnitTest based on past attempts, but I'd like to use that if possible
+ *  * Possibly work with Categories, though from what I glance, it uses up the RunWith annotation
+ *  * Contemplate Jupiter, I think it has features that make this easier, although I don't know what the learning curve is like
+ */
 @RunWith(AndroidJUnit4::class)
 class AddDetailedTransactionActivityInstrumentedTest {
 
@@ -539,6 +557,9 @@ class AddDetailedTransactionActivityInstrumentedTest {
         return resolveInfo?.activityInfo?.packageName
     }
 
+    /**
+     * TODO This class was made early on when I didn't know exactly how to work with Espresso. Marked for deletion
+     */
     class TagMatcher(private val tag: Long): TypeSafeMatcher<View>() {
         override fun describeTo(description: Description?) {
             description?.appendText("Has tag $tag")

@@ -985,8 +985,8 @@ constructor(
                         transactionOrdinal = maxTransactionOrdinal + 1
                     }
                 } else {
-                    val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
-                    transactionOrdinal = maxTransactionOrdinal + 1
+//                    val maxTransactionOrdinal = transactionRepository.getMaxOrdinalInDayForAccount(draft.accountId, datedDate).blockingGet()?: 0
+//                    transactionOrdinal = maxTransactionOrdinal + 1
                 }
             }
             updatedTransaction =
