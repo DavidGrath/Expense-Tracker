@@ -61,7 +61,9 @@ import com.davidgrath.expensetracker.repositories.TransactionRepository
 import com.davidgrath.expensetracker.scrollRecyclerViewItem
 import com.davidgrath.expensetracker.typeTextRecyclerViewItem
 import com.davidgrath.expensetracker.ui.main.MainActivity
+import com.squareup.rx3.idler.Rx3Idler
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.hamcrest.CoreMatchers.allOf
 import javax.inject.Inject
@@ -71,6 +73,8 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -120,6 +124,15 @@ class AddDetailedTransactionActivityInstrumentedTest {
     lateinit var database: ExpenseTrackerDatabase
     lateinit var app: InstrumentedTestExpenseTracker
     lateinit var uiDevice: UiDevice
+
+    //TODO Might remove. Trying to fix an issue with Glide, the AddImageDialog, and loading affecting layout
+    /*companion object {
+        @JvmStatic
+        @BeforeClass
+        fun setUpClass() {
+            RxJavaPlugins.setInitIoSchedulerHandler(Rx3Idler.create("Instrumented Rx3 Handler"))
+        }
+    }*/
 
     @Before
     fun setUp() {
@@ -450,6 +463,9 @@ class AddDetailedTransactionActivityInstrumentedTest {
         val done = uiDevice.findObject(UiSelector().resourceId(doneButtonId))
         uiDevice.performActionAndWait( {done.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
 
+        val addImageOk = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+        uiDevice.performActionAndWait( {addImageOk.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
+
         val draft = addDetailedTransactionRepository.getDraftValue()
         val items = draft.items
         val itemImages = items[0].images
@@ -495,6 +511,9 @@ class AddDetailedTransactionActivityInstrumentedTest {
 
         val done = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/btn_done"))
         done.click()
+
+        val addImageOk = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+        uiDevice.performActionAndWait( {addImageOk.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
 
         val draft = addDetailedTransactionRepository.getDraftValue()
         val items = draft.items
@@ -542,9 +561,75 @@ class AddDetailedTransactionActivityInstrumentedTest {
         val done = uiDevice.findObject(UiSelector().resourceId("com.android.camera:id/btn_done"))
         done.click()
 
+        val addImageOk = uiDevice.findObject(UiSelector().resourceIdMatches(".*button1"))
+        uiDevice.performActionAndWait( {addImageOk.click()}, Until.newWindow(), LAUNCH_TIMEOUT)
+
         val draft = addDetailedTransactionRepository.getDraftValue()
         val items = draft.items
         val itemImages = items[0].images
+        assertEquals(1, itemImages.size)
+    }
+
+    @Test
+    @Ignore("This test mostly works, but unfortunately, the timing for when the second checkbox becomes visible is inconsistent. Maybe I can fix it later") //TODO
+    fun addImageWithModificationsTest() {
+
+        //Add image to item
+        val context = ApplicationProvider.getApplicationContext<ExpenseTracker>()
+        addContentProviderResourcesInstrumented(context, TestData.Resource.Images.DUMBBELLS_1_GEOTAGGED)
+
+        val addDetailedTransactionActivityScenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
+        //Open Image from system
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+        val returnIntent = Intent().also {
+            it.data = TestData.Resource.Images.DUMBBELLS_1_GEOTAGGED.uri
+        }
+
+
+        Intents.intending(IntentMatchers.hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+
+        onView(withId(R.id.image_view_add_external_media_device_file)).inRoot(isDialog()).perform(click())
+        onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
+
+        //Select remove location, select compress
+        onView(withId(R.id.check_box_add_image_remove_location)).inRoot(isDialog()).perform(click())
+        onView(withId(R.id.check_box_add_image_reduce_size)).inRoot(isDialog()).perform(click())
+        onView(withId(android.R.id.button1)).inRoot(isDialog()).perform(click())
+        //Assert that an image view is present in first item
+        var draft = addDetailedTransactionRepository.getDraftValue()
+        var items = draft.items
+        var itemImages = items[0].images
+        assertEquals(1, itemImages.size)
+        //Add second item
+        onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item))
+            .perform(scrollTo(),  click())
+        //Add image
+        Intents.intending(IntentMatchers.hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            1,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        //Assert no dialog
+
+        //Assert image is added to second item
+        draft = addDetailedTransactionRepository.getDraftValue()
+        items = draft.items
+        itemImages = items[1].images
         assertEquals(1, itemImages.size)
     }
 

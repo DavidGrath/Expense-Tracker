@@ -201,11 +201,14 @@ open class ExpenseTracker : Application(), DraftFileHandler {
             outputStream.close()
             LOGGER.info("copyUriToDraft: Created file {}", subPath) //TODO Make a makeshift relativize
             if(uri.scheme == ContentResolver.SCHEME_FILE) {
-                LOGGER.info("copyUriToDraft: File was copied to app from camera. Deleting original")
+                LOGGER.info("copyUriToDraft: Uri has file scheme. Checking if file from camera exists")
                 val cameraDirectory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
                 val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
                 if(cameraFile.exists()) {
+                    LOGGER.info("copyUriToDraft: File was copied to app from camera. Deleting original")
                     cameraFile.delete()
+                } else {
+                    LOGGER.info("Camera file was not found")
                 }
             }
             file.toUri()

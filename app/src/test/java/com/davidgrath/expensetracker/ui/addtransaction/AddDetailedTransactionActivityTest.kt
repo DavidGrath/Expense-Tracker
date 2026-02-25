@@ -47,6 +47,7 @@ import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.formatBytes
 import com.davidgrath.expensetracker.getDefaultAccountId
 import com.davidgrath.expensetracker.inputNumberRecyclerViewItem
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -66,6 +67,7 @@ import org.hamcrest.CoreMatchers.not
 import javax.inject.Inject
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.BeforeClass
@@ -106,6 +108,7 @@ class AddDetailedTransactionActivityTest {
     @Inject
     lateinit var timeAndLocaleHandler: TimeAndLocaleHandler
     lateinit var app: TestExpenseTracker
+    var scenario: ActivityScenario<*>? = null
 
     companion object {
         @JvmStatic
@@ -128,6 +131,7 @@ class AddDetailedTransactionActivityTest {
         app = RuntimeEnvironment.getApplication() as TestExpenseTracker
         (app.appComponent as TestComponent).inject(this)
         Robolectric.setupContentProvider(TestContentProvider::class.java, TestContentProvider.AUTHORITY)
+        scenario = null
     }
 
     @After
@@ -139,11 +143,15 @@ class AddDetailedTransactionActivityTest {
         contentFolder.deleteRecursively()
         val mainFolder = File(app.filesDir, Constants.FOLDER_NAME_DATA)
         mainFolder.deleteRecursively()
+        // https://github.com/robolectric/robolectric/issues/5131#issuecomment-505819342
+        // Free up memory so the Bitmap load doesn't OOM
+        scenario?.close()
     }
 
     @Test
     fun givenIntentHasArgsWhenStartActivityThenDetailsArePopulated() {
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
+        scenario = mainActivityScenario
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val category = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val basicAmount = "300.00"
@@ -187,6 +195,7 @@ class AddDetailedTransactionActivityTest {
         fileHandler.saveDraft(draft).subscribe()
         //Start on MainActivity
         val mainActivityScenario = ActivityScenario.launch(MainActivity::class.java)
+        scenario = mainActivityScenario
         val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
         val dumbbellCategory = categoryRepository.findByProfileIdAndStringId(profile.id!!, "fitness").subscribeOn(Schedulers.io()).blockingGet()!!
         val basicAmount = "300.00"
@@ -247,6 +256,7 @@ class AddDetailedTransactionActivityTest {
     fun givenAnyAmountNonPositiveOrEmptyWhenDoneThenFail() {
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
         //More than one item
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
@@ -312,6 +322,7 @@ class AddDetailedTransactionActivityTest {
     fun givenAnyDescriptionEmptyWhenDoneThenFail() {
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
         //More than one item
         onView(withId(R.id.linear_layout_add_detailed_transaction_main_add_item)).perform(scrollTo(), click())
 
@@ -371,17 +382,18 @@ class AddDetailedTransactionActivityTest {
     fun givenImageThresholdReachedWhenAddMoreThenFail() {
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
-
+        scenario = addDetailedTransactionActivityScenario
         val resources = arrayOf(TestData.Resource.Images.BREAD,
             TestData.Resource.Images.DUMBBELLS_1,
-            TestData.Resource.Images.DUMBBELLS_2,
+            TestData.Resource.Images.HAMMER,
             TestData.Resource.Images.DUMBBELLS_3,
             TestData.Resource.Images.TOOTHBRUSH,
             TestData.Resource.Images.WALL_CLOCK,
             TestData.Resource.Images.SHIRT,
             TestData.Resource.Images.TRAMPOLINE,
             TestData.Resource.Images.LOTION,
-            TestData.Resource.Images.HAMMER)
+            TestData.Resource.Images.DUMBBELLS_2
+        )
         addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
             TestData.Resource.Images.BREAD,
             TestData.Resource.Images.DUMBBELLS_1,
@@ -399,7 +411,7 @@ class AddDetailedTransactionActivityTest {
         draftImagesFolder.mkdirs()
         val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
         val draftImages = resources.slice(0..8) .map { r ->
-            val f = File(draftFolder, r.fileName)
+            val f = File(draftImagesFolder, r.fileName)
             copyResourceToFile(classLoader, r.resourceName, f)
             AddEditTransactionFile(null, f.toUri(), "image/jpeg", r.sha256, 0L)
         }
@@ -408,8 +420,9 @@ class AddDetailedTransactionActivityTest {
         addDetailedTransactionRepository.changeItemInvalidate(0, item)
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
 
+        val imageBelow1MiB = TestData.Resource.Images.DUMBBELLS_2
         val returnIntent = Intent().also {
-            it.data = TestData.Resource.Images.HAMMER.uri
+            it.data = imageBelow1MiB.uri
         }
 
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
@@ -435,6 +448,7 @@ class AddDetailedTransactionActivityTest {
 
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
         inputNumberRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
             0,
@@ -483,6 +497,7 @@ class AddDetailedTransactionActivityTest {
         //Open Add Detailed Transaction Screen
         var addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+
         //Add an Item with all details
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -517,7 +532,7 @@ class AddDetailedTransactionActivityTest {
         //Open App
         addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
-
+        scenario = addDetailedTransactionActivityScenario
         //Assert Screen is present with same details
 
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
@@ -560,6 +575,7 @@ class AddDetailedTransactionActivityTest {
         }
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+        scenario = addDetailedTransactionActivityScenario
 
         assertRecyclerViewItemText<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -594,6 +610,7 @@ class AddDetailedTransactionActivityTest {
         }
         val addDetailedTransactionActivityScenario =
             ActivityScenario.launch<AddDetailedTransactionActivity>(intent)
+        scenario = addDetailedTransactionActivityScenario
 
         val draftFile = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.DRAFT_FILE_NAME)
         assertFalse(draftFile.exists())
@@ -601,7 +618,8 @@ class AddDetailedTransactionActivityTest {
 
     @Test
     fun givenAtLeastOneImageExistsInDbWhenAddImageThenDialogOptionPresent() {
-        val scenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        val addDetailedTransactionActivityScenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
         saveImageToDevice(TestData.Resource.Images.BREAD).blockingSubscribe()
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main, 0,
@@ -619,7 +637,8 @@ class AddDetailedTransactionActivityTest {
 
     @Test
     fun givenNoImagesExistInDbWhenAddImageThenDialogOptionPresent() {
-        val scenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        val addDetailedTransactionActivityScenario = ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main, 0,
             R.id.text_view_add_detailed_transaction_show_details
@@ -671,10 +690,11 @@ class AddDetailedTransactionActivityTest {
         )
 
         addDetailedTransactionActivityScenario.moveToState(Lifecycle.State.DESTROYED)
-
+        addDetailedTransactionActivityScenario.close()
         assertTrue(app.draftExists())
         addDetailedTransactionActivityScenario =
             ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
 
         clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
             R.id.recyclerview_add_detailed_transaction_main,
@@ -708,6 +728,370 @@ class AddDetailedTransactionActivityTest {
         assertFalse(app.draftExists())
     }
 
+    @Test //TODO Implement
+    fun givenImageIsNotInDraftAndImageIsNotInDbAndImageDoesNotNeedModificationsWhenAddImageThenDialogDoesNotShow() {
+        /*val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        val imageUnder1Mib = TestData.Resource.Images.DUMBBELLS_3
+
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            TestData.Resource.Images.DUMBBELLS_3
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = TestData.Resource.Images.HAMMER.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+
+        onView(withId(R.id.image_view_add_detailed_transaction_item_add_image)).check(matches(ViewMatchers.isNotEnabled()))*/
+    }
+
+
+    @Test
+    //TODO These tests fail because the dialogs don't open on time consistently. I should rework how Rx works in general
+    fun givenImageIsNotInDraftAndImageIsNotInDbAndImageNeedsModificationsWhenAddImageThenDialogShows() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+        val imageOver1Mib = TestData.Resource.Images.DUMBBELLS_1
+
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageOver1Mib
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageOver1Mib.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+
+        onView(withId(R.id.linear_layout_add_image)).inRoot(RootMatchers.isDialog()).check(matches(isDisplayed()))
+    }
+
+
+    @Test
+    fun givenImageIsNotInDraftAndImageIsInDbAndImageDoesNotNeedModificationsWhenAddImageThenDialogDoesNotShow() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+        val imageBelow1Mib = TestData.Resource.Images.DUMBBELLS_1_BELOW_1600
+
+        saveImageToDevice(imageBelow1Mib)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageBelow1Mib
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageBelow1Mib.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertFalse(dialog.isShowing)
+
+    }
+
+
+    /**
+     * https://github.com/robolectric/robolectric/issues/5131#issuecomment-505819342
+     */
+    @Test
+    //TODO These tests fail because the dialogs don't open on time consistently. I should rework how Rx works in general
+    fun givenImageIsNotInDraftAndImageInDbAndImageNeedsModificationsWhenAddImageThenDialogShows() {
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+        val imageAbove1Mib = TestData.Resource.Images.DUMBBELLS_1
+
+        saveImageToDevice(imageAbove1Mib)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageAbove1Mib
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        val runtime = Runtime.getRuntime()
+        LOGGER.debug("Memory: Free: {}, Total: {}, Max: {}", runtime.freeMemory().formatBytes(Locale.US), runtime.totalMemory().formatBytes(Locale.US), runtime.maxMemory().formatBytes(Locale.US))
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageAbove1Mib.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION * 3)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertTrue(dialog.isShowing)
+
+        onView(withId(R.id.linear_layout_add_image)).inRoot(RootMatchers.isDialog()).check(matches(isDisplayed()))
+    }
+
+
+    @Test
+    fun givenImageIsInDraftAndImageIsNotInDbAndImageDoesNotNeedModificationsWhenAddImageThenDialogDoesNotShow() {
+        val imageBelow1MiB = TestData.Resource.Images.DUMBBELLS_1_BELOW_1600
+
+        val _draft = buildDraft(BigDecimal.TEN, "Candy", "food")
+        val item = _draft.items[0]
+        val images = item.images + AddEditTransactionFile(null, imageBelow1MiB.uri, "image/jpeg", imageBelow1MiB.sha256, 188_605)
+        val modifiedDraft = _draft.copy(items = listOf(item.copy(images = images)))
+        val fileHandler: DraftFileHandler = app
+        addDetailedTransactionRepository.createDraft().blockingSubscribe()
+
+        fileHandler.saveDraft(modifiedDraft).subscribe()
+
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+
+        saveImageToDevice(imageBelow1MiB)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageBelow1MiB
+        )
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageBelow1MiB.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertFalse(dialog.isShowing)
+
+    }
+
+
+    @Test
+    fun givenImageIsInDraftAndImageIsNotInDbAndImageNeedsModificationsWhenAddImageThenDialogDoesNotShow() {
+        val imageWithLocation = TestData.Resource.Images.DUMBBELLS_1_GEOTAGGED
+
+        val _draft = buildDraft(BigDecimal.TEN, "Candy", "food")
+        val item = _draft.items[0]
+        val images = item.images + AddEditTransactionFile(null, imageWithLocation.uri, "image/jpeg", imageWithLocation.sha256, 188_605)
+
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val f = File(draftImagesFolder, imageWithLocation.fileName)
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        copyResourceToFile(classLoader, imageWithLocation.resourceName, f)
+        //TODO Make a shortcut method "addImageToDraft" or review if I already have an existing one
+        val modifiedDraft = _draft.copy(items = listOf(item.copy(images = images)), imageHashes = mapOf(imageWithLocation.sha256 to imageWithLocation.uri))
+        val fileHandler: DraftFileHandler = app
+        addDetailedTransactionRepository.createDraft().blockingSubscribe()
+
+        fileHandler.saveDraft(modifiedDraft).subscribe()
+
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+
+        saveImageToDevice(imageWithLocation)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageWithLocation
+        )
+
+        draftImagesFolder.mkdirs()
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageWithLocation.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertFalse(dialog.isShowing)
+
+    }
+
+    @Test
+    fun givenModifiedImageIsInDraftAndImageIsNotInDbAndImageNeedsModificationsWhenAddImageThenDialogDoesNotShow() {
+        val imageWithLocation = TestData.Resource.Images.DUMBBELLS_1_GEOTAGGED
+        val imageWithoutLocation = TestData.Resource.Images.DUMBBELLS_1
+
+        val _draft = buildDraft(BigDecimal.TEN, "Candy", "food")
+        val item = _draft.items[0]
+        val images = item.images + AddEditTransactionFile(null, imageWithoutLocation.uri, "image/jpeg", imageWithoutLocation.sha256, 188_605, false, imageWithLocation.sha256)
+
+        val draftFolder = File(app.filesDir, Constants.FOLDER_NAME_DRAFT)
+        val draftImagesFolder = File(draftFolder, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val f = File(draftImagesFolder, imageWithoutLocation.fileName)
+        val classLoader = AddDetailedTransactionActivityTest::class.java.classLoader
+        copyResourceToFile(classLoader, imageWithoutLocation.resourceName, f)
+        //TODO Make a shortcut method "addImageToDraft" or review if I already have an existing one
+        val modifiedDraft = _draft.copy(items = listOf(item.copy(images = images)), imageHashes = mapOf(imageWithoutLocation.sha256 to imageWithLocation.uri), sourceImageHashes = mapOf(imageWithLocation.sha256 to imageWithoutLocation.sha256))
+        val fileHandler: DraftFileHandler = app
+        addDetailedTransactionRepository.createDraft().blockingSubscribe()
+
+        fileHandler.saveDraft(modifiedDraft).subscribe()
+
+        val addDetailedTransactionActivityScenario =
+            ActivityScenario.launch(AddDetailedTransactionActivity::class.java)
+        scenario = addDetailedTransactionActivityScenario
+
+        saveImageToDevice(imageWithoutLocation)
+        addContentProviderResources(app, AddDetailedTransactionActivityTest::class.java.classLoader,
+            imageWithLocation
+        )
+
+        draftImagesFolder.mkdirs()
+
+        val draft = addDetailedTransactionRepository.getDraftValue()
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(R.id.recyclerview_add_detailed_transaction_main, 0, R.id.text_view_add_detailed_transaction_show_details)
+
+        val returnIntent = Intent().also {
+            it.data = imageWithLocation.uri
+        }
+
+        intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
+            Instrumentation.ActivityResult(
+                Activity.RESULT_OK, returnIntent
+            )
+        )
+
+        clickRecyclerViewItem<AddTransactionItemRecyclerAdapter.AddTransactionItemViewHolder>(
+            R.id.recyclerview_add_detailed_transaction_main,
+            0,
+            R.id.image_view_add_detailed_transaction_item_add_image
+        )
+        pickFileFromDevice()
+        Thread.sleep(SLEEP_DURATION)
+
+        val dialog = ShadowDialog.getLatestDialog()
+        assertFalse(dialog.isShowing)
+
+    }
+
+    @Test
+    @Ignore("Feels redundant for now")
+    fun givenImageIsInDraftAndImageIsInDbAndImageNeedsModificationsWhenAddImageThenDialogDoesNotShow() {
+        assertTrue(false)
+    }
+
+    @Test
+    @Ignore("I'm not sure if a file like this will ever exist, but I do need to make sure I show the proper error message just in case")
+    fun givenImageNeedsSizeReductionAndImageDimensionsReducedBelowThresholdAndImageStillTooLargeThenErrorDialog() {
+        assertTrue(false)
+    }
 
     fun buildDraft(amount: BigDecimal, description: String, categoryStringId: String, evidence: List<AddEditTransactionFile> = emptyList(), note: String = ""): AddEditDetailedTransactionDraft {
         val accountId = getDefaultAccountId(profileRepository, accountRepository)

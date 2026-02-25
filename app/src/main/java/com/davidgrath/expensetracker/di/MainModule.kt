@@ -13,6 +13,8 @@ import com.davidgrath.expensetracker.db.dao.SellerLocationDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.utils.ImageHelper
+import com.davidgrath.expensetracker.utils.ImageHelperImpl
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
@@ -89,5 +91,11 @@ class MainModule(private val application: Application, private val fileHandler: 
     @Provides
     fun timeHandler(): TimeAndLocaleHandler {
         return MainTimeAndLocaleHandler()
+    }
+
+    @Singleton
+    @Provides
+    fun imageHelper(): ImageHelper {
+        return ImageHelperImpl()
     }
 }

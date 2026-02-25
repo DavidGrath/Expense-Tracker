@@ -5,6 +5,7 @@ import com.ibm.icu.number.NumberFormatter
 import com.ibm.icu.number.Precision
 import com.ibm.icu.text.DecimalFormatSymbols
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -16,6 +17,7 @@ import tech.units.indriya.quantity.Quantities
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.nio.file.Files
 import java.text.NumberFormat
 import java.util.Locale
 import javax.measure.BinaryPrefix
@@ -146,4 +148,28 @@ class UtilsTest {
         println("Non-existent: ${nonExistentSymbols.map { it.name }.joinToString( System.lineSeparator() )}")
 
     }
+
+    @Test
+    fun givenImageSizeIsBelowThresholdWhenResizeThenReturnSameValue() {
+        val imageSize = 1_366 to 768
+        val reductionSize = getResizeDimensions(imageSize)
+        val expectedTriple = Triple(1_366, 768, 1)
+        assertEquals(expectedTriple, reductionSize)
+    }
+
+    @Test(expected = RuntimeException::class)
+    fun givenAnyImageSideBelowOneWhenReducedThenException() {
+        val imageSize = 6_360 to 2
+        val reductionSize = getResizeDimensions(imageSize)
+    }
+
+    @Test
+    fun basicImageReductionTest() {
+        val imageSize = 6_360 to 1_080
+        val reductionSize = getResizeDimensions(imageSize)
+        val expectedTriple = Triple(1_590, 270, 4)
+        assertEquals(expectedTriple, reductionSize)
+    }
+
+
 }

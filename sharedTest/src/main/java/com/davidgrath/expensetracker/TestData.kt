@@ -73,6 +73,18 @@ class TestData {
                     "4d45351604064707849e8085b0cc06746f7cc00d0c99f9923269866a9b60b8da",
                     "pexels-pixabay-209235.jpg"
                 )
+                val DUMBBELLS_1_BELOW_1600 = Resource(
+                    "14d2d71603c109a92e58ece6e1b7979eb6623d4aec068ed5af99ea0c96839b37",
+                    "medium-pexels-ivan-samkov-4164765.jpg"
+                )
+
+                /**
+                 * I chose a random location somewhere on the water
+                 */
+                val DUMBBELLS_1_GEOTAGGED = Resource(
+                    "6efbf15122bbb22189aa2081a76682ab3b3abbd9b7e6d4f9e72d1efc851a3595",
+                    "geotagged-pexels-ivan-samkov-4164765.jpg"
+                )
             }
         }
 

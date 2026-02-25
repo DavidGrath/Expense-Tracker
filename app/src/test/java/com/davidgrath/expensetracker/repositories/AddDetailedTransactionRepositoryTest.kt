@@ -12,7 +12,6 @@ import com.davidgrath.expensetracker.TestData
 import com.davidgrath.expensetracker.TestExpenseTracker
 import com.davidgrath.expensetracker.addContentProviderResources
 import com.davidgrath.expensetracker.assertEqualsBD
-import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.copyResourceToFile
 import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
@@ -30,7 +29,6 @@ import com.davidgrath.expensetracker.entities.db.EvidenceDb
 import com.davidgrath.expensetracker.entities.db.ImageDb
 import com.davidgrath.expensetracker.entities.db.SellerDb
 import com.davidgrath.expensetracker.entities.db.SellerLocationDb
-import com.davidgrath.expensetracker.entities.db.TransactionItemDb
 import com.davidgrath.expensetracker.entities.db.TransactionItemImagesDb
 import com.davidgrath.expensetracker.entities.ui.AddEditDetailedTransactionDraft
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
@@ -59,14 +57,8 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
-import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
-import org.threeten.bp.ZoneId
-import org.threeten.bp.ZonedDateTime
-import org.threeten.bp.format.DateTimeFormatter
-import org.threeten.bp.temporal.ChronoUnit
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -1432,6 +1424,45 @@ class AddDetailedTransactionRepositoryTest {
 
         assertNotNull(transaction.sellerId)
         assertNull(transaction.sellerLocationId)
+    }
+
+    @Test
+    @Ignore("Feels redundant for now")
+    fun givenImageWasModifiedWhenSaveDraftThenModifiedHashSaved() {
+        assertTrue(false)
+    }
+
+    @Test
+    fun givenUserSelectsImageThatWasModifiedInSameDraftWhenAddImageToOtherItemThenModifiedVersionAdded() {
+
+        val resource = TestData.Resource.Images.DUMBBELLS_1
+        val modifiedResource = TestData.Resource.Images.DUMBBELLS_1_BELOW_1600
+        val classLoader = AddDetailedTransactionRepositoryTest::class.java.classLoader!!
+        addContentProviderResources(app, classLoader, resource)
+        val draftImagesFolder = file(app.filesDir, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGES)
+        draftImagesFolder.mkdirs()
+        val modifiedFile = File(draftImagesFolder, "draft-file.jpg")
+        copyResourceToFile(classLoader, modifiedResource.resourceName, modifiedFile)
+        val modifiedFileUri = modifiedFile.toUri()
+
+        val draft = buildDraft(BigDecimal(100), "Desc", "miscellaneous")
+        fileHandler.createDraft().blockingSubscribe()
+        fileHandler.saveDraft(draft).blockingSubscribe()
+        val profile = profileRepository.getByStringId(Constants.DEFAULT_PROFILE_ID).subscribeOn(Schedulers.io()).blockingGet()
+        repository.setProfile(profile.id!!)
+        repository.restoreDraft().blockingSubscribe()
+
+        repository.addImageToItem(0, modifiedFileUri, "image/jpeg", resource.sha256).subscribeOn(Schedulers.io()).blockingSubscribe()
+        repository.addItem()
+
+        repository.addImageToItem(1, resource.uri, "image/jpeg").subscribeOn(Schedulers.io()).blockingSubscribe()
+
+
+        val currentDraft = repository.getDraftValue()
+        assertEquals(currentDraft.items[0].images[0].uri, currentDraft.items[1].images[0].uri)
+        assertEquals(currentDraft.items[0].images[0].sha256, currentDraft.items[1].images[0].sha256)
+        assertEquals(currentDraft.items[0].images[0].sourceSha256, currentDraft.items[1].images[0].sourceSha256)
+
     }
 
     @Test

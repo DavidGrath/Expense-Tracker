@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.di
 
 import android.app.Application
 import com.davidgrath.expensetracker.DraftFileHandler
+import com.davidgrath.expensetracker.ImageHelperTestImpl
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.InstrumentedTestExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.AccountDao
@@ -14,6 +15,7 @@ import com.davidgrath.expensetracker.db.dao.SellerLocationDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.utils.ImageHelper
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
@@ -97,5 +99,11 @@ class InstrumentedTestModule(private val application: Application, private val f
     @Provides
     fun timeHandler(): TimeAndLocaleHandler {
         return InstrumentedTestTimeAndLocaleHandler()
+    }
+
+    @Singleton
+    @Provides
+    fun imageHelper(): ImageHelper {
+        return ImageHelperTestImpl()
     }
 }

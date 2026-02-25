@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/linear_layout_add_image"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <io.getstream.photoview.PhotoView
+        android:id="@+id/photo_view_add_image"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="8"
+        android:layout_marginHorizontal="16dp"
+        tools:src="@tools:sample/avatars"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/linear_layout_add_image_reduction_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:tint="@color/black"
+                android:src="@drawable/material_symbols_compress_48px"/>
+            <CheckBox
+                android:id="@+id/check_box_add_image_reduce_size"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="Reduce image size\n(3000x100 -> 750x250)\n2.56MB -> 400 kB (90%)"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/linear_layout_add_image_location_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:tint="@color/black"
+                android:src="@drawable/baseline_location_on_24"/>
+            <CheckBox
+                android:id="@+id/check_box_add_image_remove_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="Remove location (0.000, 0.000)"/>
+
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

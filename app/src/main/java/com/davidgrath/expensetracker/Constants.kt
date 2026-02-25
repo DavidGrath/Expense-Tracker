@@ -14,6 +14,8 @@ class Constants {
         const val FOLDER_NAME_DRAFT = "draft"
         const val SUBFOLDER_NAME_IMAGES = "images"
         const val SUBFOLDER_NAME_DOCUMENTS = "documents"
+        const val SUBFOLDER_NAME_IMAGE_MODIFICATION = "imageModification"
+        const val FILE_NAME_SELECTED_IMAGE = "selectedImage"
         const val DATABASE_NAME = "expense-tracker-db"
         const val DEFAULT_PROFILE_ID = "fae075e1-d54a-4857-a76b-b3eadf88d602"
         const val DEFAULT_PREFERENCES_FILE_NAME = "ExpenseTracker"
@@ -24,6 +26,8 @@ class Constants {
          */
         const val FILE_NAME_STATS_FILTER_DATA = "statistics_filter.json"
         const val ALPHA_DISABLED = 0.2f
+        const val IMAGE_SIZE_THRESHOLD = 1L * 1_024 * 1_024
+        const val IMAGE_DIMENSION_THRESHOLD = 1_600
     }
     class PreferenceKeys {
         class Device {
@@ -36,5 +40,15 @@ class Constants {
                 const val DEFAULT_ACCOUNT_ID = "defaultAccountId"
             }
         }
+    }
+
+    /**
+     * I know there's likely a standard Apache class or something like this with a more
+     * comprehensive list, but for now I'm only interested in JPEG, PNG and PDF
+     */
+    enum class MimeTypes(val type: String) {
+        JPEG("image/jpeg"),
+        PNG("image/png"),
+        PDF("application/pdf")
     }
 }

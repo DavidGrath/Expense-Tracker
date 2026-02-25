@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.View
@@ -21,14 +22,19 @@ import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.ActivityAddDetailedTransactionBinding
 import com.davidgrath.expensetracker.db.dao.ProfileDao
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
+import com.davidgrath.expensetracker.entities.ui.ImageAddResult
+import com.davidgrath.expensetracker.file
 import com.davidgrath.expensetracker.formatDecimal
 import com.davidgrath.expensetracker.repositories.AccountRepository
 import com.davidgrath.expensetracker.repositories.AddDetailedTransactionRepository
 import com.davidgrath.expensetracker.repositories.CategoryRepository
+import com.davidgrath.expensetracker.ui.dialogs.AddImageDialogFragment
 import com.davidgrath.expensetracker.ui.dialogs.GenericDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.math.BigDecimal
@@ -36,7 +42,7 @@ import javax.inject.Inject
 
 class AddDetailedTransactionActivity : AppCompatActivity(),
     AddDetailedTransactionMainFragment.AddDetailedTransactionMainListener, GenericDialogFragment.GenericDialogListener,
-    View.OnClickListener {
+    View.OnClickListener, AddImageDialogFragment.AddImageDialogListener {
 
     lateinit var binding: ActivityAddDetailedTransactionBinding
     lateinit var viewModel: AddDetailedTransactionViewModel
@@ -148,9 +154,19 @@ class AddDetailedTransactionActivity : AppCompatActivity(),
                         LOGGER.info("onActivityResult: Add Image")
                         val uri = data!!.data!!
                         val liveData = viewModel.addItemFile(uri)
-                        liveData.observe(this, object: Observer<Unit> {
-                            override fun onChanged(value: Unit) {
-                                LOGGER.info("onActivityResult: File add done")
+                        liveData.observe(this, object: Observer<ImageAddResult> {
+                            override fun onChanged(value: ImageAddResult) {
+                                if(value.actionNeeded) {
+                                    val modificationDetails = value.imageModificationDetails!!
+                                    val imageTooLarge = modificationDetails.reducedFileSize != null
+                                    val hasGpsData = modificationDetails.locationLongLat != null
+                                    val addImageDialog = AddImageDialogFragment.newInstance(uri.toString(), modificationDetails.itemId, modificationDetails.originalFileHash, modificationDetails.fileMimeType, imageTooLarge, modificationDetails.originalFileSize, modificationDetails.originalImageWidthHeight!!.first, modificationDetails.originalImageWidthHeight.second, modificationDetails.reducedFileSize
+                                    , modificationDetails.reducedImageWidthHeight?.first, modificationDetails.reducedImageWidthHeight?.second, hasGpsData, modificationDetails.locationLongLat?.first, modificationDetails.locationLongLat?.second)
+                                    addImageDialog.show(supportFragmentManager, DIALOG_TAG_ADD_IMAGE)
+                                    LOGGER.info("onActivityResult: Action needed for selected image")
+                                } else {
+                                    LOGGER.info("onActivityResult: File add done")
+                                }
                                 liveData.removeObserver(this)
                             }
                         })
@@ -209,9 +225,19 @@ class AddDetailedTransactionActivity : AppCompatActivity(),
                         val cameraFile = File(cameraDirectory, Constants.FILE_NAME_INTENT_PICTURE)
                         val uri = cameraFile.toUri()
                         val liveData = viewModel.addItemFile(uri)
-                        liveData.observe(this, object: Observer<Unit> {
-                            override fun onChanged(value: Unit) {
-                                LOGGER.info("onActivityResult: Camera capture done")
+                        liveData.observe(this, object: Observer<ImageAddResult> {
+                            override fun onChanged(value: ImageAddResult) {
+                                if(value.actionNeeded) {
+                                    val modificationDetails = value.imageModificationDetails!!
+                                    val imageTooLarge = modificationDetails.reducedFileSize != null
+                                    val hasGpsData = modificationDetails.locationLongLat != null
+                                    val addImageDialog = AddImageDialogFragment.newInstance(uri.toString(), modificationDetails.itemId, modificationDetails.originalFileHash, modificationDetails.fileMimeType, imageTooLarge, modificationDetails.originalFileSize, modificationDetails.originalImageWidthHeight!!.first, modificationDetails.originalImageWidthHeight.second, modificationDetails.reducedFileSize
+                                        , modificationDetails.reducedImageWidthHeight?.first, modificationDetails.reducedImageWidthHeight?.second, hasGpsData, modificationDetails.locationLongLat?.first, modificationDetails.locationLongLat?.second)
+                                    addImageDialog.show(supportFragmentManager, DIALOG_TAG_ADD_IMAGE)
+                                    LOGGER.info("onActivityResult: Action needed for selected image")
+                                } else {
+                                    LOGGER.info("onActivityResult: Camera capture done")
+                                }
                                 liveData.removeObserver(this)
                             }
                         })
@@ -282,6 +308,24 @@ class AddDetailedTransactionActivity : AppCompatActivity(),
 
     }
 
+    override fun onAddConfirm(sourceHash: String, mimeType: String, itemId: Int?, reduceSize: Boolean, removeGpsData: Boolean) {
+        viewModel.addSelectedImage(sourceHash, mimeType, itemId, reduceSize, removeGpsData).subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                       LOGGER.info("Done adding selection")
+            }, {
+                LOGGER.error("Unexpected error: ", it)
+            })
+    }
+
+    override fun onDismiss() {
+        val folder = file(application.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGE_MODIFICATION)
+        if(folder.exists()) {
+            val del = folder.deleteRecursively()
+            LOGGER.info("Delete image selection folder: {}", del)
+        }
+    }
+
     class AddDetailedTransactionFragmentStateAdapter(addDetailedTransactionActivity: AddDetailedTransactionActivity): FragmentStateAdapter(addDetailedTransactionActivity) {
         override fun getItemCount(): Int {
             return 2
@@ -311,6 +355,7 @@ class AddDetailedTransactionActivity : AppCompatActivity(),
         const val REQUEST_CODE_DOCUMENT_CAPTURE_IMAGE = 103
         const val DIALOG_TAG_NO_PAGES = "noPages"
         const val DIALOG_TAG_PASSWORD_PROTECTED = "passwordProtected"
+        const val DIALOG_TAG_ADD_IMAGE = "addImage"
 
         fun createBundle(
             initialAccountId: Long?,

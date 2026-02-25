@@ -3,6 +3,7 @@ package com.davidgrath.expensetracker.di
 import android.app.Application
 import androidx.room.Room
 import com.davidgrath.expensetracker.DraftFileHandler
+import com.davidgrath.expensetracker.ImageHelperTestImpl
 import com.davidgrath.expensetracker.TestExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.ExpenseTrackerDatabase
 import com.davidgrath.expensetracker.db.dao.AccountDao
@@ -15,6 +16,8 @@ import com.davidgrath.expensetracker.db.dao.SellerLocationDao
 import com.davidgrath.expensetracker.db.dao.TransactionDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemDao
 import com.davidgrath.expensetracker.db.dao.TransactionItemImagesDao
+import com.davidgrath.expensetracker.utils.ImageHelper
+import com.davidgrath.expensetracker.utils.ImageHelperImpl
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
@@ -103,5 +106,12 @@ class TestModule(private val application: Application, private val fileHandler: 
     @Provides
     fun timeHandler(): TimeAndLocaleHandler {
         return TestTimeAndLocaleHandler()
+    }
+
+
+    @Singleton
+    @Provides
+    fun imageHelper(): ImageHelper {
+        return ImageHelperTestImpl()
     }
 }

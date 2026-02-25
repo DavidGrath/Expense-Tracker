@@ -7,7 +7,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.DraftFileHandler
-import com.davidgrath.expensetracker.categoryDbToCategoryUi
 import com.davidgrath.expensetracker.dateTimeOffsetZone
 import com.davidgrath.expensetracker.db.dao.CategoryDao
 import com.davidgrath.expensetracker.db.dao.EvidenceDao
@@ -29,12 +28,10 @@ import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.slf4j.LoggerFactory
-import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import javax.inject.Inject
 import org.threeten.bp.ZoneId
-import org.threeten.bp.ZoneOffset
 import org.threeten.bp.ZonedDateTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.io.File
@@ -259,21 +256,21 @@ constructor(
      * if it wasn't already in the item's list.
      * Assumed to be called from Schedulers.io
      */
-    private fun createImageForItem(item: AddTransactionItem, uriHash: String, fileUri: Uri?, externalUri: Uri, mimeType: String): Pair<List<AddEditTransactionFile>, Int> {
-        var xUri = fileUri
-        if(xUri == null) {
+    private fun createImageForItem(item: AddTransactionItem, uriHash: String, sourceHash: String?, hashMapImageUri: Uri?, externalUri: Uri, mimeType: String): Pair<List<AddEditTransactionFile>, Int> {
+        var _hashMapImageUri = hashMapImageUri
+        if(_hashMapImageUri == null) {
             val file: AddEditTransactionFile
             if(imageDao.doesHashExist(profileId!!, uriHash).blockingGet()) {
                 LOGGER.info("createImageForItem: File already exists in DB for image")
                 val im = imageDao.findBySha256(profileId!!, uriHash).blockingGet()!!
-                xUri = Uri.parse(im.uri)
-                val size = xUri.toFile().length()
-                file = AddEditTransactionFile(im.id, xUri, mimeType, uriHash, size)
+                _hashMapImageUri = Uri.parse(im.uri)
+                val size = _hashMapImageUri.toFile().length()
+                file = AddEditTransactionFile(im.id, _hashMapImageUri, mimeType, uriHash, size, false, sourceHash)
             } else {
                 LOGGER.info("createImageForItem: File does not exist for image")
-                xUri = fileHandler.copyUriToDraft(externalUri, mimeType, Constants.SUBFOLDER_NAME_IMAGES).blockingGet()
-                val size = xUri.toFile().length()
-                file = AddEditTransactionFile(null, xUri, mimeType, uriHash, size)
+                _hashMapImageUri = fileHandler.copyUriToDraft(externalUri, mimeType, Constants.SUBFOLDER_NAME_IMAGES).blockingGet()
+                val size = _hashMapImageUri.toFile().length()
+                file = AddEditTransactionFile(null, _hashMapImageUri, mimeType, uriHash, size, false, sourceHash)
             }
             return ((item.images + file) to item.images.size)
         } else {
@@ -283,11 +280,11 @@ constructor(
                 if(imageDao.doesHashExist(profileId!!, uriHash).blockingGet()) {
                     LOGGER.info("createImageForItem: File already exists in DB for image")
                     val im = imageDao.findBySha256(profileId!!, uriHash).blockingGet()!!
-                    val size = xUri.toFile().length()
-                    return (item.images + AddEditTransactionFile(im.id!!, xUri, mimeType, uriHash, size)) to item.images.size
+                    val size = _hashMapImageUri.toFile().length()
+                    return (item.images + AddEditTransactionFile(im.id!!, _hashMapImageUri, mimeType, uriHash, size, false, sourceHash)) to item.images.size
                 } else {
-                    val size = xUri.toFile().length()
-                    return (item.images + AddEditTransactionFile(null, xUri, mimeType, uriHash, size)) to item.images.size
+                    val size = _hashMapImageUri.toFile().length()
+                    return (item.images + AddEditTransactionFile(null, _hashMapImageUri, mimeType, uriHash, size, false, sourceHash)) to item.images.size
                 }
             } else {
                 LOGGER.info("createImageForItem: Image already exists in draft and is attached to item")
@@ -321,7 +318,7 @@ constructor(
         }
     }
 
-    fun addImageToItem(itemId: Int, externalUri: Uri, mimeType: String): Single<Unit> {
+    fun addImageToItem(itemId: Int, externalUri: Uri, mimeType: String, sourceHash: String? = null): Single<Unit> {
         return Single.fromCallable {
             val currentList = draft.items
             
@@ -341,6 +338,10 @@ constructor(
                 LOGGER.info("addImageToItem: Max image count reached for item {}", itemId)
                 return@fromCallable Unit
             }
+            if(sourceHash == uriHash) {
+                LOGGER.warn("Source hash same as image hash. Skipping")
+                return@fromCallable Unit
+            }
             val index = currentList.indexOf(item)
             var newItem = item
             val uri: Uri
@@ -357,14 +358,28 @@ constructor(
                         LOGGER.info("addImageToItem: DB Image was in item {} deleted list. Restored", itemId)
                     } else {
                         var xUri = draft.imageHashes[uriHash]
-                        val (list, idex) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
+                        var _uriHash = uriHash
+                        var _sourceHash = sourceHash
+                        if(draft.sourceImageHashes[uriHash] != null) {
+                            _sourceHash = uriHash
+                            _uriHash = draft.sourceImageHashes[uriHash]!!
+                            xUri = draft.imageHashes[draft.sourceImageHashes[uriHash]!!]
+                        }
+                        val (list, idex) = createImageForItem(item, _uriHash, _sourceHash, xUri, externalUri, mimeType)
                         uri = list[idex].uri
                         newItem = item.copy(images = list)
                         LOGGER.info("addImageToItem: DB Image added to item {} list", itemId)
                     }
                 } else {
                     var xUri = draft.imageHashes[uriHash]
-                    val (list, idx) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
+                    var _uriHash = uriHash
+                    var _sourceHash = sourceHash
+                    if(draft.sourceImageHashes[uriHash] != null) {
+                        _sourceHash = uriHash
+                        _uriHash = draft.sourceImageHashes[uriHash]!!
+                        xUri = draft.imageHashes[draft.sourceImageHashes[uriHash]!!]
+                    }
+                    val (list, idx) = createImageForItem(item, _uriHash, _sourceHash, xUri, externalUri, mimeType)
                     uri = list[idx].uri
                     newItem = item.copy(images = list)
                     LOGGER.info("addImageToItem: New Image added to item {} list", itemId)
@@ -372,7 +387,14 @@ constructor(
 
             } else {
                 var xUri = draft.imageHashes[uriHash]
-                val (list, idx) = createImageForItem(item, uriHash, xUri, externalUri, mimeType)
+                var _uriHash = uriHash
+                var _sourceHash = sourceHash
+                if(draft.sourceImageHashes[uriHash] != null) {
+                    _sourceHash = uriHash
+                    _uriHash = draft.sourceImageHashes[uriHash]!!
+                    xUri = draft.imageHashes[draft.sourceImageHashes[uriHash]!!]
+                }
+                val (list, idx) = createImageForItem(item, _uriHash, _sourceHash, xUri, externalUri, mimeType)
                 uri = list[idx].uri
                 newItem = item.copy(images = list)
                 LOGGER.info("addImageToItem: Image added to list of item with ID {}", itemId)
@@ -387,9 +409,19 @@ constructor(
             } else {
                 draft.imageHashes
             }
-            draft = draft.copy(items = newItems, imageHashes = newHashes)
+            val newSourceHashes = if(sourceHash != null) {
+                if(draft.sourceImageHashes[sourceHash] == null) {
+                    draft.sourceImageHashes + (sourceHash to uriHash)
+                } else {
+                    draft.sourceImageHashes
+                }
+            } else {
+                draft.sourceImageHashes
+            }
+            draft = draft.copy(items = newItems, imageHashes = newHashes, sourceImageHashes = newSourceHashes)
             _draftLiveData.postValue(Triple(draft, TransactionItemsEvent.ChangeInvalidate, index))
             LOGGER.info("addImageToItem: {}: Done", itemId)
+            LOGGER.debug("Cached item images size: {}", draft.items[0].images.size)
             if (currentMode == "add") {
                 fileHandler.saveDraft(draft).subscribe()
             }

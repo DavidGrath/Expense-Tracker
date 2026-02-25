@@ -2,6 +2,7 @@ package com.davidgrath.expensetracker.ui.addtransaction
 
 import android.app.Application
 import android.content.ContentResolver
+import android.graphics.BitmapFactory
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -25,9 +26,13 @@ import com.davidgrath.expensetracker.entities.db.CategoryDb
 import com.davidgrath.expensetracker.entities.ui.AccountUi
 import com.davidgrath.expensetracker.entities.ui.AddEditTransactionFile
 import com.davidgrath.expensetracker.entities.ui.AddTransactionItem
+import com.davidgrath.expensetracker.entities.ui.ImageAddResult
+import com.davidgrath.expensetracker.entities.ui.ImageModificationDetails
 import com.davidgrath.expensetracker.entities.ui.SellerLocationUi
 import com.davidgrath.expensetracker.entities.ui.SellerUi
 import com.davidgrath.expensetracker.file
+import com.davidgrath.expensetracker.getLocationData
+import com.davidgrath.expensetracker.getResizeDimensions
 import com.davidgrath.expensetracker.getSha256
 import com.davidgrath.expensetracker.loadRenderer
 import com.davidgrath.expensetracker.repositories.AccountRepository
@@ -39,6 +44,7 @@ import com.davidgrath.expensetracker.repositories.SellerRepository
 import com.davidgrath.expensetracker.sellerDbToSellerUi
 import com.davidgrath.expensetracker.sellerLocationDbToSellerLocationUi
 import com.davidgrath.expensetracker.ui.main.MainViewModel
+import com.davidgrath.expensetracker.utils.ImageHelper
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
@@ -48,6 +54,7 @@ import org.slf4j.LoggerFactory
 import org.threeten.bp.Clock
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
+import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
 import java.math.BigDecimal
@@ -64,6 +71,7 @@ class AddDetailedTransactionViewModel(
     private val imageRepository: ImageRepository,
     private val timeAndLocaleHandler: TimeAndLocaleHandler,
     private val sellerRepository: SellerRepository,
+    private val imageHelper: ImageHelper,
     private val profileStringId: String,
     private val transactionId: Long?,
     private val initialAccountId: Long?,
@@ -221,15 +229,83 @@ class AddDetailedTransactionViewModel(
         addDetailedTransactionRepository.changeItemInvalidate(position, item)
     }
 
-    fun addItemFile(returnedUri: Uri): LiveData<Unit> {
+    /**
+     * @return If `actionNeeded`, then a dialog is needed to let the user modify the image
+     */
+    fun addItemFile(returnedUri: Uri): LiveData<ImageAddResult> {
         val mimeType = if(returnedUri.scheme == ContentResolver.SCHEME_CONTENT) {
             application.contentResolver.getType(returnedUri) ?: ""
         } else if(returnedUri.scheme == ContentResolver.SCHEME_FILE) {
-            "image/jpeg" //Hardcoding because I'm not sure how to determine what the native camera returns
+            Constants.MimeTypes.JPEG.type //Hardcoding because I'm not sure how to determine what the native camera returns
         } else {
             ""
         }
-        return addDetailedTransactionRepository.addImageToItem(getImageItemId, returnedUri, mimeType).subscribeOn(Schedulers.io()).map {
+        val single: Single<ImageAddResult> =
+        if(mimeType == Constants.MimeTypes.JPEG.type ) { //TODO this is just for JPEG. I need to consider if there are Android vendors out there that for whatever reason chose another format for their cameras
+            LOGGER.info("Type is JPEG. Checking for location and compressibility")
+            Single.fromCallable {
+                val hashInputStream = application.contentResolver.openInputStream(returnedUri)!!
+                val hash = getSha256(hashInputStream).blockingGet()
+                hashInputStream.close()
+                val existingOriginalImage = addDetailedTransactionRepository.getDraftValue().sourceImageHashes[hash]
+                val existingImage = addDetailedTransactionRepository.getDraftValue().imageHashes[hash]
+                if(existingImage != null || existingOriginalImage != null) {
+                    LOGGER.info("Image already exists in draft. Don't bother checking again")
+                    addDetailedTransactionRepository.addImageToItem(getImageItemId, returnedUri, mimeType).blockingSubscribe()
+                    return@fromCallable ImageAddResult(false, null)
+                }
+
+                val folder = file(application.filesDir.absolutePath, Constants.FOLDER_NAME_DRAFT, Constants.SUBFOLDER_NAME_IMAGE_MODIFICATION)
+                if(folder.exists()) {
+                    LOGGER.info("Existing image mod folder found. Deleting")
+                    val del = folder.deleteRecursively()
+                    LOGGER.info("Delete image mode folder: {}", del)
+                }
+                folder.mkdirs()
+                val file = File(folder, Constants.FILE_NAME_SELECTED_IMAGE)
+                val inStream = application.contentResolver.openInputStream(returnedUri)!!
+                val outStream = file.outputStream()
+                inStream.copyTo(outStream)
+                inStream.close()
+                outStream.close()
+
+                val size = file.length()
+                var widthHeight: Pair<Int, Int>? = null
+                var targetDimensions: Triple<Int, Int, Int>? = null
+                val tooLarge = size > Constants.IMAGE_SIZE_THRESHOLD
+                var compressedSize: Long? = null
+                if(tooLarge) {
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+
+                    val bitmapStream = file.inputStream()
+                    val bufBitmapStream = BufferedInputStream(bitmapStream)
+                    BitmapFactory.decodeStream(bufBitmapStream, null, options)
+                    bufBitmapStream.close()
+                    bitmapStream.close()
+                    widthHeight = options.outWidth to options.outHeight
+                    targetDimensions = getResizeDimensions(widthHeight)
+                    val resizedFile = File(folder, "resized-" + file.name)
+                    compressedSize = imageHelper.compressImage(file, resizedFile, targetDimensions.third).blockingGet()
+                }
+                val locationData = getLocationData(file).blockingGet()
+                val hasLocationData = locationData != null
+                val actionNeeded = tooLarge || hasLocationData
+                LOGGER.debug("TooLarge: {}, WidthHeight: {}", tooLarge, widthHeight)
+                LOGGER.debug("TargetDimension: {}", targetDimensions)
+                if(!actionNeeded) {
+                    addDetailedTransactionRepository.addImageToItem(getImageItemId, returnedUri, mimeType).blockingSubscribe()
+                }
+                ImageAddResult(actionNeeded, ImageModificationDetails(size, getImageItemId, hash, mimeType, compressedSize, widthHeight, if(targetDimensions != null) (targetDimensions!!.first to targetDimensions!!.second) else null, locationData))
+            }
+
+        } else {
+            addDetailedTransactionRepository.addImageToItem(getImageItemId, returnedUri, mimeType).map {
+                ImageAddResult(false, null)
+            }
+        }
+        return single.subscribeOn(Schedulers.io()).doOnTerminate {
             getImageItemId = -1
         }.subscribeOn(Schedulers.io()).toFlowable().toLiveData()
     }
@@ -376,6 +452,38 @@ class AddDetailedTransactionViewModel(
 
     fun getSellerId(): Long? {
         return addDetailedTransactionRepository.getDraftValue().sellerId
+    }
+
+    fun addSelectedImage(sourceHash: String, mimeType: String, itemId: Int?, reduceSize: Boolean, removeGpsData: Boolean): Single<Unit> {
+        return Single.fromCallable {
+
+
+            val folder = file(
+                application.filesDir.absolutePath,
+                Constants.FOLDER_NAME_DRAFT,
+                Constants.SUBFOLDER_NAME_IMAGE_MODIFICATION
+            )
+            var file = if (reduceSize) {
+                File(folder, "resized-${Constants.FILE_NAME_SELECTED_IMAGE}")
+            } else {
+                File(folder, Constants.FILE_NAME_SELECTED_IMAGE)
+            }
+            if (!file.exists()) {
+                LOGGER.warn("File does not exist")
+                return@fromCallable
+            }
+            if (removeGpsData) {
+                imageHelper.removeLocationData(folder, file).blockingSubscribe()
+                val locationLessFile = File(folder, "nogps-${file.name}")
+                file = locationLessFile
+            }
+            val fileUri = file.toUri()
+            if(reduceSize || removeGpsData) {
+                addDetailedTransactionRepository.addImageToItem(itemId!!, fileUri, mimeType, sourceHash).blockingSubscribe() //TODO ItemId should be null for documents
+            } else {
+                addDetailedTransactionRepository.addImageToItem(itemId!!, fileUri, mimeType, null).blockingSubscribe() //TODO ItemId should be null for documents
+            }
+        }
     }
 
     enum class PdfState {

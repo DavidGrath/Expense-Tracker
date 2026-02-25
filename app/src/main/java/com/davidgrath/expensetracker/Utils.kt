@@ -1,10 +1,14 @@
 package com.davidgrath.expensetracker
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.core.net.toFile
+import androidx.exifinterface.media.ExifInterface
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.AccountDb
 import com.davidgrath.expensetracker.entities.db.CategoryDb
@@ -614,3 +618,103 @@ fun getFilteredWeekDays(profileId: Long, filter: StatisticsFilter, dateMode: Sta
     return dates
 }
 
+/**
+ * Basically I'm copying WhatsApp's idea of using 1600 as the threshold
+ * @return The third value is the reduction ratio
+ */
+fun getResizeDimensions(widthHeight: Pair<Int, Int>): Triple<Int, Int, Int> {
+    val widthGreater = widthHeight.first > widthHeight.second
+    var side = if(widthGreater) {
+        widthHeight.first
+    } else {
+        widthHeight.second
+    }
+    if(side <= Constants.IMAGE_DIMENSION_THRESHOLD) {
+        LOGGER.info("Image is already small enough")
+        return Triple(widthHeight.first, widthHeight.second, 1)
+    }
+    if(widthHeight.first <= 1 || widthHeight.second <= 1) {
+        LOGGER.error("Image is too small")
+        throw RuntimeException()
+    }
+    var divisor = 2
+    var targetWidth = widthHeight.first
+    var targetHeight = widthHeight.second
+    while(side > Constants.IMAGE_DIMENSION_THRESHOLD) {
+        if(targetWidth <= 1 || targetHeight <= 1) {
+            LOGGER.error("Image is too small")
+            throw RuntimeException()
+        }
+        targetWidth = widthHeight.first / divisor
+        targetHeight = widthHeight.second / divisor
+        side /= 2
+        if(side <= Constants.IMAGE_DIMENSION_THRESHOLD) {
+            break
+        }
+        divisor *= 2
+    }
+
+    return Triple(targetWidth, targetHeight, divisor)
+}
+
+val attributes = arrayOf(
+    ExifInterface.TAG_APERTURE_VALUE,
+    ExifInterface.TAG_DATETIME,
+    ExifInterface.TAG_DATETIME_DIGITIZED,
+    ExifInterface.TAG_EXPOSURE_TIME,
+    ExifInterface.TAG_FLASH,
+    ExifInterface.TAG_FOCAL_LENGTH,
+    ExifInterface.TAG_GPS_ALTITUDE,
+    ExifInterface.TAG_GPS_ALTITUDE_REF,
+    ExifInterface.TAG_GPS_DATESTAMP,
+    ExifInterface.TAG_GPS_LATITUDE,
+    ExifInterface.TAG_GPS_LATITUDE_REF,
+    ExifInterface.TAG_GPS_LONGITUDE,
+    ExifInterface.TAG_GPS_LONGITUDE_REF,
+    ExifInterface.TAG_GPS_PROCESSING_METHOD,
+    ExifInterface.TAG_GPS_TIMESTAMP,
+    ExifInterface.TAG_IMAGE_LENGTH,
+    ExifInterface.TAG_IMAGE_WIDTH,
+    ExifInterface.TAG_ISO_SPEED,
+    ExifInterface.TAG_MAKE,
+    ExifInterface.TAG_MODEL,
+    ExifInterface.TAG_ORIENTATION,
+    ExifInterface.TAG_SUBSEC_TIME,
+    ExifInterface.TAG_SUBSEC_TIME_DIGITIZED,
+    ExifInterface.TAG_SUBSEC_TIME_ORIGINAL,
+    ExifInterface.TAG_WHITE_BALANCE
+)
+
+
+
+
+val gpsTags = arrayOf(
+    ExifInterface.TAG_GPS_ALTITUDE,
+    ExifInterface.TAG_GPS_ALTITUDE_REF,
+    ExifInterface.TAG_GPS_DATESTAMP,
+    ExifInterface.TAG_GPS_LATITUDE,
+    ExifInterface.TAG_GPS_LATITUDE_REF,
+    ExifInterface.TAG_GPS_LONGITUDE,
+    ExifInterface.TAG_GPS_LONGITUDE_REF,
+    ExifInterface.TAG_GPS_PROCESSING_METHOD,
+    ExifInterface.TAG_GPS_TIMESTAMP,
+)
+
+fun getLocationData(file: File): Maybe<Pair<Double, Double>> {
+    return Maybe.fromCallable<Pair<Double, Double>> {
+        val exif = ExifInterface(file)
+        val presentGpsTags = mutableListOf<String>()
+        for(attr in gpsTags) {
+            if(exif.hasAttribute(attr)) {
+                presentGpsTags.add(attr)
+            }
+        }
+        if(exif.latLong != null) {
+            LOGGER.info("The following GPS attributes were present: $presentGpsTags")
+            return@fromCallable exif.latLong!![1] to exif.latLong!![0]
+        } else {
+            return@fromCallable null
+        }
+
+    }
+}

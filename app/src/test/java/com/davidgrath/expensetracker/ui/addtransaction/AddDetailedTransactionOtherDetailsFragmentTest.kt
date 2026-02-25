@@ -54,6 +54,7 @@ import org.hamcrest.CoreMatchers.allOf
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -443,6 +444,19 @@ class AddDetailedTransactionOtherDetailsFragmentTest {
             .perform(click())
         val draft = addDetailedTransactionRepository.getDraftValue()
         assertEquals(accountId, draft.accountId)
+    }
+
+    /**
+     * This is basically a dummy test.
+     * Size limits are relevant to images since they can be reduced with relative ease, but refusing
+     * a document that's too large is only really relevant in the online version.
+     * Oh, and since I already have tests for size reduction in the main class for item images, I
+     * won't bother repeating them for documents
+     */
+    @Test
+    @Ignore
+    fun givenDocumentIsPdfAndDocumentSizeIsTooLargeWhenAddThenDoNothing() {
+        assertTrue(false)
     }
 
 

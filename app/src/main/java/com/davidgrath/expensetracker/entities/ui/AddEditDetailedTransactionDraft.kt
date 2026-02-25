@@ -16,6 +16,10 @@ data class AddEditDetailedTransactionDraft(
      * To prevent the user from adding duplicate images
      */
     val imageHashes: Map<String, Uri> = emptyMap(),
+    /**
+     * For images that the user modified and still selected the original afterwards
+     */
+    val sourceImageHashes: Map<String, String> = emptyMap(),
     val evidence: List<AddEditTransactionFile> = emptyList(),
     val evidenceHashes: Map<String, Uri> = emptyMap(),
     val note: String? = null,

@@ -22,7 +22,7 @@ class DescriptionSuggestionsAdapter(context: Context, val repository: Transactio
                 if(constraint == null) {
                     return FilterResults()
                 }
-                val suggestions = repository.getGenericSuggestions(TransactionRepository.SuggestionsField.Description, constraint as String).blockingGet()
+                val suggestions = repository.getGenericSuggestions(TransactionRepository.SuggestionsField.Description, constraint.toString()).blockingGet()
                 val results = FilterResults()
                 results.values = suggestions
                 results.count = suggestions.size

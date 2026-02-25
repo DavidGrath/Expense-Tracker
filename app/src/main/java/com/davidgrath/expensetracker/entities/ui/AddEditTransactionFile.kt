@@ -11,5 +11,10 @@ data class AddEditTransactionFile(
     /**
      * Should always be false if the item is new
      */
-    val dbIsLinked: Boolean = false
+    val dbIsLinked: Boolean = false,
+    /**
+     * If the image has had the location removed or the file size reduced or both, then this is the
+     * hash of the original file
+     */
+    val sourceSha256: String? = null
 )
