@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.transactiondetails
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +11,8 @@ import com.davidgrath.expensetracker.databinding.RecyclerviewTransactionDetailsI
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
 import com.davidgrath.expensetracker.formatDecimal
+import com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsActivity
+import com.davidgrath.expensetracker.utils.OnImageClickListener
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -63,7 +66,13 @@ class TransactionDetailsItemRecyclerAdapter(private var items: List<TransactionD
                 }
                 binding.textViewTransactionDetailsItemBrand.text = item.brand
                 binding.textViewTransactionDetailsItemCategoryName.text = item.primaryCategory.name
-                val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images)
+                val adapter = TransactionDetailsItemImagesRecyclerAdapter(item.images, object : OnImageClickListener {
+                    override fun onImageClicked(imageId: Long) {
+                        val intent = Intent(holder.binding.root.context, ImageDetailsActivity::class.java)
+                        ImageDetailsActivity.addExtras(intent, imageId, false)
+                        holder.binding.root.context.startActivity(intent)
+                    }
+                })
                 val layoutManager = GridLayoutManager(binding.root.context, 5)
                 binding.recyclerViewTransactionDetailsItemImages.adapter = adapter
                 binding.recyclerViewTransactionDetailsItemImages.layoutManager = layoutManager

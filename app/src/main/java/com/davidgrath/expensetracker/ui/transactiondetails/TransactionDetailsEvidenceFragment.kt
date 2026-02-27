@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.transactiondetails
 
+import android.content.Intent
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Bundle
@@ -12,9 +13,13 @@ import androidx.core.net.toFile
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.databinding.FragmentTransactionDetailsEvidenceBinding
 import com.davidgrath.expensetracker.entities.ui.EvidenceUi
 import com.davidgrath.expensetracker.loadRenderer
+import com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsActivity
+import com.davidgrath.expensetracker.ui.main.pdfdetails.PdfDetailsActivity
+import com.davidgrath.expensetracker.utils.DocumentClickListener
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
@@ -37,7 +42,20 @@ class TransactionDetailsEvidenceFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val adapter = TransactionDetailsEvidenceRecyclerAdapter(emptyList(), emptyMap())
+        val adapter = TransactionDetailsEvidenceRecyclerAdapter(emptyList(), emptyMap(), object: DocumentClickListener {
+            override fun onDocumentClicked(documentId: Long, mimeType: String) {
+                val intent: Intent
+                if(mimeType == Constants.MimeTypes.PDF.type) {
+                    intent = Intent(requireActivity(), PdfDetailsActivity::class.java)
+                    PdfDetailsActivity.addExtras(intent, documentId)
+                    startActivity(intent)
+                } else {
+                    intent = Intent(requireActivity(), ImageDetailsActivity::class.java)
+                    ImageDetailsActivity.addExtras(intent, documentId, true)
+                    startActivity(intent)
+                }
+            }
+        })
         val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerviewTransactionDetailsEvidence.adapter = adapter
         binding.recyclerviewTransactionDetailsEvidence.layoutManager = layoutManager

@@ -163,8 +163,8 @@ dependencies {
 //    androidTestImplementation libs.androidx.ui.test.junit4
 //    debugImplementation libs.androidx.ui.tooling
 //    debugImplementation libs.androidx.ui.test.manifest
-    implementation("io.getstream:photoview:1.0.1")
-//    implementation 'io.github.afreakyelf:Pdf-Viewer:2.2.2' //TODO Next commit
+    implementation("io.getstream:photoview:1.0.1") //I'm not using Kotlin 2 yet which the latest version of this library depends on. Do not upgrade
+    implementation 'io.github.afreakyelf:Pdf-Viewer:2.1.1'
     implementation(project(":materialDrawables"))
 }
 

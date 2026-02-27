@@ -9,8 +9,9 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.entities.ui.ImageUi
+import com.davidgrath.expensetracker.utils.OnImageClickListener
 
-class TransactionDetailsItemImagesRecyclerAdapter(private var images: List<ImageUi>): RecyclerView.Adapter<TransactionDetailsItemImagesRecyclerAdapter.TransactionDetailsItemImagesViewHolder>() {
+class TransactionDetailsItemImagesRecyclerAdapter(private var images: List<ImageUi>, private val listener: OnImageClickListener? = null): RecyclerView.Adapter<TransactionDetailsItemImagesRecyclerAdapter.TransactionDetailsItemImagesViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TransactionDetailsItemImagesViewHolder {
         val size = parent.context.resources.getDimensionPixelSize(R.dimen.add_transaction_item_image_size)
@@ -29,6 +30,7 @@ class TransactionDetailsItemImagesRecyclerAdapter(private var images: List<Image
             .into(image)
         image.setOnClickListener {
             //TODO Shared element transition
+            listener?.onImageClicked(imageUi.id)
         }
     }
 

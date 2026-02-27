@@ -5,33 +5,18 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.davidgrath.expensetracker.R
-import com.davidgrath.expensetracker.databinding.FragmentImageStatsBinding
 import com.davidgrath.expensetracker.databinding.RecyclerviewDocumentStatsBinding
-import com.davidgrath.expensetracker.databinding.RecyclerviewImageStatsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.db.views.EvidenceWithTransactionDateAndOrdinal
-import com.davidgrath.expensetracker.entities.db.views.ImageWithStats
-import com.davidgrath.expensetracker.entities.ui.EvidenceUi
-import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
 import com.davidgrath.expensetracker.formatBytes
-import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageRecyclerAdapter
-import com.davidgrath.expensetracker.ui.addtransaction.AddTransactionEvidenceRecyclerAdapter
-import com.ibm.icu.text.MeasureFormat
-import com.ibm.icu.util.Measure
-import com.ibm.icu.util.MeasureUnit
-import com.ibm.icu.util.MeasureUnit.BIT
+import com.davidgrath.expensetracker.utils.DocumentClickListener
 import org.slf4j.LoggerFactory
-import systems.uom.quantity.Information
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
-import javax.measure.Quantity
 
-class DocumentStatsRecyclerAdapter(private var items: List<EvidenceWithTransactionDateAndOrdinal>, var pdfRenderers: Map<Uri, PdfRenderer>, val timeAndLocaleHandler: TimeAndLocaleHandler): RecyclerView.Adapter<DocumentStatsRecyclerAdapter.DocumentStatsViewHolder>() {
+class DocumentStatsRecyclerAdapter(private var items: List<EvidenceWithTransactionDateAndOrdinal>, var pdfRenderers: Map<Uri, PdfRenderer>, val timeAndLocaleHandler: TimeAndLocaleHandler, val listener: DocumentClickListener? = null): RecyclerView.Adapter<DocumentStatsRecyclerAdapter.DocumentStatsViewHolder>() {
 
     //TODO Cache bitmaps, too
     private var pageZeroMaps = hashMapOf<PdfRenderer, PdfRenderer.Page>()
@@ -51,9 +36,9 @@ class DocumentStatsRecyclerAdapter(private var items: List<EvidenceWithTransacti
 
     override fun onBindViewHolder(holder: DocumentStatsViewHolder, position: Int) {
         val binding = holder.binding
-        val evidence = items[position]
-        val uri = Uri.parse(evidence.uri)
-        val mimeType = evidence.mimeType
+        val document = items[position]
+        val uri = Uri.parse(document.uri)
+        val mimeType = document.mimeType
 
         when(mimeType) {
             "image/jpeg", "image/png" -> {
@@ -92,9 +77,10 @@ class DocumentStatsRecyclerAdapter(private var items: List<EvidenceWithTransacti
 
         binding.imageViewDocumentStatsImage.setOnClickListener {
             //TODO Shared element transition
+            listener?.onDocumentClicked(document.id, document.mimeType)
         }
-        binding.textViewDocumentStatsSizeBytes.text = evidence.sizeBytes.formatBytes(timeAndLocaleHandler.getLocale())
-        binding.textViewDocumentStatsDate.text = evidence.transactionDatedAt
+        binding.textViewDocumentStatsSizeBytes.text = document.sizeBytes.formatBytes(timeAndLocaleHandler.getLocale())
+        binding.textViewDocumentStatsDate.text = document.transactionDatedAt
     }
 
     override fun getItemCount(): Int {

@@ -19,6 +19,7 @@ set swt_path=<appdatapath>Local\Android\Sdk\tools\lib\x86_64
 
 * Extend `+AppCompatActivity+` to maintain the new app theme
 * It seems that using `+ActivityScenarioRule+` won't work with this project because it causes the Activity's `+onCreate+` to be called before the database initialization method, `tempInit`
+* Please remember to use a text style for every new text view that is added where appropriate
 
 == To-Do
 

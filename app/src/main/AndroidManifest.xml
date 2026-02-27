@@ -30,6 +30,8 @@
         <activity android:name="com.davidgrath.expensetracker.ui.main.statistics.StatisticsFilterActivity" />
         <activity android:name="com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsActivity" />
         <activity android:name="com.davidgrath.expensetracker.ui.main.categories.AddCategoryActivity" />
+        <activity android:name="com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsActivity" />
+        <activity android:name="com.davidgrath.expensetracker.ui.main.pdfdetails.PdfDetailsActivity" />
 
         <provider
             android:authorities="${applicationId}.provider"

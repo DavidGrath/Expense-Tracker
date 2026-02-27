@@ -14,6 +14,7 @@ import com.davidgrath.expensetracker.entities.db.views.ImageWithStats
 import com.davidgrath.expensetracker.entities.ui.TransactionDetailItemUi
 import com.davidgrath.expensetracker.formatBytes
 import com.davidgrath.expensetracker.ui.addtransaction.AddDetailedTransactionGetImageRecyclerAdapter
+import com.davidgrath.expensetracker.utils.OnImageClickListener
 import com.ibm.icu.text.MeasureFormat
 import com.ibm.icu.util.Measure
 import com.ibm.icu.util.MeasureUnit
@@ -23,7 +24,9 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import javax.measure.Quantity
 
-class ImageStatsRecyclerAdapter(private var items: List<ImageWithStats>, val timeAndLocaleHandler: TimeAndLocaleHandler): RecyclerView.Adapter<ImageStatsRecyclerAdapter.ImageStatsViewHolder>() {
+class ImageStatsRecyclerAdapter(private var items: List<ImageWithStats>, val timeAndLocaleHandler: TimeAndLocaleHandler, private  var listener: OnImageClickListener? = null): RecyclerView.Adapter<ImageStatsRecyclerAdapter.ImageStatsViewHolder>() {
+
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageStatsViewHolder {
         val height = parent.width / 3
@@ -48,6 +51,7 @@ class ImageStatsRecyclerAdapter(private var items: List<ImageWithStats>, val tim
             .into(binding.imageViewImageStatsImage)
         binding.imageViewImageStatsImage.setOnClickListener {
             //TODO Shared element transition
+            listener?.onImageClicked(stat.id)
         }
         binding.textViewImageStatsTransactionCount.text = "${stat.transactionCount} transactions" //TODO Pluralization
         binding.textViewImageStatsItemCount.text = "${stat.itemCount} items" //TODO Pluralization

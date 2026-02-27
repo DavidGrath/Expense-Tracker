@@ -69,6 +69,9 @@ interface EvidenceDao {
             "WHERE a.profileId = :profileId " +
             "ORDER BY t.datedAt DESC, t.ordinal ASC")
     fun getAllByProfileIdSingle(profileId: Long): Single<List<EvidenceWithTransactionDateAndOrdinal>>
+
+    @Query("SELECT e.* FROM EvidenceDb e WHERE e.id=:id")
+    fun getByIdSingle(id: Long): Single<EvidenceDb>
     //endregion
 
     //region Update

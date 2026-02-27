@@ -1,5 +1,6 @@
 package com.davidgrath.expensetracker.ui.main.images
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,10 +10,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.databinding.FragmentImageStatsBinding
-import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.formatBytes
-import com.davidgrath.expensetracker.ui.main.MainViewModel
+import com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsActivity
+import com.davidgrath.expensetracker.utils.OnImageClickListener
 import javax.inject.Inject
 
 class ImageStatsFragment: Fragment() {
@@ -33,7 +34,13 @@ class ImageStatsFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val adapter = ImageStatsRecyclerAdapter(emptyList(), timeAndLocaleHandler)
+        val adapter = ImageStatsRecyclerAdapter(emptyList(), timeAndLocaleHandler, object: OnImageClickListener {
+            override fun onImageClicked(imageId: Long) {
+                val intent = Intent(requireActivity(), ImageDetailsActivity::class.java)
+                ImageDetailsActivity.addExtras(intent, imageId, false)
+                startActivity(intent)
+            }
+        })
         val layoutManager = GridLayoutManager(requireContext(), 3)
         binding.recyclerViewImages.adapter = adapter
         binding.recyclerViewImages.layoutManager = layoutManager

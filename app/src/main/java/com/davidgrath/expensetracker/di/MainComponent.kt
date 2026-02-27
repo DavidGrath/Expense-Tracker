@@ -22,8 +22,12 @@ import com.davidgrath.expensetracker.ui.main.categories.CategoriesViewModel
 import com.davidgrath.expensetracker.ui.main.categories.CategoriesViewModelFactory
 import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsFragment
 import com.davidgrath.expensetracker.ui.main.documents.DocumentStatsViewModelFactory
+import com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsActivity
+import com.davidgrath.expensetracker.ui.main.imagedetails.ImageDetailsViewModelFactory
 import com.davidgrath.expensetracker.ui.main.images.ImageStatsFragment
 import com.davidgrath.expensetracker.ui.main.images.ImageStatsViewModelFactory
+import com.davidgrath.expensetracker.ui.main.pdfdetails.PdfDetailsActivity
+import com.davidgrath.expensetracker.ui.main.pdfdetails.PdfDetailsViewModelFactory
 import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsActivity
 import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsViewModel
 import com.davidgrath.expensetracker.ui.main.statistics.FilteredTransactionsViewModelFactory
@@ -40,36 +44,67 @@ import javax.inject.Singleton
 @Singleton
 @Component(modules = [MainModule::class])
 interface MainComponent {
+    //region Daos
     fun categoryDao(): CategoryDao
     fun accountDao(): AccountDao
     fun profileDao(): ProfileDao
-    fun timeHandler(): TimeAndLocaleHandler
-    fun inject(mainViewModelFactory: MainViewModelFactory)
+
+    //endregion
+
+    //region Activities
+
+
     fun inject(addDetailedTransactionActivity: AddDetailedTransactionActivity)
     fun inject(transactionDetailsActivity: TransactionDetailsActivity)
-    fun inject(addDetailedTransactionOtherDetailsFragment: AddDetailedTransactionOtherDetailsFragment)
+    fun inject(mainActivity: MainActivity)
+    fun inject(addDetailedTransactionGetImageActivity: AddDetailedTransactionGetImageActivity)
+    fun inject(filteredTransactionsActivity: FilteredTransactionsActivity)
+    fun inject(imageDetailsActivity: ImageDetailsActivity)
+    fun inject(pdfDetailsActivity: PdfDetailsActivity)
+
+
+    //endregion
+
+    //region ViewModel  Factories
+
+    fun inject(mainViewModelFactory: MainViewModelFactory)
+    fun inject(imageStatsViewModelFactory: ImageStatsViewModelFactory)
+    fun inject(statisticsFilterViewModelFactory: StatisticsFilterViewModelFactory)
     fun inject(addDetailedTransactionGetImageViewModelFactory: AddDetailedTransactionGetImageViewModelFactory)
     fun inject(addDetailedTransactionViewModelFactory: AddDetailedTransactionViewModelFactory)
-    fun inject(transactionsFragment: TransactionsFragment)
-    fun inject(addDetailedTransactionMainFragment: AddDetailedTransactionMainFragment)
+    fun inject(filteredTransactionsViewModelFactory: FilteredTransactionsViewModelFactory)
+
+    fun inject(transactionDetailsViewModelFactory: TransactionDetailsViewModelFactory)
+    fun inject(imageDetailsViewModelFactory: ImageDetailsViewModelFactory)
+    fun inject(documentStatsViewModelFactory: DocumentStatsViewModelFactory)
+    fun inject(categoriesViewModelFactory: CategoriesViewModelFactory)
+    fun inject(pdfDetailsViewModelFactory: PdfDetailsViewModelFactory)
+
+
+    //endregion
+
+    //region Dialog Fragment
+
+
     fun inject(addAccountDialogFragment: AddAccountDialogFragment)
-    fun inject(addImageDialogFragment: AddImageDialogFragment)
-    fun inject(accountsFragment: AccountsFragment)
-    fun inject(statisticsFilterViewModelFactory: StatisticsFilterViewModelFactory)
-    fun inject(statisticsFilterWeekdaysFragment: StatisticsFilterWeekdaysFragment)
-    fun inject(statisticsFragment: StatisticsFragment)
     fun inject(weekDayDialogFragment: WeekDayDialogFragment)
     fun inject(yearDayDialogFragment: YearDayDialogFragment)
-    fun inject(mainActivity: MainActivity)
-    fun inject(imageStatsViewModelFactory: ImageStatsViewModelFactory)
-    fun inject(imageStatsFragment: ImageStatsFragment)
-    fun inject(addDetailedTransactionGetImageActivity: AddDetailedTransactionGetImageActivity)
-    fun inject(documentStatsFragment: DocumentStatsFragment)
-    fun inject(documentStatsViewModelFactory: DocumentStatsViewModelFactory)
-    fun inject(transactionDetailsItemsFragment: TransactionDetailsItemsFragment)
-    fun inject(filteredTransactionsViewModelFactory: FilteredTransactionsViewModelFactory)
-    fun inject(filteredTransactionsActivity: FilteredTransactionsActivity)
-    fun inject(transactionDetailsViewModelFactory: TransactionDetailsViewModelFactory)
     fun inject(addTransactionDialogFragment: AddTransactionDialogFragment)
-    fun inject(categoriesViewModelFactory: CategoriesViewModelFactory)
+
+    //endregion
+
+    fun timeHandler(): TimeAndLocaleHandler
+    fun inject(transactionsFragment: TransactionsFragment)
+    fun inject(addDetailedTransactionMainFragment: AddDetailedTransactionMainFragment)
+    fun inject(addImageDialogFragment: AddImageDialogFragment)
+    fun inject(accountsFragment: AccountsFragment)
+    fun inject(statisticsFilterWeekdaysFragment: StatisticsFilterWeekdaysFragment)
+    fun inject(statisticsFragment: StatisticsFragment)
+
+    fun inject(imageStatsFragment: ImageStatsFragment)
+    fun inject(documentStatsFragment: DocumentStatsFragment)
+
+
+    fun inject(transactionDetailsItemsFragment: TransactionDetailsItemsFragment)
+    fun inject(addDetailedTransactionOtherDetailsFragment: AddDetailedTransactionOtherDetailsFragment)
 }

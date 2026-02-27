@@ -63,6 +63,11 @@ class ImageRepository
 
     }
 
+    fun getImageSingle(id: Long): Single<ImageDb> {
+        return imageDao.getById(id)
+            .subscribeOn(Schedulers.io())
+    }
+
     companion object {
         private val LOGGER = LoggerFactory.getLogger(ImageRepository::class.java)
     }

@@ -28,4 +28,9 @@ class EvidenceRepository
         return evidenceDao.storageSum(profileId)
             .subscribeOn(Schedulers.io())
     }
+
+    fun getDocumentSingle(id: Long): Single<EvidenceDb> {
+        return evidenceDao.getByIdSingle(id)
+            .subscribeOn(Schedulers.io())
+    }
 }
