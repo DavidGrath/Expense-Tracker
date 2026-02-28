@@ -417,12 +417,14 @@ constructor(
                     val maxDayInMonth = month.maxLength()
                     var day = statisticsConfig.monthlyDayOfMonth
                     if(month == Month.FEBRUARY) {
-                        if(startDateMonth.isLeapYear) {
-                            LOGGER.info("isLeapYear, using 29")
-                            day = maxDayInMonth
-                        } else {
-                            LOGGER.info("isLeapYear false, using 28")
-                            day = 28
+                        if(day >= 28) {
+                            if (startDateMonth.isLeapYear) {
+                                LOGGER.info("isLeapYear, using 29")
+                                day = maxDayInMonth
+                            } else {
+                                LOGGER.info("isLeapYear false, using 28")
+                                day = 28
+                            }
                         }
                     } else if(day > maxDayInMonth){
                         LOGGER.info("monthlyDayOfMonth {} is greater than current month maximum {}, reducing", day, maxDayInMonth)

@@ -243,11 +243,22 @@ class MainViewModelTest {
             assertEquals(newToday, viewModel.statisticsConfig.filter.endDay)
             assertEquals(1, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
 
-            //Assert StartDate coerced to "today" if dayOfMonth set after "today"
+            //Assert EndDate coerced to "today" if dayOfMonth set after "today"
             newToday = LocalDate.parse("2025-05-15")
             timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
             viewModel.setMonthlyDayOfMonth(22)
             assertEquals(LocalDate.parse("2025-04-22"), viewModel.statisticsConfig.filter.startDay)
+            assertEquals(
+                22,
+                viewModel.statisticsConfig.filter.startDay!!.dayOfMonth
+            )
+            assertEquals(newToday, viewModel.statisticsConfig.filter.endDay)
+            assertEquals(15, viewModel.statisticsConfig.filter.endDay!!.dayOfMonth)
+            //Again but with February
+            newToday = LocalDate.parse("2025-02-15")
+            timeAndLocaleHandler.changeClock(Clock.fixed(newToday.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")))
+            viewModel.setMonthlyDayOfMonth(22)
+            assertEquals(LocalDate.parse("2025-01-22"), viewModel.statisticsConfig.filter.startDay)
             assertEquals(
                 22,
                 viewModel.statisticsConfig.filter.startDay!!.dayOfMonth
