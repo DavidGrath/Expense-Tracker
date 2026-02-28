@@ -76,8 +76,7 @@ constructor(
     val homeConfigLiveData : LiveData<HomeConfig> = _homeConfigLiveData
     val homeTotalIncome: LiveData<BigDecimal>
     val homeTotalExpense: LiveData<BigDecimal>
-    val statsTotalIncome: LiveData<BigDecimal>
-    val statsTotalExpense: LiveData<BigDecimal>
+    val statsTotalIncomeAndExpense: LiveData<Pair<BigDecimal, BigDecimal>>
     val statsTotalByDay: LiveData<Pair<List<DateAmountSummary>, List<DateAmountSummary>>>
     val statsTransactionAndItemCount: LiveData<TransactionAndItemCount>
     //TODO For refreshing at midnight
@@ -227,30 +226,30 @@ constructor(
             )
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
-        statsTotalIncome = statisticsConfigLiveData.switchMap {
+        statsTotalIncomeAndExpense = statisticsConfigLiveData.switchMap {
             val accountIds = it.filter.accountIds
             val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
             val categories = it.filter.categories
             val modes = it.filter.modes
             val sellers = it.filter.sellerIds
-            transactionRepository.getTotalIncome(profile.id!!,
+
+            val income = transactionRepository.getTotalIncome(profile.id!!,
                 it.filter.startDay?.toString(),
                 it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers
             )
-                .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
-        }
-        statsTotalExpense = statisticsConfigLiveData.switchMap {
-            val accountIds = it.filter.accountIds
-            val dates = getFilteredWeekDays(profile.id, it.filter, it.dateMode, timeAndLocaleHandler, transactionRepository)
-            val categories = it.filter.categories
-            val modes = it.filter.modes
-            val sellers = it.filter.sellerIds
-            transactionRepository.getTotalExpense(profile.id!!,
+
+
+
+            val expense = transactionRepository.getTotalExpense(profile.id!!,
                 it.filter.startDay?.toString(),
                 it.filter.endDay?.toString(), accountIds, dates, categories, modes, sellers
             )
+                Observable.combineLatest(income, expense) { i, e ->
+                    i to e
+                }
                 .toFlowable(BackpressureStrategy.BUFFER).toLiveData()
         }
+
         /*statsTotalByCategory = transactionRepository.getTotalSpentByCategory().map { list ->
             val mapped = list.mapIndexed { i, it ->
                 val cat = categoryDbToCategoryUi(it.first)

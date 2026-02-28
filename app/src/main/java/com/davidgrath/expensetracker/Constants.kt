@@ -28,6 +28,7 @@ class Constants {
         const val ALPHA_DISABLED = 0.2f
         const val IMAGE_SIZE_THRESHOLD = 1L * 1_024 * 1_024
         const val IMAGE_DIMENSION_THRESHOLD = 1_600
+        const val MAX_INPUT_AMOUNT = 5_000_000
     }
     class PreferenceKeys {
         class Device {

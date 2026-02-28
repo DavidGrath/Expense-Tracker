@@ -8,12 +8,14 @@ import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
+import androidx.core.content.ContextCompat
 import androidx.core.util.Pair
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.davidgrath.expensetracker.Constants.Companion.ALPHA_DISABLED
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.MaterialColors
+import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.databinding.FragmentStatisticsBinding
 import com.davidgrath.expensetracker.di.TimeAndLocaleHandler
 import com.davidgrath.expensetracker.entities.ui.StatisticsConfig
@@ -49,6 +51,7 @@ import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.format.FormatStyle
 import org.threeten.bp.temporal.ChronoUnit
 import org.threeten.bp.temporal.WeekFields
+import java.math.BigDecimal
 import javax.inject.Inject
 
 class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, NumberDialogFragment.NumberDialogListener,
@@ -168,11 +171,28 @@ class StatisticsFragment: Fragment(), OnClickListener, OnItemSelectedListener, N
                 binding.textViewStatisticsDateInfo.text = null
             }
         }
-        viewModel.statsTotalIncome.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTotalIncome.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
-        }
-        viewModel.statsTotalExpense.observe(viewLifecycleOwner) {
-            binding.textViewStatisticsTotalExpenses.text = formatDecimal(it, timeAndLocaleHandler.getLocale())
+        viewModel.statsTotalIncomeAndExpense.observe(viewLifecycleOwner) { (i, e) ->
+            binding.textViewStatisticsTotalIncome.text = formatDecimal(i, timeAndLocaleHandler.getLocale())
+            binding.textViewStatisticsTotalExpenses.text = formatDecimal(e, timeAndLocaleHandler.getLocale())
+            val compare = i.compareTo(e)
+            //TODO I'm still contemplating adding this to the home screen, but for now, no
+            if(compare == 0) {
+                LOGGER.info("Hiding income expense difference")
+                binding.textViewStatisticsTotalDifference.text = ""
+                binding.textViewStatisticsTotalDifference.visibility = View.GONE
+            } else if(compare > 0) {
+                LOGGER.info("Showing income expense difference")
+                binding.textViewStatisticsTotalDifference.visibility = View.VISIBLE
+                binding.textViewStatisticsTotalDifference.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_600))
+                val diff = i.subtract(e)
+                binding.textViewStatisticsTotalDifference.text = formatDecimal(diff, timeAndLocaleHandler.getLocale())
+            } else {
+                LOGGER.info("Showing income expense difference")
+                binding.textViewStatisticsTotalDifference.visibility = View.VISIBLE
+                binding.textViewStatisticsTotalDifference.setTextColor(ContextCompat.getColor(requireContext(), R.color.red_600))
+                val diff = e.subtract(i)
+                binding.textViewStatisticsTotalDifference.text = formatDecimal(diff, timeAndLocaleHandler.getLocale())
+            }
         }
         binding.barChartStatisticsCategories.legend.isEnabled = false
         binding.barChartStatisticsCategories.description.isEnabled = false

@@ -14,6 +14,7 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.Constants.Companion.MAX_CODEPOINT_LENGTH_MEDIUM
+import com.davidgrath.expensetracker.Constants.Companion.MAX_INPUT_AMOUNT
 import com.davidgrath.expensetracker.ExpenseTracker
 import com.davidgrath.expensetracker.R
 import com.davidgrath.expensetracker.accountDbToAccountUi
@@ -132,7 +133,7 @@ class AddTransactionDialogFragment : DialogFragment() {
         binding.spinnerAddTransactionAccount.onItemSelectedListener = accountListener
 
         binding.editTextAddTransactionAmount.setText(formatDecimal(amount?: BigDecimal.ZERO, timeAndLocaleHandler.getLocale()))
-        val amountWatcher = NumberFormatTextWatcher(binding.editTextAddTransactionAmount, BigDecimal(1_000_000), timeAndLocaleHandler.getLocale()) { amount ->
+        val amountWatcher = NumberFormatTextWatcher(binding.editTextAddTransactionAmount, BigDecimal(MAX_INPUT_AMOUNT), timeAndLocaleHandler.getLocale()) { amount ->
             this.amount = amount
         }
         binding.editTextAddTransactionAmount.addTextChangedListener(amountWatcher)

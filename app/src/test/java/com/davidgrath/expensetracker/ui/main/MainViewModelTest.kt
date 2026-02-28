@@ -449,7 +449,7 @@ class MainViewModelTest {
                 LOGGER.debug("Q: {}", it)
 //                countingResource.decrement()
             }
-            viewModel.statsTotalExpense.observe(it) {
+            viewModel.statsTotalIncomeAndExpense.observe(it) {
                 LOGGER.debug("R: {}", it)
 //                countingResource.decrement()
             }
@@ -461,7 +461,7 @@ class MainViewModelTest {
 
             var transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             var transactionCount = transactionAndItemCount.transactionCount
-            var debitSum = viewModel.statsTotalExpense.value!!
+            var debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
             assertEquals(30, transactionCount)
             assertEqualsBD(monthlySum, debitSum)
 
@@ -475,7 +475,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(totalMondaysAndSundaysInJune2025, transactionCount)
             assertEqualsBD(expectedSum, debitSum)
@@ -534,14 +534,14 @@ class MainViewModelTest {
             viewModel.statsTransactionAndItemCount.observe(it) {
                 countingResource.decrement()
             }
-            viewModel.statsTotalExpense.observe(it) {
+            viewModel.statsTotalIncomeAndExpense.observe(it) {
                 countingResource.decrement()
             }
             onView(withId(R.id.linear_layout_transactions_stats)).check(matches(isDisplayed())) //Dirty workaround to make sure the LiveData value is updated
 
             var transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             var transactionCount = transactionAndItemCount.transactionCount
-            var debitSum = viewModel.statsTotalExpense.value!!
+            var debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
             assertEquals(totalTransactionCount, transactionCount)
             assertEqualsBD(grandSum, debitSum)
 
@@ -553,7 +553,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(miscCount, transactionCount)
             assertEqualsBD(miscSum, debitSum)
@@ -567,7 +567,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(utilCount, transactionCount)
             assertEqualsBD(utilSum, debitSum)
@@ -581,7 +581,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(miscUtilCount, transactionCount)
             assertEqualsBD(miscUtilSum, debitSum)
@@ -594,7 +594,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(foodCount, transactionCount)
             assertEqualsBD(foodSum, debitSum)
@@ -608,7 +608,7 @@ class MainViewModelTest {
 
             transactionAndItemCount = viewModel.statsTransactionAndItemCount.value!!
             transactionCount = transactionAndItemCount.transactionCount
-            debitSum = viewModel.statsTotalExpense.value!!
+            debitSum = viewModel.statsTotalIncomeAndExpense.value!!.second
 
             assertEquals(entertainmentCount, transactionCount)
             assertEqualsBD(entertainmentSum, debitSum)

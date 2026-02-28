@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.davidgrath.expensetracker.Constants
 import com.davidgrath.expensetracker.Constants.Companion.ALPHA_DISABLED
+import com.davidgrath.expensetracker.Constants.Companion.MAX_INPUT_AMOUNT
 import com.davidgrath.expensetracker.utils.MaxCodePointWatcher
 import com.davidgrath.expensetracker.utils.NumberFormatTextWatcher
 import com.davidgrath.expensetracker.R
@@ -96,7 +97,7 @@ class AddTransactionItemRecyclerAdapter(private var categories: List<CategoryUi>
                         }
 //                    }
                 }*/
-                val newAmountWatcher = NumberFormatTextWatcher(binding.editTextAddDetailedTransactionItemAmount, BigDecimal(1_000_000), timeAndLocaleHandler.getLocale()) { amount ->
+                val newAmountWatcher = NumberFormatTextWatcher(binding.editTextAddDetailedTransactionItemAmount, BigDecimal(MAX_INPUT_AMOUNT), timeAndLocaleHandler.getLocale()) { amount ->
                     val absPosition = holder.absoluteAdapterPosition
                     var latestItem = _items[absPosition]
                     currentItem = absPosition
